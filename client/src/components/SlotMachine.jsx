@@ -1,14 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
 
 const REEL_TITLES = ['ช่องที่ 1 • จุดเริ่มต้น', 'ช่องที่ 2 • จุดพลิกผัน', 'ช่องที่ 3 • ชะตาปาฏิหาริย์'];
 const SPIN_EMOJIS = ['☕', '🪙', '💎', '🥐', '🍀', '🐜', '🛸', '👑', '🪓', '🎰', '🌸', '🐷', '🦆', '👻'];
 const IDLE_SLOTS = [
   { icon: '☕', label: 'Horizon', sub: 'พร้อมลุ้นดวง', tone: 'zero' },
-  { icon: '🎰', label: 'Lucky 3', sub: 'ดึงคันโยกเลย!', tone: 'win' },
+  { icon: '🎰', label: 'Lucky 3', sub: 'ลากคันโยกเลย!', tone: 'win' },
   { icon: '✨', label: 'Miracle', sub: '158+ อีเวนท์ป่วน', tone: 'miracle' }
 ];
 
-// 🔊 ตัวสังเคราะห์เสียงนุ่มๆ แนวคาเฟ่ผ่าน Web Audio API (ไม่ต้องพึ่งไฟล์ mp3)
+const LEVER_MAX_DRAG = 58;
+const LEVER_TRIGGER_Y = 34;
+
+// 🔊 ตัวสังเคราะห์เสียงนุ่มๆ แนวคาเฟ่ผ่าน Web Audio API
 function createCafeAudio() {
   let ctx = null;
   const getCtx = () => {
@@ -40,8 +44,8 @@ function createCafeAudio() {
 
   return {
     lever: () => {
-      tone(220, 0.07, 'triangle', 0.09, 0);
-      tone(150, 0.1, 'triangle', 0.08, 0.05);
+      tone(240, 0.07, 'triangle', 0.09, 0);
+      tone(155, 0.11, 'triangle', 0.08, 0.05);
     },
     tick: () => tone(520 + Math.random() * 140, 0.03, 'sine', 0.025),
     stop: (idx) => tone(440 + idx * 120, 0.12, 'triangle', 0.09),
@@ -64,7 +68,6 @@ function createCafeAudio() {
 
 export default function SlotMachine({
   isSpinning,
-  leverPulled,
   revealedCount,
   slots,
   outcomeType,
@@ -73,14 +76,22 @@ export default function SlotMachine({
   onPullLever
 }) {
   const [spinTick, setSpinTick] = useState(0);
+  const [isDraggingLever, setIsDraggingLever] = useState(false);
+
   const audioRef = useRef(null);
   const prevRevealedRef = useRef(0);
+  const draggedRef = useRef(false);
+
+  // ค่าฟิสิกส์การลากคันโยก (0 = บนสุด, 58 = ดึงสุด)
+  const leverY = useMotionValue(0);
+  const rodScaleY = useTransform(leverY, [0, LEVER_MAX_DRAG], [1, 0.22]);
+  const knobScale = useTransform(leverY, [0, LEVER_MAX_DRAG], [1, 1.1]);
+  const pullProgress = useTransform(leverY, [0, LEVER_TRIGGER_Y], [0, 1]);
 
   if (!audioRef.current) {
     audioRef.current = createCafeAudio();
   }
 
-  // หมุนสัญลักษณ์รัวๆ ระหว่างกำลัง Spin
   useEffect(() => {
     if (!isSpinning) return;
     const id = setInterval(() => {
@@ -90,14 +101,6 @@ export default function SlotMachine({
     return () => clearInterval(id);
   }, [isSpinning, soundEnabled]);
 
-  // เสียงตอนดึงคันโยก
-  useEffect(() => {
-    if (leverPulled && soundEnabled) {
-      audioRef.current.lever();
-    }
-  }, [leverPulled, soundEnabled]);
-
-  // เสียงตอนวงล้อหยุดทีละช่อง & เสียงเฉลยผลลัพธ์
   useEffect(() => {
     if (revealedCount > prevRevealedRef.current && revealedCount > 0) {
       if (soundEnabled) {
@@ -114,6 +117,54 @@ export default function SlotMachine({
     prevRevealedRef.current = revealedCount;
   }, [revealedCount, outcomeType, soundEnabled]);
 
+  const springLeverBack = () => {
+    animate(leverY, 0, { type: 'spring', stiffness: 360, damping: 18 });
+  };
+
+  const firePullAndSpin = () => {
+    if (disabled || isSpinning) return;
+    if (soundEnabled) audioRef.current.lever();
+    onPullLever();
+  };
+
+  // คลิกคันโยกหรือปุ่มมือถือ -> โยกลงอัตโนมัติแล้วดีดกลับ
+  const handleAutoPull = () => {
+    if (disabled || isSpinning) return;
+    animate(leverY, LEVER_MAX_DRAG, {
+      duration: 0.18,
+      ease: 'easeIn',
+      onComplete: () => {
+        firePullAndSpin();
+        setTimeout(springLeverBack, 160);
+      }
+    });
+  };
+
+  const handleKnobClick = () => {
+    if (draggedRef.current) {
+      draggedRef.current = false;
+      return;
+    }
+    handleAutoPull();
+  };
+
+  const handleDragStart = () => {
+    draggedRef.current = true;
+    setIsDraggingLever(true);
+  };
+
+  const handleDragEnd = (_, info) => {
+    setIsDraggingLever(false);
+    const pulledEnough = leverY.get() >= LEVER_TRIGGER_Y || info.offset.y >= LEVER_TRIGGER_Y;
+    springLeverBack();
+    if (pulledEnough) {
+      firePullAndSpin();
+    }
+    setTimeout(() => {
+      draggedRef.current = false;
+    }, 100);
+  };
+
   const finished = !isSpinning && revealedCount === 3 && slots && slots.length === 3;
 
   let shellClass = 'slot-machine-shell';
@@ -128,9 +179,15 @@ export default function SlotMachine({
   }
 
   const displaySlots = slots && slots.length === 3 ? slots : IDLE_SLOTS;
+  const canPull = !disabled && !isSpinning;
 
   return (
-    <section className={shellClass}>
+    <motion.section
+      className={shellClass}
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35 }}
+    >
       <div className="machine-header">
         <div className="machine-title">
           <span>🎰 HORIZON CAFE SLOT</span>
@@ -161,7 +218,6 @@ export default function SlotMachine({
               viewportClass += isAnticipating ? ' reel-spinning reel-anticipation' : ' reel-spinning';
             } else {
               viewportClass += ` tone-${item.tone || 'zero'}`;
-              if (isJustStopped) viewportClass += ' reel-stopped';
             }
 
             const e1 = SPIN_EMOJIS[(spinTick + idx * 3) % SPIN_EMOJIS.length];
@@ -179,11 +235,17 @@ export default function SlotMachine({
                       <span className="reel-spin-emoji">{e3}</span>
                     </div>
                   ) : (
-                    <div className="reel-card">
+                    <motion.div
+                      key={`${idx}-${item.icon}-${item.label}-${isJustStopped ? 'land' : 'idle'}`}
+                      className="reel-card"
+                      initial={isJustStopped ? { y: -26, scale: 0.9, opacity: 0.6 } : false}
+                      animate={{ y: 0, scale: 1, opacity: 1 }}
+                      transition={{ type: 'spring', stiffness: 420, damping: 20 }}
+                    >
                       <div className="reel-icon">{item.icon}</div>
                       <div className="reel-label">{item.label}</div>
                       <div className="reel-sub">{item.sub}</div>
-                    </div>
+                    </motion.div>
                   )}
                 </div>
               </div>
@@ -191,39 +253,60 @@ export default function SlotMachine({
           })}
         </div>
 
-        {/* คันโยกด้านขวาสำหรับจอคอม/แท็บเล็ต */}
+        {/* คันโยกที่จับลากลงได้จริงด้วย Framer Motion */}
         <div className="lever-assembly">
-          <button
-            type="button"
-            className={`lever-btn ${leverPulled ? 'lever-pulled' : ''}`}
-            onClick={onPullLever}
-            disabled={disabled || isSpinning}
-            title="คลิกเพื่อดึงคันโยกปั่นสล็อต"
-            aria-label="ดึงคันโยกปั่นสล็อต"
-          >
-            <div className="lever-stick-wrap">
-              <div className="lever-knob">{isSpinning ? '✨' : '🍒'}</div>
-              <div className="lever-rod" />
-            </div>
+          <div className={`lever-interactive-box ${canPull ? '' : 'is-disabled'}`}>
             <div className="lever-slot-mount">
-              <div className="lever-track" />
+              <div className="lever-track">
+                <motion.div className="lever-track-glow" style={{ opacity: pullProgress }} />
+              </div>
             </div>
-          </button>
-          <div className="lever-hint">{isSpinning ? 'กำลังหมุน...' : 'ดึงคันโยก\nปั่นรอบใหม่'}</div>
+
+            <motion.div className="lever-rod-dynamic" style={{ scaleY: rodScaleY }} />
+
+            <motion.div
+              className={`lever-knob-draggable ${isDraggingLever ? 'grabbing' : ''}`}
+              style={{ y: leverY, scale: knobScale }}
+              drag={canPull ? 'y' : false}
+              dragConstraints={{ top: 0, bottom: LEVER_MAX_DRAG }}
+              dragElastic={0.08}
+              dragMomentum={false}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+              onClick={handleKnobClick}
+              whileHover={canPull ? { scale: 1.07 } : undefined}
+              role="button"
+              tabIndex={canPull ? 0 : -1}
+              aria-label="ลากหรือคลิกคันโยกเพื่อปั่นสล็อต"
+              onKeyDown={(e) => {
+                if ((e.key === 'Enter' || e.key === ' ') && canPull) {
+                  e.preventDefault();
+                  handleAutoPull();
+                }
+              }}
+            >
+              <span>{isSpinning ? '✨' : '🍒'}</span>
+            </motion.div>
+          </div>
+
+          <div className="lever-hint">
+            {isSpinning ? 'กำลังหมุน...' : isDraggingLever ? 'ปล่อยเพื่อปั่น!' : 'ลากลง ↓\nหรือคลิก'}
+          </div>
         </div>
       </div>
 
       {/* ปุ่มกดถนัดมือสำหรับหน้าจอมือถือ */}
       <div className="mobile-spin-row">
-        <button
+        <motion.button
           type="button"
           className="btn-spin-main"
-          onClick={onPullLever}
-          disabled={disabled || isSpinning}
+          onClick={handleAutoPull}
+          disabled={!canPull}
+          whileTap={canPull ? { scale: 0.95 } : undefined}
         >
           {isSpinning ? '🎰 กำลังหมุนวงล้อชะตา...' : '🍒 โยกคันโยกปั่นสล็อต!'}
-        </button>
+        </motion.button>
       </div>
-    </section>
+    </motion.section>
   );
 }

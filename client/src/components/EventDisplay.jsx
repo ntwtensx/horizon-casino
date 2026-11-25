@@ -1,6 +1,6 @@
 import React from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-// แปลงรหัสอีโมจิ Discord <a:name:id> หรือ <:name:id> ให้เป็นรูป <img> อย่างปลอดภัย
 function renderDiscordText(rawText) {
   if (!rawText) return null;
   const regex = /<(a?):([a-zA-Z0-9_]+):(\d+)>/g;
@@ -67,11 +67,17 @@ export default function EventDisplay({
 
     return (
       <section className="event-panel">
-        <div className="event-idle">
+        <motion.div
+          key={`suspense-${revealedCount}`}
+          className="event-idle"
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.22 }}
+        >
           <div style={{ fontSize: '1.9rem' }}>✨</div>
           <div className="event-idle-title">{suspenseText}</div>
           <div style={{ fontSize: '0.8rem' }}>ทุกการโยกมีความป่วนสูง โปรดจับแก้วกาแฟไว้ให้แน่นค่ะ</div>
-        </div>
+        </motion.div>
       </section>
     );
   }
@@ -83,8 +89,8 @@ export default function EventDisplay({
           <div style={{ fontSize: '2rem' }}>🧁</div>
           <div className="event-idle-title">พร้อมวัดดวงกับ Horizon Casino แล้วหรือยังคะ?</div>
           <div style={{ fontSize: '0.84rem', maxWidth: 520, lineHeight: 1.5 }}>
-            ดึงคันโยกด้านขวาของตู้สล็อตเพื่อสุ่ม 3 ช่อง — ลุ้นได้ทั้งแจ็กพอต, หุ้นแลนด์มาร์กริมหน้าต่าง 5 โซน,
-            อีเวนท์ยืมเงินเพื่อน ไปจนถึงตรรกะวิบัติสุดปั่นกว่า 158 แบบ!
+            จับคันโยกด้านขวาของตู้สล็อตลากลงมา (หรือคลิก) เพื่อสุ่ม 3 ช่อง — ลุ้นได้ทั้งแจ็กพอต,
+            หุ้นแลนด์มาร์กริมหน้าต่าง 5 โซน, อีเวนท์ยืมเงินเพื่อน ไปจนถึงตรรกะวิบัติสุดปั่นกว่า 158 แบบ!
           </div>
         </div>
       </section>
@@ -97,36 +103,49 @@ export default function EventDisplay({
 
   return (
     <section className="event-panel">
-      <div className={`event-card outcome-${outcome.outcomeType || 'ZERO'}`}>
-        <div className="event-category-pill">{outcome.categoryHeader || '🌟 ผลการลุ้นดวง'}</div>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={`${spinResult.scratchCount}-${outcome.headline}`}
+          className={`event-card outcome-${outcome.outcomeType || 'ZERO'}`}
+          initial={{ opacity: 0, y: 14, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ type: 'spring', stiffness: 320, damping: 24 }}
+        >
+          <div className="event-category-pill">{outcome.categoryHeader || '🌟 ผลการลุ้นดวง'}</div>
 
-        <h2 className="event-headline">{outcome.headline}</h2>
+          <h2 className="event-headline">{outcome.headline}</h2>
 
-        <p className="event-message">{renderDiscordText(outcome.message)}</p>
+          <p className="event-message">{renderDiscordText(outcome.message)}</p>
 
-        {outcome.equationText && (
-          <div className="event-equation">
-            <strong>🧮 สมการคำนวณดวง</strong>
-            <span>{outcome.equationText}</span>
+          {outcome.equationText && (
+            <div className="event-equation">
+              <strong>🧮 สมการคำนวณดวง</strong>
+              <span>{outcome.equationText}</span>
+            </div>
+          )}
+
+          <div className={`event-balance-diff ${diffClass}`}>
+            สรุปกระเป๋าตังค์: {Number(previousBalance || 0).toLocaleString()} ➔{' '}
+            {Number(newBalance || 0).toLocaleString()} เหรียญทอง (
+            {delta > 0 ? `+${delta.toLocaleString()}` : delta.toLocaleString()})
           </div>
-        )}
 
-        <div className={`event-balance-diff ${diffClass}`}>
-          สรุปกระเป๋าตังค์: {Number(previousBalance || 0).toLocaleString()} ➔{' '}
-          {Number(newBalance || 0).toLocaleString()} เหรียญทอง (
-          {delta > 0 ? `+${delta.toLocaleString()}` : delta.toLocaleString()})
-        </div>
-
-        {isBrandNewStamp && matchedStamp && (
-          <button
-            type="button"
-            className="stamp-unlock-banner"
-            onClick={() => onOpenStampBook(matchedStamp.category)}
-          >
-            🆕 ปลดล็อกแสตมป์ใหม่: {matchedStamp.icon} {matchedStamp.title}
-          </button>
-        )}
-      </div>
+          {isBrandNewStamp && matchedStamp && (
+            <motion.button
+              type="button"
+              className="stamp-unlock-banner"
+              onClick={() => onOpenStampBook(matchedStamp.category)}
+              initial={{ scale: 0.85, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.96 }}
+            >
+              🆕 ปลดล็อกแสตมป์ใหม่: {matchedStamp.icon} {matchedStamp.title}
+            </motion.button>
+          )}
+        </motion.div>
+      </AnimatePresence>
     </section>
   );
 }
