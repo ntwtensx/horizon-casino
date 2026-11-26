@@ -1,9 +1,10 @@
 const mongoose = require('mongoose');
 
-// 👤 Schema ผู้เล่น: อ้างอิงคอลเลกชัน users เดียวกับบอท Discord โดยตรง
+// 👤 Schema ผู้เล่น: แชร์คอลเลกชัน users ร่วมกันระหว่างบอท Discord และผู้เล่นที่สมัครผ่านเว็บ
 const userSchema = new mongoose.Schema(
   {
     discordId: { type: String, required: true, unique: true, index: true },
+    accountType: { type: String, enum: ['discord', 'web'], default: 'discord' },
     name: { type: String, default: '' },
     username: { type: String, default: '' },
     avatarUrl: { type: String, default: '' },

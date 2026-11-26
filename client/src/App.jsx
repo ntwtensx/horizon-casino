@@ -18,6 +18,9 @@ const DEFAULT_LANDMARKS = [
   { id: 'RIVER', icon: '🏞️', name: 'แม่น้ำภูเขา', owned: false }
 ];
 
+const MENU_HOLD_MS = 1500; // ค้างหน้าเมนูคาเฟ่ 1.5 วินาทีก่อนพลิกการ์ด
+const FLIP_WAVE_STEP_MS = 100; // พลิกไล่เวฟทีละใบห่างกัน 0.1 วินาที
+
 function getStatusPill(balance, isTopSultan) {
   const bal = Number(balance || 0);
   if (isTopSultan && bal > 0) return { cls: 'sultan', text: '👑 สุลต่านคาเฟ่' };
@@ -39,20 +42,23 @@ export default function App() {
   const [stampModalState, setStampModalState] = useState({ open: false, category: 'ALL' });
   const [soundEnabled, setSoundEnabled] = useState(true);
 
-  // สถานะตู้สล็อต & เอฟเฟค
-  const [isSpinning, setIsSpinning] = useState(false);
-  const [revealedCount, setRevealedCount] = useState(0);
+  // เฟสสล็อต 2 จังหวะ: IDLE -> SPINNING -> MENU_SHOW -> FLIPPING -> REVEALED
+  const [spinPhase, setSpinPhase] = useState('IDLE');
+  const [menuRevealedCount, setMenuRevealedCount] = useState(0);
+  const [flippedCount, setFlippedCount] = useState(0);
   const [spinResult, setSpinResult] = useState(null);
   const [isBrandNewStamp, setIsBrandNewStamp] = useState(false);
   const [spinError, setSpinError] = useState('');
   const [floatingDelta, setFloatingDelta] = useState(null);
 
   const timersRef = useRef([]);
+  const flipStartedRef = useRef(false);
+  const pendingPayloadRef = useRef(null);
 
-  const clearTimers = () => {
+  const clearTimers = useCallback(() => {
     timersRef.current.forEach((id) => clearTimeout(id));
     timersRef.current = [];
-  };
+  }, []);
 
   const loadCasinoData = useCallback(async () => {
     setLoadingInit(true);
@@ -71,7 +77,7 @@ export default function App() {
   useEffect(() => {
     loadCasinoData();
     return () => clearTimers();
-  }, [loadCasinoData]);
+  }, [loadCasinoData, clearTimers]);
 
   const maxWallet = useMemo(
     () => Math.max(0, ...players.map((p) => Number(p.walletBalance || 0))),
@@ -89,121 +95,174 @@ export default function App() {
     return (stampCatalog.stamps || []).find((s) => s.id === id) || null;
   }, [spinResult, stampCatalog]);
 
-  // คำนวณอารมณ์ฉากหลังสำหรับ CafeParticles
   const particleMood = useMemo(() => {
-    if (isSpinning) return 'spinning';
+    if (spinPhase === 'SPINNING' || spinPhase === 'FLIPPING') return 'spinning';
     const t = spinResult?.outcome?.outcomeType;
-    if (revealedCount < 3 || !t) return 'idle';
+    if (spinPhase !== 'REVEALED' || !t) return 'idle';
     if (t === 'MIRACLE') return 'miracle';
     if (t === 'JACKPOT' || t === 'WIN') return 'win';
     if (['DIVIDER', 'TAX', 'THEFT'].includes(t)) return 'bad';
     return 'idle';
-  }, [isSpinning, revealedCount, spinResult]);
+  }, [spinPhase, spinResult]);
+
+  const isBusy = spinPhase === 'SPINNING' || spinPhase === 'MENU_SHOW' || spinPhase === 'FLIPPING';
 
   const handleAuthenticated = (player, pin) => {
+    clearTimers();
+    flipStartedRef.current = false;
+    pendingPayloadRef.current = null;
     setActivePlayer(player);
     setVerifiedPin(pin);
     setAuthModalOpen(false);
+    setSpinPhase('IDLE');
+    setMenuRevealedCount(0);
+    setFlippedCount(0);
     setSpinResult(null);
-    setRevealedCount(0);
     setSpinError('');
     setFloatingDelta(null);
-    setPlayers((prev) => prev.map((p) => (p.userId === player.userId ? { ...p, hasPin: true } : p)));
+
+    // รองรับทั้งผู้ใช้เดิมและบัญชีที่เพิ่งสมัครใหม่บนเว็บ (web_)
+    setPlayers((prev) => {
+      const exists = prev.some((p) => p.userId === player.userId);
+      const updated = exists
+        ? prev.map((p) => (p.userId === player.userId ? { ...p, ...player, hasPin: true } : p))
+        : [...prev, { ...player, hasPin: true }];
+      return updated.sort((a, b) => a.displayName.localeCompare(b.displayName, 'th'));
+    });
   };
+
+  // เริ่มเวฟพลิกการ์ด 3D ไล่ทีละใบ (0ms -> +100ms -> +200ms) แล้วค่อยเฉลยยอดเงิน & พลุ
+  const startFlipWave = useCallback(
+    (res, brandNew) => {
+      if (!res || flipStartedRef.current) return;
+      flipStartedRef.current = true;
+      clearTimers();
+
+      setSpinPhase('FLIPPING');
+      setFlippedCount(1);
+
+      timersRef.current.push(setTimeout(() => setFlippedCount(2), FLIP_WAVE_STEP_MS));
+      timersRef.current.push(setTimeout(() => setFlippedCount(3), FLIP_WAVE_STEP_MS * 2));
+
+      // รอให้การ์ดใบที่ 3 พลิกจบแล้วค่อยอัปเดตตัวเลขและยิงเอฟเฟค
+      timersRef.current.push(
+        setTimeout(() => {
+          setSpinPhase('REVEALED');
+
+          setActivePlayer((curr) =>
+            curr
+              ? {
+                  ...curr,
+                  walletBalance: res.newBalance,
+                  scratchCount: res.scratchCount,
+                  collectedStamps: res.collectedStamps || curr.collectedStamps
+                }
+              : curr
+          );
+
+          const delta = Number(res.outcome?.delta || 0);
+          if (delta !== 0) {
+            setFloatingDelta({ id: Date.now(), value: delta });
+            timersRef.current.push(setTimeout(() => setFloatingDelta(null), 1900));
+          }
+
+          fireOutcomeEffect(
+            res.outcome?.outcomeType,
+            brandNew,
+            res.outcome?.slots?.[0]?.icon || ''
+          );
+          if (brandNew) {
+            timersRef.current.push(setTimeout(() => fireStampUnlockBurst(), 360));
+          }
+
+          const friendMap = new Map((res.affectedFriends || []).map((f) => [f.userId, f.newBalance]));
+          setPlayers((prev) =>
+            prev.map((p) => {
+              if (p.userId === res.userId) {
+                return {
+                  ...p,
+                  walletBalance: res.newBalance,
+                  scratchCount: res.scratchCount,
+                  collectedStamps: res.collectedStamps || p.collectedStamps
+                };
+              }
+              if (friendMap.has(p.userId)) {
+                return { ...p, walletBalance: friendMap.get(p.userId) };
+              }
+              return p;
+            })
+          );
+
+          if (Array.isArray(res.landmarks) && res.landmarks.length === 5) {
+            setLandmarks(res.landmarks);
+          }
+          if (typeof res.tipJar === 'number') {
+            setTipJar(res.tipJar);
+          }
+        }, FLIP_WAVE_STEP_MS * 2 + 340)
+      );
+    },
+    [clearTimers]
+  );
+
+  const handleQuickFlip = useCallback(() => {
+    if (spinPhase !== 'MENU_SHOW' || !pendingPayloadRef.current) return;
+    const { res, brandNew } = pendingPayloadRef.current;
+    startFlipWave(res, brandNew);
+  }, [spinPhase, startFlipWave]);
 
   const handlePullLever = async () => {
     if (!activePlayer) {
       setAuthModalOpen(true);
       return;
     }
-    if (isSpinning) return;
+    if (isBusy) return;
 
     clearTimers();
+    flipStartedRef.current = false;
+    pendingPayloadRef.current = null;
+
     setSpinError('');
     setIsBrandNewStamp(false);
     setFloatingDelta(null);
-    setIsSpinning(true);
-    setRevealedCount(0);
+    setSpinPhase('SPINNING');
+    setMenuRevealedCount(0);
+    setFlippedCount(0);
 
     const prevStamps = new Set(activePlayer.collectedStamps || []);
     const spinStartedAt = Date.now();
     const res = await casinoApi.spin(activePlayer.userId, verifiedPin);
 
     if (!res.ok) {
-      setIsSpinning(false);
+      setSpinPhase('IDLE');
       setSpinError(res.error || 'ไม่สามารถหมุนสล็อตได้ในขณะนี้ค่ะ');
       return;
     }
 
     const brandNew = Boolean(res.unlockedStampId && !prevStamps.has(res.unlockedStampId));
+    pendingPayloadRef.current = { res, brandNew };
     setSpinResult(res);
     setIsBrandNewStamp(brandNew);
 
+    // เฟส 1: หยุดวงล้อเผยเมนูคาเฟ่ทีละช่อง (เครื่องดื่ม -> ท็อปปิ้ง -> ขนมทานเล่น)
     const elapsed = Date.now() - spinStartedAt;
-    const stop1Delay = Math.max(250, 900 - elapsed);
-    const stop2Delay = stop1Delay + 700;
-    const stop3Delay = stop2Delay + 950;
+    const stop1Delay = Math.max(240, 880 - elapsed);
+    const stop2Delay = stop1Delay + 640;
+    const stop3Delay = stop2Delay + 760;
 
-    timersRef.current.push(setTimeout(() => setRevealedCount(1), stop1Delay));
-    timersRef.current.push(setTimeout(() => setRevealedCount(2), stop2Delay));
+    timersRef.current.push(setTimeout(() => setMenuRevealedCount(1), stop1Delay));
+    timersRef.current.push(setTimeout(() => setMenuRevealedCount(2), stop2Delay));
     timersRef.current.push(
       setTimeout(() => {
-        setRevealedCount(3);
-        setIsSpinning(false);
+        setMenuRevealedCount(3);
+        setSpinPhase('MENU_SHOW');
 
-        // อัปเดตยอดเหรียญ (NumberFlow จะกลิ้งตัวเลขให้เองอัตโนมัติ)
-        setActivePlayer((curr) =>
-          curr
-            ? {
-                ...curr,
-                walletBalance: res.newBalance,
-                scratchCount: res.scratchCount,
-                collectedStamps: res.collectedStamps || curr.collectedStamps
-              }
-            : curr
+        // เฟส 2: ค้างโชว์เมนู 1.5 วินาที แล้วสั่งพลิกการ์ด 3D ไล่เวฟอัตโนมัติ
+        timersRef.current.push(
+          setTimeout(() => {
+            startFlipWave(res, brandNew);
+          }, MENU_HOLD_MS)
         );
-
-        // แสดงป้ายตัวเลข + / - ลอยขึ้นเหนือช่องกระเป๋าตังค์
-        const delta = Number(res.outcome?.delta || 0);
-        if (delta !== 0) {
-          setFloatingDelta({ id: Date.now(), value: delta });
-          timersRef.current.push(setTimeout(() => setFloatingDelta(null), 1900));
-        }
-
-        // ยิงเอฟเฟคพลุ / อิโมจิตามผลลัพธ์
-        fireOutcomeEffect(
-          res.outcome?.outcomeType,
-          brandNew,
-          res.outcome?.slots?.[0]?.icon || ''
-        );
-        if (brandNew) {
-          timersRef.current.push(setTimeout(() => fireStampUnlockBurst(), 360));
-        }
-
-        const friendMap = new Map((res.affectedFriends || []).map((f) => [f.userId, f.newBalance]));
-        setPlayers((prev) =>
-          prev.map((p) => {
-            if (p.userId === res.userId) {
-              return {
-                ...p,
-                walletBalance: res.newBalance,
-                scratchCount: res.scratchCount,
-                collectedStamps: res.collectedStamps || p.collectedStamps
-              };
-            }
-            if (friendMap.has(p.userId)) {
-              return { ...p, walletBalance: friendMap.get(p.userId) };
-            }
-            return p;
-          })
-        );
-
-        if (Array.isArray(res.landmarks) && res.landmarks.length === 5) {
-          setLandmarks(res.landmarks);
-        }
-        if (typeof res.tipJar === 'number') {
-          setTipJar(res.tipJar);
-        }
       }, stop3Delay)
     );
   };
@@ -217,7 +276,6 @@ export default function App() {
       <CafeParticles mood={particleMood} landmarks={landmarks} />
 
       <div className="cafe-app">
-        {/* แถบบน Cafe HUD */}
         <header className="cafe-hud">
           <div className="hud-top">
             <div className="hud-brand">
@@ -268,7 +326,7 @@ export default function App() {
                 type="button"
                 className="btn-pill"
                 onClick={() => setAuthModalOpen(true)}
-                disabled={isSpinning}
+                disabled={isBusy}
               >
                 👤 เปลี่ยนผู้เล่น
               </button>
@@ -291,6 +349,9 @@ export default function App() {
                     <span>{activePlayer.displayName}</span>
                     <span className="player-nick">
                       {activePlayer.nickname ? `คุณ${activePlayer.nickname}` : `@${activePlayer.username}`}
+                    </span>
+                    <span className={`account-type-tag ${activePlayer.accountType === 'web' ? 'web' : 'discord'}`}>
+                      {activePlayer.accountType === 'web' ? '🌐 เว็บ' : '💬 Discord'}
                     </span>
                   </div>
                   <div className="player-sub-row">
@@ -335,23 +396,27 @@ export default function App() {
 
         <main className="casino-stage">
           <SlotMachine
-            isSpinning={isSpinning}
-            revealedCount={revealedCount}
+            spinPhase={spinPhase}
+            menuRevealedCount={menuRevealedCount}
+            flippedCount={flippedCount}
+            cafeMenuItems={spinResult?.outcome?.cafeMenu?.items}
             slots={spinResult?.outcome?.slots}
             outcomeType={spinResult?.outcome?.outcomeType}
             soundEnabled={soundEnabled}
             disabled={!activePlayer}
             onPullLever={handlePullLever}
+            onQuickFlip={handleQuickFlip}
           />
 
           <EventDisplay
-            isSpinning={isSpinning}
-            revealedCount={revealedCount}
+            spinPhase={spinPhase}
+            menuRevealedCount={menuRevealedCount}
             spinResult={spinResult}
             isBrandNewStamp={isBrandNewStamp}
             matchedStamp={matchedStamp}
             errorMsg={spinError}
             onOpenStampBook={(cat) => setStampModalState({ open: true, category: cat || 'ALL' })}
+            onQuickFlip={handleQuickFlip}
           />
         </main>
 

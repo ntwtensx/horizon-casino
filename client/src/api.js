@@ -14,6 +14,11 @@ async function request(path, options = {}) {
 
 export const casinoApi = {
   init: () => request(`/init?t=${Date.now()}`),
+  register: (displayName, pin, confirmPin, avatarUrl) =>
+    request('/register', {
+      method: 'POST',
+      body: JSON.stringify({ displayName, pin, confirmPin, avatarUrl })
+    }),
   setPin: (userId, pin, confirmPin) =>
     request('/set-pin', {
       method: 'POST',

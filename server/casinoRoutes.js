@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const express = require('express');
 const { User, CasinoState } = require('./models');
 const {
@@ -16,6 +17,7 @@ const DEFAULT_AVATAR = 'https://cdn.discordapp.com/embed/avatars/0.png';
 
 const spinCooldownMap = new Map();
 const pinVerifyAttemptMap = new Map();
+const registerRateMap = new Map();
 
 const setNoCacheHeaders = (res) =>
   res.set({
@@ -28,12 +30,15 @@ const setNoCacheHeaders = (res) =>
 const clampCoins = (val) =>
   Math.max(MIN_WALLET_CAP, Math.min(MAX_WALLET_CAP, Math.round(Number(val || 0))));
 
-// 🛡️ เสริม: มอบยศ Discord ผ่าน REST API (ทำงานเฉพาะเมื่อตั้งค่า DISCORD_BOT_TOKEN & DISCORD_GUILD_ID ใน .env)
+const escapeRegex = (str) => String(str || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// 🛡️ เสริม: มอบยศ Discord ผ่าน REST API (ข้ามอัตโนมัติสำหรับบัญชีที่สมัครจากเว็บ web_)
 async function tryAssignDiscordPinRole(userId) {
+  if (!userId || String(userId).startsWith('web_')) return;
   const token = process.env.DISCORD_BOT_TOKEN;
   const guildId = process.env.DISCORD_GUILD_ID;
   const roleId = process.env.CASINO_PIN_ROLE_ID || '1565847680893063278';
-  if (!token || !guildId || !roleId || !userId) return;
+  if (!token || !guildId || !roleId) return;
 
   try {
     await fetch(
@@ -51,7 +56,7 @@ async function tryAssignDiscordPinRole(userId) {
   }
 }
 
-// 🏰 โหลดสถานะโลกร่วมของคาสิโนจาก MongoDB (สร้างใหม่ให้อัตโนมัติถ้ายังไม่มี)
+// 🏰 โหลดสถานะโลกร่วมของคาสิโนจาก MongoDB
 async function loadWorldState() {
   let doc = await CasinoState.findOne({ key: 'global' }).lean();
   if (!doc) {
@@ -73,7 +78,6 @@ async function loadWorldState() {
     doc = created.toObject();
   }
 
-  // ตรวจสอบให้ครบ 5 โซนเสมอ
   const existingMap = new Map((doc.landmarks || []).map((l) => [l.id, l]));
   const normalizedLandmarks = DEFAULT_LANDMARKS_META.map((meta) => {
     const saved = existingMap.get(meta.id);
@@ -120,35 +124,38 @@ async function saveWorldState(stateObj) {
   );
 }
 
-// 📋 ดึงรายชื่อสมาชิกทั้งหมดจากฐานข้อมูล Discord (users)
+// 🧩 แปลง Document ผู้ใช้เป็นอ็อบเจกต์มาตรฐานสำหรับหน้าเว็บ
+function formatPlayerDoc(u) {
+  const hasSavedPin = Boolean(u.casinoPin && /^\d{4}$/.test(String(u.casinoPin).trim()));
+  const cleanStamps = Array.isArray(u.collectedStamps)
+    ? u.collectedStamps.filter((id) => id && !String(id).startsWith('ST_'))
+    : [];
+  const displayName =
+    (u.name && u.name.trim()) ||
+    (u.nickname && u.nickname.trim()) ||
+    (u.username && u.username.trim()) ||
+    'สมาชิกคาเฟ่';
+  const accountType =
+    u.accountType || (String(u.discordId || '').startsWith('web_') ? 'web' : 'discord');
+
+  return {
+    userId: u.discordId,
+    accountType,
+    username: (u.username || '').trim() || 'member',
+    displayName,
+    nickname: (u.nickname || '').trim(),
+    avatar: (u.avatarUrl && u.avatarUrl.trim()) || DEFAULT_AVATAR,
+    walletBalance: typeof u.walletBalance === 'number' ? u.walletBalance : 0,
+    scratchCount: Number(u.scratchCount || 0),
+    hasPin: hasSavedPin,
+    collectedStamps: cleanStamps
+  };
+}
+
+// 📋 ดึงรายชื่อสมาชิกทั้งหมด (ทั้ง Discord และผู้เล่นที่สมัครผ่านเว็บ)
 async function buildPlayersRoster() {
   const dbUsers = await User.find({}).lean();
-  const players = dbUsers
-    .filter((u) => u && u.discordId)
-    .map((u) => {
-      const hasSavedPin = Boolean(u.casinoPin && /^\d{4}$/.test(String(u.casinoPin).trim()));
-      const cleanStamps = Array.isArray(u.collectedStamps)
-        ? u.collectedStamps.filter((id) => id && !String(id).startsWith('ST_'))
-        : [];
-      const displayName =
-        (u.name && u.name.trim()) ||
-        (u.nickname && u.nickname.trim()) ||
-        (u.username && u.username.trim()) ||
-        'สมาชิกคาเฟ่';
-
-      return {
-        userId: u.discordId,
-        username: (u.username || '').trim() || 'member',
-        displayName,
-        nickname: (u.nickname || '').trim(),
-        avatar: (u.avatarUrl && u.avatarUrl.trim()) || DEFAULT_AVATAR,
-        walletBalance: typeof u.walletBalance === 'number' ? u.walletBalance : 0,
-        scratchCount: Number(u.scratchCount || 0),
-        hasPin: hasSavedPin,
-        collectedStamps: cleanStamps
-      };
-    });
-
+  const players = dbUsers.filter((u) => u && u.discordId).map(formatPlayerDoc);
   return players.sort((a, b) => a.displayName.localeCompare(b.displayName, 'th'));
 }
 
@@ -172,7 +179,96 @@ router.get('/init', async (req, res) => {
 });
 
 // ==========================================
-// 🔐 2. ตั้งรหัส PIN 4 หลักใหม่ (POST /api/casino/set-pin)
+// ✨ 2. สมัครบัญชีผู้เล่นใหม่จากหน้าเว็บ (POST /api/casino/register)
+// ==========================================
+router.post('/register', async (req, res) => {
+  setNoCacheHeaders(res);
+  try {
+    const clientIp =
+      String(req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown')
+        .split(',')[0]
+        .trim();
+
+    const now = Date.now();
+    const recentHits = (registerRateMap.get(clientIp) || []).filter((ts) => now - ts < 60 * 60 * 1000);
+    if (recentHits.length >= 6) {
+      return res.status(429).json({
+        ok: false,
+        error: 'มีการสมัครสมาชิกถี่เกินไป กรุณารอสักครู่แล้วลองใหม่นะคะ'
+      });
+    }
+
+    const { displayName, pin, confirmPin, avatarUrl } = req.body || {};
+    const cleanName = String(displayName || '').trim().replace(/\s+/g, ' ');
+    const cleanPin = String(pin || '').trim();
+    const cleanConfirm = String(confirmPin || '').trim();
+
+    if (cleanName.length < 2 || cleanName.length > 24) {
+      return res.status(400).json({
+        ok: false,
+        error: 'กรุณาตั้งชื่อความยาว 2 ถึง 24 ตัวอักษรค่ะ'
+      });
+    }
+
+    if (!/^\d{4}$/.test(cleanPin) || cleanPin !== cleanConfirm) {
+      return res.status(400).json({
+        ok: false,
+        error: 'กรุณาตั้งรหัส PIN ตัวเลข 4 หลักและยืนยันให้ตรงกันค่ะ'
+      });
+    }
+
+    // ตรวจสอบไม่ให้ชื่อซ้ำกับสมาชิกที่มีอยู่แล้ว (ทั้ง Discord และเว็บ)
+    const dupRegex = new RegExp(`^${escapeRegex(cleanName)}$`, 'i');
+    const duplicate = await User.findOne({
+      $or: [{ name: dupRegex }, { nickname: dupRegex }]
+    })
+      .select('discordId')
+      .lean();
+
+    if (duplicate) {
+      return res.status(409).json({
+        ok: false,
+        error: `ชื่อ "${cleanName}" มีสมาชิกใช้งานแล้ว กรุณาใช้ชื่ออื่นนะคะ`
+      });
+    }
+
+    // ตรวจสอบลิงก์รูปโปรไฟล์ให้ปลอดภัย (อนุญาตเฉพาะ https://)
+    const safeAvatar =
+      typeof avatarUrl === 'string' && /^https:\/\/[^\s"'<>]+$/i.test(avatarUrl.trim())
+        ? avatarUrl.trim().slice(0, 300)
+        : `https://api.dicebear.com/9.x/adventurer/svg?seed=${encodeURIComponent(cleanName)}&backgroundColor=f3e7d8`;
+
+    const webId = `web_${crypto.randomBytes(6).toString('hex')}`;
+    const webHandle = `guest_${crypto.randomBytes(3).toString('hex')}`;
+
+    const createdDoc = await User.create({
+      discordId: webId,
+      accountType: 'web',
+      name: cleanName,
+      nickname: cleanName,
+      username: webHandle,
+      avatarUrl: safeAvatar,
+      walletBalance: 0,
+      casinoPin: cleanPin,
+      scratchCount: 0,
+      collectedStamps: []
+    });
+
+    recentHits.push(now);
+    registerRateMap.set(clientIp, recentHits);
+
+    res.status(201).json({
+      ok: true,
+      player: formatPlayerDoc(createdDoc.toObject())
+    });
+  } catch (err) {
+    console.error('[Casino Web Register Error]:', err);
+    res.status(500).json({ ok: false, error: 'ไม่สามารถสร้างบัญชีได้ในขณะนี้ กรุณาลองใหม่ค่ะ' });
+  }
+});
+
+// ==========================================
+// 🔐 3. ตั้งรหัส PIN 4 หลักใหม่ (POST /api/casino/set-pin)
 // ==========================================
 router.post('/set-pin', async (req, res) => {
   setNoCacheHeaders(res);
@@ -189,7 +285,7 @@ router.post('/set-pin', async (req, res) => {
 
     const existingDoc = await User.findOne({ discordId: userId }).lean();
     if (!existingDoc) {
-      return res.status(404).json({ ok: false, error: 'ไม่พบบัญชีสมาชิก Discord นี้ในฐานข้อมูลค่ะ' });
+      return res.status(404).json({ ok: false, error: 'ไม่พบบัญชีสมาชิกนี้ในฐานข้อมูลค่ะ' });
     }
 
     if (existingDoc.casinoPin && /^\d{4}$/.test(String(existingDoc.casinoPin).trim())) {
@@ -197,7 +293,7 @@ router.post('/set-pin', async (req, res) => {
     }
 
     await User.findOneAndUpdate({ discordId: userId }, { $set: { casinoPin: cleanPin } });
-    tryAssignDiscordPinRole(userId); // ไม่บล็อกการตอบกลับ
+    tryAssignDiscordPinRole(userId);
 
     res.status(200).json({ ok: true, userId, hasPin: true });
   } catch (err) {
@@ -206,7 +302,7 @@ router.post('/set-pin', async (req, res) => {
 });
 
 // ==========================================
-// 🔑 3. ตรวจสอบรหัส PIN 4 หลัก (POST /api/casino/verify-pin)
+// 🔑 4. ตรวจสอบรหัส PIN 4 หลัก (POST /api/casino/verify-pin)
 // ==========================================
 router.post('/verify-pin', async (req, res) => {
   setNoCacheHeaders(res);
@@ -233,7 +329,7 @@ router.post('/verify-pin', async (req, res) => {
 });
 
 // ==========================================
-// 🎰 4. ปั่นสล็อต 3 ช่อง + คำนวณอีเวนท์ + ซิงค์ DB (POST /api/casino/spin)
+// 🎰 5. ปั่นสล็อต 3 ช่อง + คำนวณอีเวนท์ + ซิงค์ DB (POST /api/casino/spin)
 // ==========================================
 router.post('/spin', async (req, res) => {
   setNoCacheHeaders(res);
@@ -301,7 +397,6 @@ router.post('/spin', async (req, res) => {
       }
     }
 
-    // อัปเดตยอดเงินเพื่อนที่โดนผลกระทบจากอีเวนท์มัลติเพลเยอร์
     const affectedFriends = [];
     if (mutationsList.length > 0) {
       const bulkOps = mutationsList.map((m) => {
@@ -317,7 +412,6 @@ router.post('/spin', async (req, res) => {
       await User.bulkWrite(bulkOps, { ordered: false });
     }
 
-    // บันทึกสถานะโลก (แลนด์มาร์ก / กระเป๋าหล่น / คุกกี้ฝังดิน / กระปุกหมู / โซ่ล่ามชะตา)
     await saveWorldState(worldState);
 
     const cleanUserStamps = Array.isArray(updatedUser?.collectedStamps)

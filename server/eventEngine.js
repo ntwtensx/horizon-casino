@@ -1,5 +1,5 @@
 // server/eventEngine.js
-// 🎰 เครื่องยนต์สุ่มสล็อต 3 ช่อง + ตลาดหุ้นแลนด์มาร์ก 5 โซน + ปาฏิหาริย์มัลติเพลเยอร์ + สารบัญแสตมป์ 158 ดวง
+// 🎰 เครื่องยนต์สุ่มสล็อต 3 ช่อง + เมนูคาเฟ่ก่อนพลิกการ์ด + ตลาดหุ้นแลนด์มาร์ก 5 โซน + สมุดแสตมป์ 158 ดวง
 
 const {
   BASE_ECONOMIC_UNIT,
@@ -13,6 +13,7 @@ const {
   MIRACLE_STAMPS
 } = require('./events/absurdAndMeta');
 const { DAILY_EXPENSE_TUPLE, DAILY_BOON_TUPLE } = require('./events/dailyEvents');
+const { generateCafeMenuForOutcome } = require('./events/cafeMenuCatalog');
 
 const pickRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];
 const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
@@ -1085,7 +1086,7 @@ const generateDailyExpenseEvent = (startBal) => {
 };
 
 // ==========================================
-// 🎰 5. เครื่องยนต์หลัก: สุ่มผลสล็อต 3 ช่อง + อัปเดตกระปุกหมูสะสม
+// 🎰 5. เครื่องยนต์หลัก: สุ่มผลสล็อต 3 ช่อง + แนบเมนูคาเฟ่ + กระปุกหมู
 // ==========================================
 const calculateSlotOutcome = (currentBalance = 0, activePlayerId = '', roster = [], worldState = null) => {
   const state = worldState || {
@@ -1207,6 +1208,11 @@ const calculateSlotOutcome = (currentBalance = 0, activePlayerId = '', roster = 
   if (result && result.delta < 0 && (!result.friendMutations || result.friendMutations.length === 0)) {
     const addTip = Math.max(15, Math.round(Math.abs(result.delta) * 0.30));
     state.cursedTipJar = Math.min(60000, Number(state.cursedTipJar || 500) + addTip);
+  }
+
+  // ☕ แนบเซ็ตเมนูคาเฟ่ 3 ช่อง (เครื่องดื่ม / ท็อปปิ้ง / ขนมทานเล่น) สำหรับแสดงก่อนพลิกการ์ด 3D
+  if (result) {
+    result.cafeMenu = generateCafeMenuForOutcome(result);
   }
 
   return result;

@@ -35,14 +35,17 @@ function renderDiscordText(rawText) {
 }
 
 export default function EventDisplay({
-  isSpinning,
-  revealedCount,
+  spinPhase = 'IDLE',
+  menuRevealedCount = 0,
   spinResult,
   isBrandNewStamp,
   matchedStamp,
   errorMsg,
-  onOpenStampBook
+  onOpenStampBook,
+  onQuickFlip
 }) {
+  const menuItems = spinResult?.outcome?.cafeMenu?.items || [];
+
   if (errorMsg) {
     return (
       <section className="event-panel">
@@ -57,46 +60,93 @@ export default function EventDisplay({
     );
   }
 
-  if (isSpinning) {
+  // เฟส 1: กำลังหมุนสุ่มเมนูคาเฟ่ทีละช่อง
+  if (spinPhase === 'SPINNING') {
     const suspenseText =
-      revealedCount === 0
-        ? 'อเลสเทียกำลังหมุนวงล้อชะตาทั้ง 3 ช่อง...'
-        : revealedCount === 1
-          ? 'ช่องที่ 1 หยุดแล้ว! มาลุ้นจุดพลิกผันในช่องที่ 2 กันค่ะ...'
-          : 'ช่องสุดท้ายกำลังชะลอตัว... เตรียมรับชะตาปาฏิหาริย์!';
+      menuRevealedCount === 0
+        ? 'อเลสเทียกำลังชงเครื่องดื่มสุดแฟนซีประจำรอบนี้...'
+        : menuRevealedCount === 1
+          ? 'ได้เครื่องดื่มแล้ว! กำลังเลือกท็อปปิ้งสุดพิเศษ...'
+          : 'กำลังจัดจานขนมทานเล่นชิ้นสุดท้ายมาเสิร์ฟค่ะ...';
 
     return (
       <section className="event-panel">
         <motion.div
-          key={`suspense-${revealedCount}`}
+          key={`spin-menu-${menuRevealedCount}`}
           className="event-idle"
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.22 }}
         >
-          <div style={{ fontSize: '1.9rem' }}>✨</div>
+          <div style={{ fontSize: '1.9rem' }}>☕</div>
           <div className="event-idle-title">{suspenseText}</div>
-          <div style={{ fontSize: '0.8rem' }}>ทุกการโยกมีความป่วนสูง โปรดจับแก้วกาแฟไว้ให้แน่นค่ะ</div>
+          <div style={{ fontSize: '0.8rem' }}>เมนูนี้อาจแอบบอกใบ้... หรืออาจหักมุมเต็มระบบก็ได้นะคะ!</div>
         </motion.div>
       </section>
     );
   }
 
-  if (!spinResult || !spinResult.outcome || revealedCount < 3) {
+  // เฟส 2: แสดงเซ็ตเมนูครบ 3 ช่อง (ค้าง 1.5 วิ ก่อนพลิกการ์ดไล่เวฟ)
+  if (spinPhase === 'MENU_SHOW' || spinPhase === 'FLIPPING') {
+    return (
+      <section className="event-panel">
+        <motion.div
+          className="menu-preview-box"
+          initial={{ opacity: 0, scale: 0.96 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.24 }}
+        >
+          <div className="menu-preview-title">
+            {spinPhase === 'FLIPPING'
+              ? '🃏 กำลังพลิกการ์ดเปิดบิลชะตา...'
+              : '🧁 อเลสเทียเสิร์ฟเซ็ตคาเฟ่ครบ 3 รายการแล้ว!'}
+          </div>
+
+          {menuItems.length === 3 && (
+            <div className="menu-preview-chips">
+              {menuItems.map((m, idx) => (
+                <span key={idx} className="menu-preview-chip">
+                  {m.icon} {m.label}
+                </span>
+              ))}
+            </div>
+          )}
+
+          <div className="menu-wait-track">
+            <motion.div
+              className="menu-wait-fill"
+              initial={{ width: '0%' }}
+              animate={{ width: '100%' }}
+              transition={{ duration: 1.5, ease: 'linear' }}
+            />
+          </div>
+
+          {spinPhase === 'MENU_SHOW' && (
+            <button type="button" className="btn-pill" onClick={onQuickFlip} style={{ marginTop: 4 }}>
+              ⚡ แตะเปิดบิลพลิกการ์ดทันที
+            </button>
+          )}
+        </motion.div>
+      </section>
+    );
+  }
+
+  // เฟสเริ่มต้น
+  if (spinPhase !== 'REVEALED' || !spinResult || !spinResult.outcome) {
     return (
       <section className="event-panel">
         <div className="event-idle">
           <div style={{ fontSize: '2rem' }}>🧁</div>
-          <div className="event-idle-title">พร้อมวัดดวงกับ Horizon Casino แล้วหรือยังคะ?</div>
-          <div style={{ fontSize: '0.84rem', maxWidth: 520, lineHeight: 1.5 }}>
-            จับคันโยกด้านขวาของตู้สล็อตลากลงมา (หรือคลิก) เพื่อสุ่ม 3 ช่อง — ลุ้นได้ทั้งแจ็กพอต,
-            หุ้นแลนด์มาร์กริมหน้าต่าง 5 โซน, อีเวนท์ยืมเงินเพื่อน ไปจนถึงตรรกะวิบัติสุดปั่นกว่า 158 แบบ!
+          <div className="event-idle-title">พร้อมสั่งเมนูวัดดวงกับ Horizon Casino แล้วหรือยังคะ?</div>
+          <div style={{ fontSize: '0.84rem', maxWidth: 540, lineHeight: 1.5 }}>
+            ดึงคันโยกด้านขวาเพื่อสุ่ม <strong>เครื่องดื่ม • ท็อปปิ้ง • ขนมทานเล่น</strong> จากนั้นการ์ดทั้ง 3 ใบจะพลิกกลับด้านเพื่อเผยอีเวนท์สุดป่วนกว่า 158 แบบ!
           </div>
         </div>
       </section>
     );
   }
 
+  // เฟส 3: พลิกการ์ดครบแล้ว เฉลยอีเวนท์เต็มรูปแบบ + ใบเสร็จเมนูจิ๋ว
   const { outcome, previousBalance, newBalance } = spinResult;
   const delta = Number(outcome.delta || 0);
   const diffClass = delta > 0 ? 'diff-pos' : delta < 0 ? 'diff-neg' : 'diff-zero';
@@ -112,6 +162,16 @@ export default function EventDisplay({
           exit={{ opacity: 0, y: -8 }}
           transition={{ type: 'spring', stiffness: 320, damping: 24 }}
         >
+          {menuItems.length === 3 && (
+            <div className="event-order-receipt">
+              <span>🧾 ออเดอร์รอบนี้:</span>
+              <span>
+                {menuItems[0].icon} {menuItems[0].label} + {menuItems[1].icon} {menuItems[1].label} +{' '}
+                {menuItems[2].icon} {menuItems[2].label}
+              </span>
+            </div>
+          )}
+
           <div className="event-category-pill">{outcome.categoryHeader || '🌟 ผลการลุ้นดวง'}</div>
 
           <h2 className="event-headline">{outcome.headline}</h2>
