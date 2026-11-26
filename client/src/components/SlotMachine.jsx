@@ -9,7 +9,7 @@ const SPIN_EMOJIS = ['☕', '🧋', '🍵', '🥐', '🧁', '🍓', '🌸', '�
 const IDLE_MENU_SLOTS = [
   { icon: '☕', label: 'Horizon Latte', sub: 'พร้อมชงเมนู', menuTone: 'cafe-honey' },
   { icon: '☁️', label: 'ฟองนมละมุน', sub: 'โยกคันโยกเลย!', menuTone: 'cafe-cream' },
-  { icon: '🥐', label: 'ครัวซองต์อุ่น', sub: 'แตะพลิกลุ้นชะตา', menuTone: 'cafe-lavender' }
+  { icon: '🥐', label: 'ครัวซองต์อุ่น', sub: 'ลากพลิกลุ้นชะตา', menuTone: 'cafe-lavender' }
 ];
 
 const FALLBACK_EVENT_SLOTS = [
@@ -21,7 +21,7 @@ const FALLBACK_EVENT_SLOTS = [
 const LEVER_MAX_DRAG = 44;
 const LEVER_TRIGGER_Y = 26;
 
-// 🔊 ตัวสังเคราะห์เสียงแนวคาเฟ่ผ่าน Web Audio API
+// 🔊 ตัวสังเคราะห์เสียงแนวคาเฟ่ผ่าน Web Audio API (เพิ่มเสียงกระแทก + ประกายแสงวาบตอนพลิกการ์ด)
 function createCafeAudio() {
   let ctx = null;
   const getCtx = () => {
@@ -58,23 +58,52 @@ function createCafeAudio() {
     },
     tick: () => tone(520 + Math.random() * 140, 0.03, 'sine', 0.022),
     stop: (idx) => tone(440 + idx * 110, 0.11, 'triangle', 0.085),
-    flip: (idx) => {
+
+    // เอฟเฟคเสียงตอนการ์ดพลิก: 1) เสียงฟึ่บพลิก 2) เสียงกระแทกตุบ 3) เสียงประกายแสงวาบ
+    flipImpact: (idx, cardTone = 'zero') => {
       const c = getCtx();
       if (!c) return;
       const now = c.currentTime;
-      const osc = c.createOscillator();
-      const g = c.createGain();
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(300 + idx * 75, now);
-      osc.frequency.exponentialRampToValueAtTime(590 + idx * 90, now + 0.075);
-      g.gain.setValueAtTime(0.001, now);
-      g.gain.exponentialRampToValueAtTime(0.08, now + 0.015);
-      g.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
-      osc.connect(g);
-      g.connect(c.destination);
-      osc.start(now);
-      osc.stop(now + 0.1);
+
+      // 1) ฟึ่บตอนหมุนการ์ด
+      const whoosh = c.createOscillator();
+      const wg = c.createGain();
+      whoosh.type = 'triangle';
+      whoosh.frequency.setValueAtTime(280 + idx * 55, now);
+      whoosh.frequency.exponentialRampToValueAtTime(560 + idx * 80, now + 0.07);
+      wg.gain.setValueAtTime(0.001, now);
+      wg.gain.exponentialRampToValueAtTime(0.065, now + 0.015);
+      wg.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+      whoosh.connect(wg);
+      wg.connect(c.destination);
+      whoosh.start(now);
+      whoosh.stop(now + 0.09);
+
+      // 2) แรงกระแทก (Low-end Thump)
+      const thud = c.createOscillator();
+      const tg = c.createGain();
+      thud.type = 'sine';
+      const thudStart = now + 0.085;
+      thud.frequency.setValueAtTime(175, thudStart);
+      thud.frequency.exponentialRampToValueAtTime(48, thudStart + 0.11);
+      tg.gain.setValueAtTime(0.001, thudStart);
+      tg.gain.exponentialRampToValueAtTime(0.18, thudStart + 0.01);
+      tg.gain.exponentialRampToValueAtTime(0.001, thudStart + 0.13);
+      thud.connect(tg);
+      tg.connect(c.destination);
+      thud.start(thudStart);
+      thud.stop(thudStart + 0.14);
+
+      // 3) แสงวาบประกาย (Sparkle Chime ตามโทนสีการ์ด)
+      const isDark = cardTone === 'tax' || cardTone === 'divide';
+      const isGrand = cardTone === 'miracle' || cardTone === 'mult' || cardTone === 'win';
+      const chimeFreq = isDark ? 390 + idx * 40 : isGrand ? 880 + idx * 140 : 660 + idx * 90;
+      tone(chimeFreq, 0.16, isDark ? 'sawtooth' : 'sine', isDark ? 0.045 : 0.075, 0.095);
+      if (isGrand) {
+        tone(chimeFreq * 1.25, 0.2, 'triangle', 0.06, 0.13);
+      }
     },
+
     win: () => {
       tone(523.25, 0.14, 'triangle', 0.09, 0);
       tone(659.25, 0.14, 'triangle', 0.09, 0.1);
@@ -113,6 +142,7 @@ export default function SlotMachine({
   const prevFlippedRef = useRef([false, false, false]);
   const prevPhaseRef = useRef('IDLE');
   const draggedRef = useRef(false);
+  const isSwipeFlippingRef = useRef(false);
 
   const leverY = useMotionValue(0);
   const rodScaleY = useTransform(leverY, [0, LEVER_MAX_DRAG], [1, 0.22]);
@@ -126,6 +156,24 @@ export default function SlotMachine({
   const isBusy = spinPhase === 'SPINNING' || spinPhase === 'MENU_SHOW';
   const canPull = !disabled && !isBusy;
   const flippedCount = flippedSlots.filter(Boolean).length;
+
+  const menuList =
+    Array.isArray(cafeMenuItems) && cafeMenuItems.length === 3 ? cafeMenuItems : IDLE_MENU_SLOTS;
+  const eventList =
+    Array.isArray(slots) && slots.length === 3 ? slots : FALLBACK_EVENT_SLOTS;
+
+  // รีเซ็ตสถานะการลากเปิดการ์ดเมื่อปล่อยนิ้ว/เมาส์นอกกรอบ
+  useEffect(() => {
+    const endSwipe = () => {
+      isSwipeFlippingRef.current = false;
+    };
+    window.addEventListener('pointerup', endSwipe);
+    window.addEventListener('pointercancel', endSwipe);
+    return () => {
+      window.removeEventListener('pointerup', endSwipe);
+      window.removeEventListener('pointercancel', endSwipe);
+    };
+  }, []);
 
   // หมุนอิโมจิรัวๆ เฉพาะช่วง SPINNING
   useEffect(() => {
@@ -145,15 +193,16 @@ export default function SlotMachine({
     prevMenuCountRef.current = menuRevealedCount;
   }, [menuRevealedCount, soundEnabled]);
 
-  // เสียงพลิกการ์ดเมื่อแตะพลิกใบใดใบหนึ่ง
+  // เสียงกระแทก + แสงวาบทุกครั้งที่การ์ดใบใดใบหนึ่งถูกพลิก
   useEffect(() => {
     flippedSlots.forEach((isFlipped, idx) => {
       if (isFlipped && !prevFlippedRef.current[idx] && soundEnabled) {
-        audioRef.current.flip(idx);
+        const cardTone = eventList[idx]?.tone || 'zero';
+        audioRef.current.flipImpact(idx, cardTone);
       }
     });
     prevFlippedRef.current = [...flippedSlots];
-  }, [flippedSlots, soundEnabled]);
+  }, [flippedSlots, soundEnabled, eventList]);
 
   // เสียงเฉลยรางวัล/โดนหัก เมื่อพลิกครบทั้ง 3 ใบ
   useEffect(() => {
@@ -166,6 +215,29 @@ export default function SlotMachine({
     }
     prevPhaseRef.current = spinPhase;
   }, [spinPhase, outcomeType, soundEnabled]);
+
+  // ตรวจจับการ์ดที่นิ้ว/เมาส์แตะหรือลากผ่าน
+  const flipCardAtPoint = (clientX, clientY) => {
+    if (spinPhase !== 'MENU_SHOW') return;
+    const el = document.elementFromPoint(clientX, clientY);
+    const cardNode = el?.closest?.('[data-reel-idx]');
+    if (!cardNode) return;
+    const idx = Number(cardNode.getAttribute('data-reel-idx'));
+    if (!Number.isNaN(idx)) {
+      onFlipCard(idx);
+    }
+  };
+
+  const handleReelsPointerDown = (e) => {
+    if (spinPhase !== 'MENU_SHOW') return;
+    isSwipeFlippingRef.current = true;
+    flipCardAtPoint(e.clientX, e.clientY);
+  };
+
+  const handleReelsPointerMove = (e) => {
+    if (!isSwipeFlippingRef.current || spinPhase !== 'MENU_SHOW') return;
+    flipCardAtPoint(e.clientX, e.clientY);
+  };
 
   const springLeverBack = () => {
     animate(leverY, 0, { type: 'spring', stiffness: 360, damping: 18 });
@@ -229,12 +301,6 @@ export default function SlotMachine({
     shellClass += ' machine-glow-menu';
   }
 
-  const menuList =
-    Array.isArray(cafeMenuItems) && cafeMenuItems.length === 3 ? cafeMenuItems : IDLE_MENU_SLOTS;
-  const eventList =
-    Array.isArray(slots) && slots.length === 3 ? slots : FALLBACK_EVENT_SLOTS;
-
-  // คำนวณเปอร์เซ็นต์แถบโปรเกรส (ตอนปั่นใช้ spinProgress / ตอนแตะพลิกใช้จำนวนใบที่พลิก)
   const barPercent =
     spinPhase === 'SPINNING'
       ? spinProgress
@@ -246,11 +312,11 @@ export default function SlotMachine({
 
   const barCaption =
     spinPhase === 'SPINNING'
-      ? `☕ กำลังสุ่มเมนู... ${spinProgress}%`
+      ? `☕ กำลังสุ่มเมนูคาเฟ่... ${spinProgress}%`
       : spinPhase === 'MENU_SHOW'
-        ? `👆 แตะการ์ดทีละใบเพื่อพลิก (${flippedCount}/3)`
+        ? `👆 แตะหรือลากกวาดผ่านการ์ดเพื่อพลิก (${flippedCount}/3)`
         : spinPhase === 'REVEALED'
-          ? '✨ เปิดชะตาครบ 3 ช่องแล้ว! ดึงคันโยกเล่นรอบใหม่'
+          ? '✨ เปิดชะตาครบ 3 ช่องแล้ว! โยกคันโยกเล่นรอบใหม่ได้เลย'
           : '🍒 ลากหรือแตะคันโยกด้านขวาเพื่อเริ่มปั่น';
 
   return (
@@ -260,7 +326,7 @@ export default function SlotMachine({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      {/* แถบหัวตู้ + โปรเกรสบาร์คู่กับการปั่น */}
+      {/* แถบหัวตู้ + โปรเกรสบาร์ */}
       <div className="machine-top-strip">
         <div className="machine-status-row">
           <span className="machine-status-text">{barCaption}</span>
@@ -290,9 +356,16 @@ export default function SlotMachine({
         </div>
       </div>
 
-      {/* ตัวตู้ 3 ช่อง + คันโยกด้านข้าง (แสดงข้างกันทั้งคอมและมือถือ) */}
+      {/* ตัวตู้ 3 ช่อง (รองรับลากผ่านเพื่อเปิดเรียงกัน) + คันโยกด้านข้าง */}
       <div className="machine-body">
-        <div className="reels-window">
+        <div
+          className={`reels-window ${spinPhase === 'MENU_SHOW' ? 'swipe-flip-active' : ''}`}
+          onPointerDown={handleReelsPointerDown}
+          onPointerMove={handleReelsPointerMove}
+          onPointerUp={() => {
+            isSwipeFlippingRef.current = false;
+          }}
+        >
           {[0, 1, 2].map((idx) => {
             const isReelSpinning = spinPhase === 'SPINNING' && menuRevealedCount <= idx;
             const isAnticipating = isReelSpinning && idx === 2 && menuRevealedCount === 2;
@@ -304,6 +377,7 @@ export default function SlotMachine({
 
             const menuItem = menuList[idx] || IDLE_MENU_SLOTS[idx];
             const eventItem = eventList[idx] || FALLBACK_EVENT_SLOTS[idx];
+            const cardTone = eventItem.tone || 'zero';
 
             const e1 = SPIN_EMOJIS[(spinTick + idx * 3) % SPIN_EMOJIS.length];
             const e2 = SPIN_EMOJIS[(spinTick + idx * 3 + 5) % SPIN_EMOJIS.length];
@@ -316,11 +390,11 @@ export default function SlotMachine({
                 </div>
 
                 <div
+                  data-reel-idx={idx}
                   className={`reel-slot-stage ${canTapToFlip ? 'can-tap-flip' : ''}`}
-                  onClick={() => canTapToFlip && onFlipCard(idx)}
                   role={canTapToFlip ? 'button' : undefined}
                   tabIndex={canTapToFlip ? 0 : undefined}
-                  aria-label={canTapToFlip ? `แตะเพื่อพลิกการ์ดช่องที่ ${idx + 1}` : undefined}
+                  aria-label={canTapToFlip ? `แตะหรือลากเพื่อพลิกการ์ดช่องที่ ${idx + 1}` : undefined}
                   onKeyDown={(e) => {
                     if (canTapToFlip && (e.key === 'Enter' || e.key === ' ')) {
                       e.preventDefault();
@@ -337,46 +411,88 @@ export default function SlotMachine({
                       </div>
                     </div>
                   ) : (
+                    /* ตัวครอบสร้างแรงกระแทกและแสงวาบเมื่อการ์ดพลิก */
                     <motion.div
-                      className="flip-card-inner"
-                      initial={false}
-                      animate={{ rotateY: isFlipped ? 180 : 0 }}
-                      transition={{
-                        type: 'spring',
-                        stiffness: 270,
-                        damping: 22,
-                        mass: 0.88
-                      }}
-                      style={{ transformStyle: 'preserve-3d' }}
+                      className="reel-impact-wrapper"
+                      animate={
+                        isFlipped
+                          ? {
+                              scale: [1, 1.09, 0.93, 1.02, 1],
+                              y: [0, -7, 3, -1, 0],
+                              rotate: [0, idx === 0 ? -2 : idx === 2 ? 2 : 1.2, 0]
+                            }
+                          : { scale: 1, y: 0, rotate: 0 }
+                      }
+                      transition={{ duration: 0.44, times: [0, 0.32, 0.58, 0.82, 1], ease: 'easeOut' }}
                     >
-                      {/* ด้านหน้า: เมนูคาเฟ่ (รอแตะพลิกทีละใบ) */}
-                      <div
-                        className={`flip-face flip-face-front menu-tone-${
-                          menuItem.menuTone || 'cafe-cream'
-                        } ${canTapToFlip ? 'tap-ready-card' : ''}`}
+                      <motion.div
+                        className="flip-card-inner"
+                        initial={false}
+                        animate={{ rotateY: isFlipped ? 180 : 0 }}
+                        transition={{
+                          type: 'spring',
+                          stiffness: 290,
+                          damping: 20,
+                          mass: 0.85
+                        }}
+                        style={{ transformStyle: 'preserve-3d' }}
                       >
-                        <motion.div
-                          key={`menu-${idx}-${menuItem.label}-${isMenuJustLanded ? 'in' : 'idle'}`}
-                          className="reel-card"
-                          initial={isMenuJustLanded ? { y: -18, scale: 0.92, opacity: 0.5 } : false}
-                          animate={{ y: 0, scale: 1, opacity: 1 }}
-                          transition={{ type: 'spring', stiffness: 420, damping: 20 }}
+                        {/* ด้านหน้า: เมนูคาเฟ่ */}
+                        <div
+                          className={`flip-face flip-face-front menu-tone-${
+                            menuItem.menuTone || 'cafe-cream'
+                          } ${canTapToFlip ? 'tap-ready-card' : ''}`}
                         >
-                          {canTapToFlip && <span className="tap-flip-pill">👆 แตะพลิก</span>}
-                          <div className="reel-icon">{menuItem.icon}</div>
-                          <div className="reel-label menu-label">{menuItem.label}</div>
-                          <div className="reel-sub">{menuItem.sub}</div>
-                        </motion.div>
-                      </div>
-
-                      {/* ด้านหลัง: อีเวนท์ 3 ช่องหลังแตะพลิก */}
-                      <div className={`flip-face flip-face-back tone-${eventItem.tone || 'zero'}`}>
-                        <div className="reel-card">
-                          <div className="reel-icon">{eventItem.icon}</div>
-                          <div className="reel-label">{eventItem.label}</div>
-                          <div className="reel-sub">{eventItem.sub}</div>
+                          <motion.div
+                            key={`menu-${idx}-${menuItem.label}-${isMenuJustLanded ? 'in' : 'idle'}`}
+                            className="reel-card"
+                            initial={isMenuJustLanded ? { y: -18, scale: 0.92, opacity: 0.5 } : false}
+                            animate={{ y: 0, scale: 1, opacity: 1 }}
+                            transition={{ type: 'spring', stiffness: 420, damping: 20 }}
+                          >
+                            {canTapToFlip && <span className="tap-flip-pill">👆 แตะ/ลาก</span>}
+                            <div className="reel-icon">{menuItem.icon}</div>
+                            <div className="reel-label menu-label">{menuItem.label}</div>
+                            <div className="reel-sub">{menuItem.sub}</div>
+                          </motion.div>
                         </div>
-                      </div>
+
+                        {/* ด้านหลัง: อีเวนท์ 3 ช่องหลังพลิก */}
+                        <div className={`flip-face flip-face-back tone-${cardTone}`}>
+                          <div className="reel-card">
+                            <div className="reel-icon">{eventItem.icon}</div>
+                            <div className="reel-label">{eventItem.label}</div>
+                            <div className="reel-sub">{eventItem.sub}</div>
+                          </div>
+                        </div>
+                      </motion.div>
+
+                      {/* เอฟเฟคแสงวาบ + ลำแสงพาดเฉียง + วงแหวนแรงกระแทก */}
+                      {isFlipped && (
+                        <>
+                          <motion.div
+                            key={`flash-${idx}-${eventItem.label}`}
+                            className={`card-flash-burst flash-tone-${cardTone}`}
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: [0, 0.95, 0], scale: [0.85, 1.08, 1.15] }}
+                            transition={{ duration: 0.42, times: [0, 0.28, 1], ease: 'easeOut' }}
+                          />
+                          <motion.div
+                            key={`sweep-${idx}-${eventItem.label}`}
+                            className="card-shine-sweep"
+                            initial={{ x: '-130%', opacity: 0.9 }}
+                            animate={{ x: '150%', opacity: 0 }}
+                            transition={{ duration: 0.48, delay: 0.08, ease: 'easeOut' }}
+                          />
+                          <motion.div
+                            key={`ring-${idx}-${eventItem.label}`}
+                            className={`card-impact-ring ring-tone-${cardTone}`}
+                            initial={{ opacity: 0.95, scale: 0.9 }}
+                            animate={{ opacity: 0, scale: 1.18 }}
+                            transition={{ duration: 0.44, delay: 0.06, ease: 'easeOut' }}
+                          />
+                        </>
+                      )}
                     </motion.div>
                   )}
                 </div>
@@ -425,7 +541,7 @@ export default function SlotMachine({
             {spinPhase === 'SPINNING'
               ? 'กำลังปั่น'
               : spinPhase === 'MENU_SHOW'
-                ? 'แตะพลิก'
+                ? 'พลิกการ์ด'
                 : isDraggingLever
                   ? 'ปล่อยเลย!'
                   : 'โยก ↓'}

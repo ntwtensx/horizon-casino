@@ -62,7 +62,6 @@ export default function EventDisplay({
     );
   }
 
-  // เฟส 1: กำลังปั่นสล็อตสุ่มเมนูพร้อมโปรเกรสบาร์
   if (spinPhase === 'SPINNING') {
     const suspenseText =
       menuRevealedCount === 0
@@ -88,7 +87,6 @@ export default function EventDisplay({
     );
   }
 
-  // เฟส 2: หยุดครบ 3 ช่องแล้ว — รอผู้เล่นแตะพลิกการ์ดทีละใบ
   if (spinPhase === 'MENU_SHOW') {
     return (
       <section className="event-panel">
@@ -99,7 +97,7 @@ export default function EventDisplay({
           transition={{ duration: 0.22 }}
         >
           <div className="menu-preview-title">
-            👆 แตะการ์ดด้านบนทีละใบเพื่อพลิกเปิดชะตา ({flippedCount}/3)
+            👆 แตะหรือลากกวาดผ่านการ์ดด้านบนเพื่อพลิก ({flippedCount}/3)
           </div>
 
           {menuItems.length === 3 && (
@@ -118,9 +116,9 @@ export default function EventDisplay({
 
           <div className="event-idle-desc">
             {flippedCount === 0
-              ? 'เสิร์ฟครบทั้งเครื่องดื่ม ท็อปปิ้ง และขนมแล้ว! แตะช่องไหนก่อนก็ได้ค่ะ'
+              ? 'กดแตะทีละใบ หรือกดค้างแล้วลากนิ้วผ่านทั้ง 3 การ์ดเพื่อเปิดเรียงกันได้เลยค่ะ!'
               : flippedCount < 3
-                ? `เหลืออีก ${3 - flippedCount} ช่อง! แตะพลิกให้ครบเพื่อสรุปผลอีเวนท์`
+                ? `เหลืออีก ${3 - flippedCount} ช่อง! แตะหรือลากพลิกให้ครบเพื่อเฉลยอีเวนท์`
                 : 'กำลังเปิดบิลสรุปผลชะตา...'}
           </div>
         </motion.div>
@@ -128,7 +126,6 @@ export default function EventDisplay({
     );
   }
 
-  // เฟสเริ่มต้น
   if (spinPhase !== 'REVEALED' || !spinResult || !spinResult.outcome) {
     return (
       <section className="event-panel">
@@ -136,14 +133,13 @@ export default function EventDisplay({
           <div className="event-idle-emoji">🧁</div>
           <div className="event-idle-title">พร้อมวัดดวงกับ Horizon Casino แล้วหรือยังคะ?</div>
           <div className="event-idle-desc">
-            ลากหรือแตะคันโยกด้านข้างเพื่อสุ่มเมนูคาเฟ่ทั้ง 3 ช่อง จากนั้นแตะพลิกการ์ดทีละใบเพื่อเฉลยอีเวนท์สุดป่วนกว่า 158 แบบ!
+            ลากหรือแตะคันโยกด้านข้างเพื่อสุ่มเมนูคาเฟ่ทั้ง 3 ช่อง จากนั้นแตะหรือลากผ่านการ์ดเพื่อพลิกเปิดอีเวนท์สุดป่วนกว่า 158 แบบ!
           </div>
         </div>
       </section>
     );
   }
 
-  // เฟส 3: พลิกครบทั้ง 3 ใบแล้ว แสดงรายละเอียดเต็มพอดีหน้าจอ
   const { outcome, previousBalance, newBalance } = spinResult;
   const delta = Number(outcome.delta || 0);
   const diffClass = delta > 0 ? 'diff-pos' : delta < 0 ? 'diff-neg' : 'diff-zero';

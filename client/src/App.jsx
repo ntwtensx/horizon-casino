@@ -37,10 +37,12 @@ export default function App() {
   const [verifiedPin, setVerifiedPin] = useState('');
   const [authModalOpen, setAuthModalOpen] = useState(true);
   const [stampModalState, setStampModalState] = useState({ open: false, category: 'ALL' });
-  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  // ลิ้นชักลอยด้านบนแบบแยกชัดเจน: 'NONE' | 'LANDMARKS' | 'MENU'
+  const [activeDrawer, setActiveDrawer] = useState('NONE');
   const [soundEnabled, setSoundEnabled] = useState(true);
 
-  // เฟสสล็อต: IDLE -> SPINNING -> MENU_SHOW (รอแตะพลิกทีละใบ) -> REVEALED
+  // เฟสสล็อต: IDLE -> SPINNING -> MENU_SHOW (รอแตะหรือลากพลิก) -> REVEALED
   const [spinPhase, setSpinPhase] = useState('IDLE');
   const [spinProgress, setSpinProgress] = useState(0);
   const [menuRevealedCount, setMenuRevealedCount] = useState(0);
@@ -51,8 +53,15 @@ export default function App() {
   const [floatingDelta, setFloatingDelta] = useState(null);
 
   const timersRef = useRef([]);
+  const spinPhaseRef = useRef('IDLE');
+  const flippedRef = useRef([false, false, false]);
   const revealDoneRef = useRef(false);
   const pendingPayloadRef = useRef(null);
+
+  const updateSpinPhase = useCallback((nextPhase) => {
+    spinPhaseRef.current = nextPhase;
+    setSpinPhase(nextPhase);
+  }, []);
 
   const clearTimers = useCallback(() => {
     timersRef.current.forEach((id) => clearTimeout(id));
@@ -83,6 +92,11 @@ export default function App() {
     [players]
   );
 
+  const ownedLandmarksCount = useMemo(
+    () => landmarks.filter((lm) => Boolean(lm.owned)).length,
+    [landmarks]
+  );
+
   const ownedStampCount = useMemo(() => {
     const owned = new Set(activePlayer?.collectedStamps || []);
     return (stampCatalog.stamps || []).filter((s) => owned.has(s.id)).length;
@@ -106,15 +120,21 @@ export default function App() {
 
   const isBusy = spinPhase === 'SPINNING' || spinPhase === 'MENU_SHOW';
 
+  const toggleDrawer = (target) => {
+    setActiveDrawer((curr) => (curr === target ? 'NONE' : target));
+  };
+
   const handleAuthenticated = (player, pin) => {
     clearTimers();
     revealDoneRef.current = false;
     pendingPayloadRef.current = null;
+    flippedRef.current = [false, false, false];
+
     setActivePlayer(player);
     setVerifiedPin(pin);
     setAuthModalOpen(false);
-    setDrawerOpen(false);
-    setSpinPhase('IDLE');
+    setActiveDrawer('NONE');
+    updateSpinPhase('IDLE');
     setSpinProgress(0);
     setMenuRevealedCount(0);
     setFlippedSlots([false, false, false]);
@@ -131,83 +151,84 @@ export default function App() {
     });
   };
 
-  // เฉลยผลลัพธ์เต็มรูปแบบทันทีเมื่อผู้เล่นแตะพลิกครบทั้ง 3 ใบ
-  const finalizeOutcomeReveal = useCallback((res, brandNew) => {
-    if (!res || revealDoneRef.current) return;
-    revealDoneRef.current = true;
+  // เฉลยผลลัพธ์เต็มรูปแบบเมื่อการ์ดถูกพลิกครบทั้ง 3 ช่อง
+  const finalizeOutcomeReveal = useCallback(
+    (res, brandNew) => {
+      if (!res || revealDoneRef.current) return;
+      revealDoneRef.current = true;
+      updateSpinPhase('REVEALED');
 
-    setSpinPhase('REVEALED');
+      setActivePlayer((curr) =>
+        curr
+          ? {
+              ...curr,
+              walletBalance: res.newBalance,
+              scratchCount: res.scratchCount,
+              collectedStamps: res.collectedStamps || curr.collectedStamps
+            }
+          : curr
+      );
 
-    setActivePlayer((curr) =>
-      curr
-        ? {
-            ...curr,
-            walletBalance: res.newBalance,
-            scratchCount: res.scratchCount,
-            collectedStamps: res.collectedStamps || curr.collectedStamps
+      const delta = Number(res.outcome?.delta || 0);
+      if (delta !== 0) {
+        setFloatingDelta({ id: Date.now(), value: delta });
+        timersRef.current.push(setTimeout(() => setFloatingDelta(null), 1900));
+      }
+
+      fireOutcomeEffect(
+        res.outcome?.outcomeType,
+        brandNew,
+        res.outcome?.slots?.[0]?.icon || ''
+      );
+      if (brandNew) {
+        timersRef.current.push(setTimeout(() => fireStampUnlockBurst(), 340));
+      }
+
+      const friendMap = new Map((res.affectedFriends || []).map((f) => [f.userId, f.newBalance]));
+      setPlayers((prev) =>
+        prev.map((p) => {
+          if (p.userId === res.userId) {
+            return {
+              ...p,
+              walletBalance: res.newBalance,
+              scratchCount: res.scratchCount,
+              collectedStamps: res.collectedStamps || p.collectedStamps
+            };
           }
-        : curr
-    );
+          if (friendMap.has(p.userId)) {
+            return { ...p, walletBalance: friendMap.get(p.userId) };
+          }
+          return p;
+        })
+      );
 
-    const delta = Number(res.outcome?.delta || 0);
-    if (delta !== 0) {
-      setFloatingDelta({ id: Date.now(), value: delta });
-      timersRef.current.push(setTimeout(() => setFloatingDelta(null), 1900));
-    }
+      if (Array.isArray(res.landmarks) && res.landmarks.length === 5) {
+        setLandmarks(res.landmarks);
+      }
+      if (typeof res.tipJar === 'number') {
+        setTipJar(res.tipJar);
+      }
+    },
+    [updateSpinPhase]
+  );
 
-    fireOutcomeEffect(
-      res.outcome?.outcomeType,
-      brandNew,
-      res.outcome?.slots?.[0]?.icon || ''
-    );
-    if (brandNew) {
-      timersRef.current.push(setTimeout(() => fireStampUnlockBurst(), 340));
-    }
-
-    const friendMap = new Map((res.affectedFriends || []).map((f) => [f.userId, f.newBalance]));
-    setPlayers((prev) =>
-      prev.map((p) => {
-        if (p.userId === res.userId) {
-          return {
-            ...p,
-            walletBalance: res.newBalance,
-            scratchCount: res.scratchCount,
-            collectedStamps: res.collectedStamps || p.collectedStamps
-          };
-        }
-        if (friendMap.has(p.userId)) {
-          return { ...p, walletBalance: friendMap.get(p.userId) };
-        }
-        return p;
-      })
-    );
-
-    if (Array.isArray(res.landmarks) && res.landmarks.length === 5) {
-      setLandmarks(res.landmarks);
-    }
-    if (typeof res.tipJar === 'number') {
-      setTipJar(res.tipJar);
-    }
-  }, []);
-
-  // แตะการ์ดทีละใบเพื่อพลิกเปิดชะตา
+  // แตะหรือลากผ่านการ์ดเพื่อพลิกเปิดทีละใบ (ใช้ ref กันลากเร็วแล้วซ้ำ)
   const handleFlipCard = useCallback(
     (idx) => {
-      if (spinPhase !== 'MENU_SHOW') return;
-      setFlippedSlots((prev) => {
-        if (prev[idx]) return prev;
-        const next = [...prev];
-        next[idx] = true;
+      if (spinPhaseRef.current !== 'MENU_SHOW') return;
+      if (idx < 0 || idx > 2 || flippedRef.current[idx]) return;
 
-        if (next.every(Boolean) && pendingPayloadRef.current && !revealDoneRef.current) {
-          const { res, brandNew } = pendingPayloadRef.current;
-          // หน่วงให้แอนิเมชันพลิกใบสุดท้ายจบสวยๆ แล้วค่อยเฉลยรายละเอียด + เงิน + พลุ
-          timersRef.current.push(setTimeout(() => finalizeOutcomeReveal(res, brandNew), 300));
-        }
-        return next;
-      });
+      const next = [...flippedRef.current];
+      next[idx] = true;
+      flippedRef.current = next;
+      setFlippedSlots(next);
+
+      if (next.every(Boolean) && pendingPayloadRef.current && !revealDoneRef.current) {
+        const { res, brandNew } = pendingPayloadRef.current;
+        timersRef.current.push(setTimeout(() => finalizeOutcomeReveal(res, brandNew), 380));
+      }
     },
-    [spinPhase, finalizeOutcomeReveal]
+    [finalizeOutcomeReveal]
   );
 
   const handlePullLever = async () => {
@@ -220,12 +241,13 @@ export default function App() {
     clearTimers();
     revealDoneRef.current = false;
     pendingPayloadRef.current = null;
-    setDrawerOpen(false);
+    flippedRef.current = [false, false, false];
+    setActiveDrawer('NONE');
 
     setSpinError('');
     setIsBrandNewStamp(false);
     setFloatingDelta(null);
-    setSpinPhase('SPINNING');
+    updateSpinPhase('SPINNING');
     setSpinProgress(18);
     setMenuRevealedCount(0);
     setFlippedSlots([false, false, false]);
@@ -235,7 +257,7 @@ export default function App() {
     const res = await casinoApi.spin(activePlayer.userId, verifiedPin);
 
     if (!res.ok) {
-      setSpinPhase('IDLE');
+      updateSpinPhase('IDLE');
       setSpinProgress(0);
       setSpinError(res.error || 'ไม่สามารถหมุนสล็อตได้ในขณะนี้ค่ะ');
       return;
@@ -247,7 +269,6 @@ export default function App() {
     setIsBrandNewStamp(brandNew);
     setSpinProgress(36);
 
-    // หยุดวงล้อเผยเมนูทีละช่องพร้อมโปรเกรสบาร์ (ช่อง 1 -> ช่อง 2 -> ช่อง 3)
     const elapsed = Date.now() - spinStartedAt;
     const stop1Delay = Math.max(240, 820 - elapsed);
     const stop2Delay = stop1Delay + 580;
@@ -269,7 +290,7 @@ export default function App() {
       setTimeout(() => {
         setMenuRevealedCount(3);
         setSpinProgress(100);
-        setSpinPhase('MENU_SHOW');
+        updateSpinPhase('MENU_SHOW');
       }, stop3Delay)
     );
   };
@@ -283,13 +304,13 @@ export default function App() {
       <CafeParticles mood={particleMood} landmarks={landmarks} />
 
       <div className="cafe-app">
-        {/* แถบบนมินิบางเฉียบ: แสดงโปรไฟล์ย่อ + กระเป๋าตังค์ + ปุ่มเปิดลิ้นชักลอย */}
+        {/* แถบบนมินิ: โปรไฟล์ย่อ + กระเป๋าตังค์ + ปุ่มลิ้นชักแลนด์มาร์ก + ปุ่มลิ้นชักเมนู */}
         <header className="mini-top-bar">
           <button
             type="button"
             className="mini-brand-btn"
-            onClick={() => setDrawerOpen((v) => !v)}
-            aria-expanded={drawerOpen}
+            onClick={() => toggleDrawer('MENU')}
+            aria-expanded={activeDrawer === 'MENU'}
           >
             {activePlayer ? (
               <img
@@ -317,7 +338,7 @@ export default function App() {
 
           <div className="mini-right-group">
             {activePlayer && (
-              <div className="wallet-pill wallet-pill-compact wallet-pill-anchor">
+              <div className="wallet-pill wallet-pill-anchor">
                 <span className={`wallet-value ${activePlayer.walletBalance < 0 ? 'negative' : ''}`}>
                   <NumberFlow value={Number(activePlayer.walletBalance || 0)} /> 🪙
                 </span>
@@ -341,33 +362,112 @@ export default function App() {
               </div>
             )}
 
+            {/* ปุ่มเปิดหน้าต่างลิ้นชัก 🏰 แลนด์มาร์กริมหน้าต่างโดยเฉพาะ */}
             <button
               type="button"
-              className={`drawer-toggle-btn ${drawerOpen ? 'open' : ''}`}
-              onClick={() => setDrawerOpen((v) => !v)}
-              aria-label="เปิดหรือซ่อนลิ้นชักเมนูคาเฟ่"
+              className={`landmark-drawer-btn ${ownedLandmarksCount > 0 ? 'has-owned' : ''} ${
+                activeDrawer === 'LANDMARKS' ? 'open' : ''
+              }`}
+              onClick={() => toggleDrawer('LANDMARKS')}
+              aria-expanded={activeDrawer === 'LANDMARKS'}
+              title="ดูรายการผู้ถือหุ้นแลนด์มาร์กริมหน้าต่าง 5 โซน"
             >
-              <span>{drawerOpen ? '▲ ซ่อน' : '▼ เมนู'}</span>
+              <span>🏰</span>
+              <span className="lm-btn-count">{ownedLandmarksCount}/5</span>
+            </button>
+
+            {/* ปุ่มเปิดลิ้นชักเมนูคาเฟ่ */}
+            <button
+              type="button"
+              className={`drawer-toggle-btn ${activeDrawer === 'MENU' ? 'open' : ''}`}
+              onClick={() => toggleDrawer('MENU')}
+              aria-expanded={activeDrawer === 'MENU'}
+              aria-label="เปิดหรือซ่อนลิ้นชักเมนู"
+            >
+              <span>{activeDrawer === 'MENU' ? '▲' : '▼ เมนู'}</span>
             </button>
           </div>
         </header>
 
-        {/* ลิ้นชักลอยด้านบน (ซ่อนข้อมูลเสริมที่ไม่เกี่ยวกับตัวตู้สล็อต) */}
+        {/* พื้นหลังมืดตอนเปิดลิ้นชักลอย */}
         <AnimatePresence>
-          {drawerOpen && (
-            <>
-              <motion.div
-                className="drawer-backdrop"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setDrawerOpen(false)}
-              />
+          {activeDrawer !== 'NONE' && (
+            <motion.div
+              className="drawer-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setActiveDrawer('NONE')}
+            />
+          )}
+        </AnimatePresence>
+
+        {/* ลิ้นชักลอยที่ 1: 🏰 แลนด์มาร์กริมหน้าต่าง 5 โซน (เรียงแถวทีละชั้นบรรทัด อ่านครบไม่ตัดคำ) */}
+        <AnimatePresence>
+          {activeDrawer === 'LANDMARKS' && (
+            <div className="floating-drawer-wrap">
               <motion.aside
                 className="floating-top-drawer"
-                initial={{ opacity: 0, y: -18, scale: 0.98 }}
+                initial={{ opacity: 0, y: -16, scale: 0.97 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -16, scale: 0.98 }}
+                exit={{ opacity: 0, y: -14, scale: 0.97 }}
+                transition={{ type: 'spring', stiffness: 360, damping: 28 }}
+              >
+                <div className="drawer-row-between">
+                  <div className="brand-title">
+                    <span>🏰 แลนด์มาร์กริมหน้าต่าง</span>
+                    <span className="brand-badge">ถือครอง {ownedLandmarksCount}/5 โซน</span>
+                  </div>
+                  <button
+                    type="button"
+                    className="drawer-close-pill"
+                    onClick={() => setActiveDrawer('NONE')}
+                  >
+                    ✕ พับเก็บ
+                  </button>
+                </div>
+
+                <div className="landmark-rows-list">
+                  {landmarks.map((lm) => (
+                    <div key={lm.id} className={`landmark-row-card ${lm.owned ? 'owned' : 'empty'}`}>
+                      <div className="landmark-row-icon">{lm.icon}</div>
+                      <div className="landmark-row-body">
+                        <div className="landmark-row-head">
+                          <span className="landmark-row-name">{lm.name}</span>
+                          <span className={`landmark-tier-pill ${lm.owned ? 'owned' : 'empty'}`}>
+                            {lm.owned ? `ขั้น ${lm.tier} • ${lm.pct}%` : 'ว่าง • 0%'}
+                          </span>
+                        </div>
+                        <div className="landmark-row-owner">
+                          {lm.owned ? (
+                            <>
+                              <span>ผู้ถือหุ้น: <strong>{lm.ownerName}</strong></span>
+                              {lm.curtainClosed && (
+                                <span className="landmark-curtain-tag">🪟 ปิดผ้าม่านพัก 1 รอบ</span>
+                              )}
+                            </>
+                          ) : (
+                            <span>ยังไม่มีผู้ถือครอง — ปั่นสล็อตลุ้นรับสิทธิ์ขั้นที่ 1 (17%) ฟรี!</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </motion.aside>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* ลิ้นชักลอยที่ 2: ข้อมูลผู้เล่น สมุดแสตมป์ เสียง และเปลี่ยนผู้เล่น */}
+        <AnimatePresence>
+          {activeDrawer === 'MENU' && (
+            <div className="floating-drawer-wrap">
+              <motion.aside
+                className="floating-top-drawer"
+                initial={{ opacity: 0, y: -16, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -14, scale: 0.97 }}
                 transition={{ type: 'spring', stiffness: 360, damping: 28 }}
               >
                 <div className="drawer-section">
@@ -379,7 +479,7 @@ export default function App() {
                     <button
                       type="button"
                       className="drawer-close-pill"
-                      onClick={() => setDrawerOpen(false)}
+                      onClick={() => setActiveDrawer('NONE')}
                     >
                       ✕ พับเก็บ
                     </button>
@@ -398,6 +498,9 @@ export default function App() {
                       <div className="player-meta">
                         <div className="player-name-row">
                           <span>{activePlayer.displayName}</span>
+                          {activePlayer.nickname && (
+                            <span className="player-nick-inline">(คุณ{activePlayer.nickname})</span>
+                          )}
                           <span className={`account-type-tag ${activePlayer.accountType === 'web' ? 'web' : 'discord'}`}>
                             {activePlayer.accountType === 'web' ? '🌐 เว็บ' : '💬 Discord'}
                           </span>
@@ -407,40 +510,23 @@ export default function App() {
                           <span>• ปั่นแล้ว {Number(activePlayer.scratchCount || 0).toLocaleString()} รอบ</span>
                         </div>
                       </div>
-                      <div className="tipjar-pill" title="กระปุกหมูสะสมจากคนที่โดนหักเงินในร้าน">
-                        🐷 <NumberFlow value={Number(tipJar || 0)} />
-                      </div>
                     </div>
                   )}
-                </div>
 
-                {/* แลนด์มาร์กริมหน้าต่าง 5 โซน */}
-                <div className="drawer-section">
-                  <div className="drawer-label">🏰 แลนด์มาร์กริมหน้าต่างคาเฟ่ 5 โซน</div>
-                  <div className="drawer-landmarks-grid">
-                    {landmarks.map((lm) => (
-                      <div key={lm.id} className={`drawer-lm-item ${lm.owned ? 'owned' : 'empty'}`}>
-                        <span className="drawer-lm-icon">{lm.icon}</span>
-                        <div className="drawer-lm-info">
-                          <strong>{lm.name}</strong>
-                          <span>
-                            {lm.owned
-                              ? `${lm.ownerName} • ขั้น ${lm.tier} (${lm.pct}%)${lm.curtainClosed ? ' • ปิดม่าน' : ''}`
-                              : 'ว่าง • ยังไม่มีผู้ถือครอง'}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="drawer-tipjar-row">
+                    <span>🐷 กระปุกหมูสะสมหน้าเคาน์เตอร์</span>
+                    <strong>
+                      <NumberFlow value={Number(tipJar || 0)} /> เหรียญ
+                    </strong>
                   </div>
                 </div>
 
-                {/* ปุ่มเครื่องมือทั้งหมด */}
                 <div className="drawer-actions">
                   <button
                     type="button"
                     className="btn-pill btn-stamp"
                     onClick={() => {
-                      setDrawerOpen(false);
+                      setActiveDrawer('NONE');
                       setStampModalState({ open: true, category: 'ALL' });
                     }}
                   >
@@ -448,6 +534,14 @@ export default function App() {
                     <span className="stamp-pill-count">
                       {ownedStampCount}/{stampCatalog.totalStamps || 158}
                     </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn-pill"
+                    onClick={() => setActiveDrawer('LANDMARKS')}
+                  >
+                    <span>🏰 ดูผู้ถือหุ้นแลนด์มาร์ก ({ownedLandmarksCount}/5)</span>
                   </button>
 
                   <button
@@ -462,7 +556,7 @@ export default function App() {
                     type="button"
                     className="btn-pill"
                     onClick={() => {
-                      setDrawerOpen(false);
+                      setActiveDrawer('NONE');
                       setAuthModalOpen(true);
                     }}
                     disabled={isBusy}
@@ -471,7 +565,7 @@ export default function App() {
                   </button>
                 </div>
               </motion.aside>
-            </>
+            </div>
           )}
         </AnimatePresence>
 

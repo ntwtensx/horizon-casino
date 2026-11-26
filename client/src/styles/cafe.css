@@ -85,7 +85,7 @@ input {
 /* ================= แถบบนมินิบางเฉียบ ================= */
 .mini-top-bar {
   flex-shrink: 0;
-  background: rgba(255, 253, 249, 0.92);
+  background: rgba(255, 253, 249, 0.94);
   backdrop-filter: blur(10px);
   border: 1.5px solid var(--border-cream);
   border-radius: 999px;
@@ -94,7 +94,7 @@ input {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
   position: relative;
   z-index: 55;
 }
@@ -107,8 +107,8 @@ input {
   gap: 8px;
   cursor: pointer;
   min-width: 0;
+  flex: 1;
   text-align: left;
-  padding-right: 4px;
 }
 
 .mini-avatar {
@@ -146,7 +146,6 @@ input {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 145px;
 }
 
 .mini-sub {
@@ -166,7 +165,7 @@ input {
   background: linear-gradient(135deg, #fffaf0 0%, #faebd0 100%);
   border: 1.5px solid #e2bc78;
   border-radius: 999px;
-  padding: 4px 11px;
+  padding: 4px 10px;
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -177,7 +176,7 @@ input {
 }
 
 .wallet-value {
-  font-size: 0.92rem;
+  font-size: 0.9rem;
   font-weight: 800;
   color: #9e6510;
   display: inline-flex;
@@ -204,23 +203,48 @@ input {
   box-shadow: 0 6px 14px rgba(74, 53, 49, 0.16);
 }
 
-.wallet-delta-float.pos {
-  background: #eaf6ee;
-  color: #217343;
-  border: 1px solid #96cfa9;
+.wallet-delta-float.pos { background: #eaf6ee; color: #217343; border: 1px solid #96cfa9; }
+.wallet-delta-float.neg { background: #fcecef; color: #b33245; border: 1px solid #e69aa6; }
+
+/* ปุ่มเปิดหน้าต่างลิ้นชัก 🏰 แลนด์มาร์กโดยเฉพาะ */
+.landmark-drawer-btn {
+  border: 1.5px solid var(--border-cream);
+  background: var(--surface-warm);
+  color: var(--cinnamon);
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  transition: all 0.16s ease;
 }
 
-.wallet-delta-float.neg {
-  background: #fcecef;
-  color: #b33245;
-  border: 1px solid #e69aa6;
+.landmark-drawer-btn.has-owned {
+  background: linear-gradient(135deg, #fff6d6 0%, #f7da92 100%);
+  border-color: #dfa944;
+  color: #6b4308;
+  box-shadow: 0 3px 10px rgba(227, 167, 59, 0.25);
+}
+
+.landmark-drawer-btn.open,
+.landmark-drawer-btn:hover {
+  border-color: var(--cinnamon);
+  transform: translateY(-1px);
+}
+
+.lm-btn-count {
+  font-size: 0.72rem;
 }
 
 .drawer-toggle-btn {
   border: 1.5px solid var(--border-caramel);
   background: var(--surface-warm);
   color: var(--cinnamon);
-  padding: 5px 11px;
+  padding: 5px 10px;
   border-radius: 999px;
   font-size: 0.74rem;
   font-weight: 700;
@@ -236,29 +260,38 @@ input {
   border-color: var(--cinnamon);
 }
 
-/* ================= ลิ้นชักลอยด้านบน (ซ่อนได้) ================= */
+/* ================= ลิ้นชักลอยด้านบน (จัดกึ่งกลางไม่ชน Transform) ================= */
 .drawer-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(74, 53, 49, 0.34);
+  background: rgba(74, 53, 49, 0.36);
   backdrop-filter: blur(3px);
   z-index: 50;
 }
 
-.floating-top-drawer {
+.floating-drawer-wrap {
   position: fixed;
-  top: 60px;
-  left: 50%;
-  transform: translateX(-50%) !important;
-  width: min(640px, calc(100vw - 20px));
-  max-height: calc(100dvh - 76px);
+  top: 58px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  padding: 0 10px;
+  z-index: 60;
+  pointer-events: none;
+}
+
+.floating-top-drawer {
+  pointer-events: auto;
+  width: min(560px, 100%);
+  max-height: calc(100dvh - 74px);
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   background: rgba(255, 253, 249, 0.98);
   border: 2px solid var(--border-caramel);
   border-radius: 22px;
   padding: 14px 16px;
-  box-shadow: 0 22px 50px rgba(74, 53, 49, 0.26);
-  z-index: 60;
+  box-shadow: 0 22px 50px rgba(74, 53, 49, 0.28);
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -267,7 +300,7 @@ input {
 .drawer-section {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 9px;
 }
 
 .drawer-row-between {
@@ -275,13 +308,15 @@ input {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .brand-title {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  font-size: 1rem;
+  flex-wrap: wrap;
+  font-size: 0.98rem;
   font-weight: 800;
   color: var(--cinnamon);
 }
@@ -307,6 +342,114 @@ input {
   cursor: pointer;
 }
 
+/* 🏰 รายการแลนด์มาร์กเรียงแถวทีละชั้นบรรทัด (อ่านครบ 100% ไม่ตัดข้อความ) */
+.landmark-rows-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.landmark-row-card {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 15px;
+  border: 1.5px solid var(--border-cream);
+  background: var(--bg-oat);
+}
+
+.landmark-row-card.empty {
+  border-style: dashed;
+  background: rgba(247, 239, 229, 0.65);
+}
+
+.landmark-row-card.owned {
+  background: linear-gradient(135deg, #fffcf2 0%, #fceec9 100%);
+  border-color: #dfa944;
+  box-shadow: 0 4px 12px rgba(227, 167, 59, 0.14);
+}
+
+.landmark-row-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid var(--border-cream);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.landmark-row-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.landmark-row-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.landmark-row-name {
+  font-size: 0.86rem;
+  font-weight: 800;
+  color: var(--espresso);
+  word-break: break-word;
+}
+
+.landmark-tier-pill {
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.landmark-tier-pill.owned {
+  background: #e3a73b;
+  color: #fffdf9;
+}
+
+.landmark-tier-pill.empty {
+  background: var(--surface-warm);
+  color: var(--mocha-muted);
+  border: 1px solid var(--border-cream);
+}
+
+.landmark-row-owner {
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: #5b433d;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.landmark-curtain-tag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--lavender-soft);
+  color: #5f4287;
+  border: 1px solid #d7c3ec;
+}
+
+/* การ์ดข้อมูลผู้เล่นในลิ้นชักเมนู */
 .drawer-player-card {
   display: flex;
   align-items: center;
@@ -314,12 +457,12 @@ input {
   background: var(--surface-warm);
   border: 1px solid var(--border-cream);
   border-radius: 16px;
-  padding: 9px 11px;
+  padding: 10px 12px;
 }
 
 .player-avatar {
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid var(--border-caramel);
@@ -329,7 +472,7 @@ input {
 .player-meta {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
   min-width: 0;
   flex: 1;
 }
@@ -341,6 +484,13 @@ input {
   flex-wrap: wrap;
   font-size: 0.88rem;
   font-weight: 700;
+  word-break: break-word;
+}
+
+.player-nick-inline {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--cinnamon);
 }
 
 .player-sub-row {
@@ -348,8 +498,26 @@ input {
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   color: var(--mocha-muted);
+}
+
+.drawer-tipjar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 13px;
+  background: #fffdf9;
+  border: 1px dashed var(--border-caramel);
+  font-size: 0.78rem;
+  color: var(--mocha-muted);
+}
+
+.drawer-tipjar-row strong {
+  color: var(--cinnamon);
+  font-size: 0.86rem;
 }
 
 .status-pill {
@@ -357,7 +525,7 @@ input {
   align-items: center;
   padding: 1px 7px;
   border-radius: 999px;
-  font-size: 0.65rem;
+  font-size: 0.66rem;
   font-weight: 700;
 }
 
@@ -365,74 +533,6 @@ input {
 .status-pill.normal { background: var(--matcha-soft); color: #2f7049; border: 1px solid #b5dec4; }
 .status-pill.broke { background: #fffdf9; color: var(--mocha-muted); border: 1px solid var(--border-cream); }
 .status-pill.debt { background: var(--rose-soft); color: #a63747; border: 1px solid #ebb2bc; }
-
-.tipjar-pill {
-  font-size: 0.76rem;
-  font-weight: 700;
-  color: var(--cinnamon);
-  background: #fffdf9;
-  border: 1px dashed var(--border-caramel);
-  padding: 5px 9px;
-  border-radius: 12px;
-  white-space: nowrap;
-}
-
-.drawer-label {
-  font-size: 0.76rem;
-  font-weight: 700;
-  color: var(--mocha-muted);
-}
-
-.drawer-landmarks-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
-  gap: 7px;
-}
-
-.drawer-lm-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 9px;
-  border-radius: 12px;
-  border: 1px solid var(--border-cream);
-  background: var(--bg-oat);
-}
-
-.drawer-lm-item.empty {
-  opacity: 0.65;
-  border-style: dashed;
-}
-
-.drawer-lm-item.owned {
-  background: linear-gradient(135deg, #fffaf0 0%, #fcebc4 100%);
-  border-color: #dfa944;
-}
-
-.drawer-lm-icon {
-  font-size: 1.25rem;
-  line-height: 1;
-}
-
-.drawer-lm-info {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  line-height: 1.25;
-}
-
-.drawer-lm-info strong {
-  font-size: 0.74rem;
-  color: var(--espresso);
-}
-
-.drawer-lm-info span {
-  font-size: 0.65rem;
-  color: var(--mocha-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 
 .drawer-actions {
   display: flex;
@@ -491,27 +591,15 @@ input {
   background: linear-gradient(165deg, #fffdf9 0%, #f6ebdd 100%);
   border: 2px solid var(--border-caramel);
   border-radius: 24px;
-  padding: 12px 14px 14px;
+  padding: 11px 14px 13px;
   box-shadow: var(--shadow-soft), inset 0 2px 0 rgba(255, 255, 255, 0.9);
   transition: box-shadow 0.3s ease, border-color 0.3s ease;
 }
 
-.slot-machine-shell.machine-glow-win {
-  border-color: var(--honey);
-  box-shadow: 0 10px 28px rgba(227, 167, 59, 0.24);
-}
-.slot-machine-shell.machine-glow-miracle {
-  border-color: var(--lavender);
-  box-shadow: 0 10px 30px rgba(145, 115, 179, 0.26);
-}
-.slot-machine-shell.machine-glow-bad {
-  border-color: var(--rose);
-  box-shadow: 0 10px 26px rgba(207, 99, 114, 0.2);
-}
-.slot-machine-shell.machine-glow-menu {
-  border-color: #d9a778;
-  box-shadow: 0 10px 26px rgba(217, 167, 120, 0.22);
-}
+.slot-machine-shell.machine-glow-win { border-color: var(--honey); box-shadow: 0 10px 28px rgba(227, 167, 59, 0.24); }
+.slot-machine-shell.machine-glow-miracle { border-color: var(--lavender); box-shadow: 0 10px 30px rgba(145, 115, 179, 0.26); }
+.slot-machine-shell.machine-glow-bad { border-color: var(--rose); box-shadow: 0 10px 26px rgba(207, 99, 114, 0.2); }
+.slot-machine-shell.machine-glow-menu { border-color: #d9a778; box-shadow: 0 10px 26px rgba(217, 167, 120, 0.22); }
 
 .slot-machine-shell.machine-shake {
   animation: cozyShake 0.4s ease-in-out;
@@ -527,8 +615,8 @@ input {
 .machine-top-strip {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-bottom: 10px;
+  gap: 5px;
+  margin-bottom: 9px;
 }
 
 .machine-status-row {
@@ -542,9 +630,9 @@ input {
   font-size: 0.78rem;
   font-weight: 700;
   color: var(--cinnamon);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.25;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .machine-lights {
@@ -582,7 +670,7 @@ input {
 
 .spin-progress-track {
   width: 100%;
-  height: 7px;
+  height: 6px;
   border-radius: 999px;
   background: #eadbcd;
   overflow: hidden;
@@ -598,7 +686,7 @@ input {
   background: linear-gradient(90deg, #9173b3 0%, #d8836c 55%, #e3a73b 100%);
 }
 
-/* แถวหลัก: [1][2][3] + คันโยกด้านขวา (แนวนอนเสมอทั้งคอมและมือถือ) */
+/* แถวหลัก: [1][2][3] + คันโยกด้านขวา */
 .machine-body {
   display: flex;
   flex-direction: row;
@@ -617,6 +705,13 @@ input {
   border-radius: 18px;
   padding: 9px;
   box-shadow: inset 0 4px 12px rgba(74, 53, 49, 0.09);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.reels-window.swipe-flip-active {
+  touch-action: none;
+  cursor: pointer;
 }
 
 .reel-column {
@@ -630,9 +725,7 @@ input {
   text-align: center;
   font-size: 0.66rem;
   font-weight: 700;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.2;
 }
 
 .reel-step-label.is-menu { color: var(--cinnamon); }
@@ -640,12 +733,19 @@ input {
 
 .reel-slot-stage {
   position: relative;
-  height: 138px;
+  height: 142px;
   perspective: 950px;
 }
 
 .reel-slot-stage.can-tap-flip {
   cursor: pointer;
+}
+
+.reel-impact-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 14px;
 }
 
 .reel-spin-box {
@@ -752,11 +852,62 @@ input {
 .flip-face-back.tone-divide { background: linear-gradient(180deg, #fdf3f4 0%, #f8d7dc 100%); border-color: #d47281; }
 .flip-face-back.tone-zero { background: linear-gradient(180deg, #fffdf9 0%, #f3ebe2 100%); border-color: #d6c2b0; }
 
+/* ✨ เอฟเฟคแสงวาบ + ลำแสงพาดเฉียง + วงแหวนแรงกระแทกตอนพลิกการ์ด */
+.card-flash-burst {
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  pointer-events: none;
+  z-index: 6;
+}
+
+.card-flash-burst.flash-tone-win,
+.card-flash-burst.flash-tone-mult {
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.96) 0%, rgba(255, 224, 130, 0.78) 52%, transparent 82%);
+}
+.card-flash-burst.flash-tone-miracle {
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.98) 0%, rgba(206, 170, 245, 0.8) 52%, transparent 82%);
+}
+.card-flash-burst.flash-tone-tax,
+.card-flash-burst.flash-tone-divide {
+  background: radial-gradient(circle at center, rgba(255, 245, 247, 0.95) 0%, rgba(242, 138, 152, 0.72) 55%, transparent 84%);
+}
+.card-flash-burst.flash-tone-zero {
+  background: radial-gradient(circle at center, rgba(255, 253, 249, 0.95) 0%, rgba(235, 214, 192, 0.7) 55%, transparent 82%);
+}
+
+.card-shine-sweep {
+  position: absolute;
+  top: -15%;
+  bottom: -15%;
+  width: 55%;
+  left: 0;
+  background: linear-gradient(105deg, transparent 0%, rgba(255, 255, 255, 0.85) 50%, transparent 100%);
+  transform: skewX(-22deg);
+  pointer-events: none;
+  z-index: 7;
+}
+
+.card-impact-ring {
+  position: absolute;
+  inset: -3px;
+  border-radius: 16px;
+  border: 3px solid #f2c35a;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.card-impact-ring.ring-tone-miracle { border-color: #b78be0; }
+.card-impact-ring.ring-tone-win { border-color: #6cc28c; }
+.card-impact-ring.ring-tone-tax,
+.card-impact-ring.ring-tone-divide { border-color: #e06d7e; }
+.card-impact-ring.ring-tone-zero { border-color: #d4b89c; }
+
 .reel-card {
   position: relative;
   width: 100%;
   height: 100%;
-  padding: 14px 6px 6px;
+  padding: 16px 5px 5px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -766,20 +917,21 @@ input {
 }
 
 .reel-icon {
-  font-size: clamp(1.55rem, 3.6vw, 2.2rem);
+  font-size: clamp(1.5rem, 3.5vw, 2.15rem);
   line-height: 1.05;
 }
 
 .reel-label {
-  font-size: clamp(0.74rem, 1.8vw, 0.96rem);
+  font-size: clamp(0.74rem, 1.8vw, 0.94rem);
   font-weight: 800;
   line-height: 1.18;
   color: var(--espresso);
   word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .menu-label {
-  font-size: clamp(0.7rem, 1.65vw, 0.88rem);
+  font-size: clamp(0.7rem, 1.65vw, 0.86rem);
 }
 
 .tone-win .reel-label { color: #2b7a4b; }
@@ -792,14 +944,11 @@ input {
   font-size: clamp(0.58rem, 1.35vw, 0.7rem);
   font-weight: 500;
   color: var(--mocha-muted);
-  line-height: 1.2;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  line-height: 1.22;
+  word-break: break-word;
 }
 
-/* ================= คันโยกด้านข้าง (แสดงทั้งคอมและมือถือ) ================= */
+/* ================= คันโยกด้านข้าง ================= */
 .lever-assembly {
   width: 62px;
   flex-shrink: 0;
@@ -904,7 +1053,7 @@ input {
   line-height: 1.15;
 }
 
-/* ================= กล่องแสดงผลอีเวนท์ (พอดีพื้นที่จอที่เหลือ) ================= */
+/* ================= กล่องแสดงผลอีเวนท์ (แก้บั๊กตัดหัวท้าย อ่านครบ 100%) ================= */
 .event-panel {
   flex: 1 1 auto;
   min-height: 0;
@@ -916,10 +1065,17 @@ input {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   text-align: center;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+}
+
+.event-idle,
+.menu-preview-box,
+.event-card {
+  margin: auto 0;
+  flex-shrink: 0;
 }
 
 .event-idle {
@@ -939,6 +1095,7 @@ input {
   font-size: clamp(0.9rem, 2.2vw, 1.04rem);
   font-weight: 700;
   color: var(--cinnamon);
+  word-break: break-word;
 }
 
 .event-idle-desc {
@@ -946,6 +1103,7 @@ input {
   max-width: 520px;
   line-height: 1.45;
   color: var(--mocha-muted);
+  word-break: break-word;
 }
 
 .menu-preview-box {
@@ -989,7 +1147,6 @@ input {
 
 .event-card {
   width: 100%;
-  margin: auto 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1012,13 +1169,14 @@ input {
   align-items: center;
   justify-content: center;
   gap: 4px;
-  font-size: clamp(0.64rem, 1.6vw, 0.72rem);
+  font-size: clamp(0.65rem, 1.6vw, 0.72rem);
   font-weight: 600;
   color: var(--mocha-muted);
   background: rgba(255, 253, 249, 0.78);
   border: 1px dashed var(--border-caramel);
-  padding: 2px 10px;
+  padding: 3px 10px;
   border-radius: 10px;
+  word-break: break-word;
 }
 
 .event-category-pill {
@@ -1030,20 +1188,25 @@ input {
   background: rgba(255, 255, 255, 0.8);
   border: 1px solid rgba(140, 90, 77, 0.22);
   color: var(--cinnamon);
+  word-break: break-word;
 }
 
 .event-headline {
-  font-size: clamp(0.92rem, 2.3vw, 1.16rem);
+  font-size: clamp(0.92rem, 2.3vw, 1.15rem);
   font-weight: 800;
   color: var(--espresso);
-  line-height: 1.28;
+  line-height: 1.3;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .event-message {
-  font-size: clamp(0.76rem, 1.9vw, 0.88rem);
-  line-height: 1.44;
+  font-size: clamp(0.78rem, 1.9vw, 0.88rem);
+  line-height: 1.46;
   color: #5b433d;
   max-width: 720px;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .discord-emoji-inline {
@@ -1057,25 +1220,28 @@ input {
 .event-equation {
   width: 100%;
   max-width: 720px;
-  background: rgba(255, 255, 255, 0.74);
+  background: rgba(255, 255, 255, 0.76);
   border: 1px dashed var(--border-caramel);
   border-radius: 10px;
-  padding: 6px 10px;
-  font-size: clamp(0.68rem, 1.7vw, 0.78rem);
+  padding: 7px 10px;
+  font-size: clamp(0.7rem, 1.75vw, 0.78rem);
   color: var(--mocha-muted);
-  line-height: 1.38;
+  line-height: 1.4;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .event-equation strong {
   display: block;
-  font-size: clamp(0.66rem, 1.6vw, 0.72rem);
+  font-size: clamp(0.68rem, 1.65vw, 0.73rem);
   color: var(--cinnamon);
-  margin-bottom: 1px;
+  margin-bottom: 2px;
 }
 
 .event-balance-diff {
   font-size: clamp(0.8rem, 2vw, 0.92rem);
   font-weight: 800;
+  word-break: break-word;
 }
 
 .diff-pos { color: #2a7c4b; }
@@ -1089,7 +1255,7 @@ input {
   background: linear-gradient(135deg, #ffe28a 0%, #f0b949 100%);
   color: #4f3105;
   border: none;
-  padding: 4px 12px;
+  padding: 5px 12px;
   border-radius: 999px;
   font-size: 0.74rem;
   font-weight: 800;
@@ -1182,7 +1348,6 @@ input {
   gap: 10px;
 }
 
-/* Auth User Picker, Tabs & PIN */
 .auth-tabs {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1201,7 +1366,6 @@ input {
   font-size: 0.78rem;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.16s ease;
 }
 
 .auth-tab-btn.active {
@@ -1568,10 +1732,10 @@ input {
 }
 
 .stamp-emoji { font-size: 1.85rem; line-height: 1.1; }
-.stamp-title { font-size: 0.8rem; font-weight: 800; color: var(--espresso); }
-.stamp-desc { font-size: 0.68rem; color: var(--mocha-muted); line-height: 1.32; }
+.stamp-title { font-size: 0.8rem; font-weight: 800; color: var(--espresso); word-break: break-word; }
+.stamp-desc { font-size: 0.68rem; color: var(--mocha-muted); line-height: 1.32; word-break: break-word; }
 
-/* ================= ปรับสัดส่วนเป๊ะสำหรับหน้าจอมือถือ (ไม่เลื่อนหน้า) ================= */
+/* ================= สัดส่วนมือถือเต็มจอ + คันโยกข้างๆ ================= */
 @media (max-width: 680px) {
   .cafe-app {
     padding: 7px 8px 8px;
@@ -1580,6 +1744,7 @@ input {
 
   .mini-top-bar {
     padding: 4px 6px;
+    gap: 4px;
   }
 
   .mini-avatar,
@@ -1589,8 +1754,7 @@ input {
   }
 
   .mini-name {
-    font-size: 0.78rem;
-    max-width: 112px;
+    font-size: 0.76rem;
   }
 
   .mini-sub {
@@ -1598,20 +1762,28 @@ input {
   }
 
   .wallet-pill {
-    padding: 3px 9px;
+    padding: 3px 8px;
   }
 
   .wallet-value {
-    font-size: 0.82rem;
+    font-size: 0.8rem;
   }
 
-  .drawer-toggle-btn {
-    padding: 4px 9px;
+  .landmark-drawer-btn {
+    padding: 4px 8px;
     font-size: 0.7rem;
   }
 
+  .drawer-toggle-btn {
+    padding: 4px 8px;
+    font-size: 0.7rem;
+  }
+
+  .floating-drawer-wrap {
+    top: 48px;
+  }
+
   .floating-top-drawer {
-    top: 50px;
     padding: 12px;
   }
 
@@ -1637,7 +1809,6 @@ input {
     height: 5px;
   }
 
-  /* คงสล็อต 3 ช่อง + คันโยกไว้ข้างกันแบบคอม แต่ย่อขนาดให้พอดีนิ้ว */
   .machine-body {
     gap: 7px;
   }
@@ -1653,34 +1824,32 @@ input {
   }
 
   .reel-slot-stage {
-    height: 108px;
+    height: 118px;
   }
 
   .reel-card {
-    padding: 12px 3px 4px;
+    padding: 14px 3px 4px;
   }
 
   .reel-icon {
-    font-size: 1.45rem;
+    font-size: 1.4rem;
   }
 
   .reel-label,
   .menu-label {
-    font-size: 0.66rem;
+    font-size: 0.65rem;
   }
 
   .reel-sub {
     font-size: 0.54rem;
-    -webkit-line-clamp: 2;
   }
 
   .tap-flip-pill {
-    font-size: 0.5rem;
+    font-size: 0.49rem;
     padding: 1px 5px;
     top: 3px;
   }
 
-  /* ย่อคันโยกด้านขวาให้กะทัดรัดและลากได้จริงบนมือถือ */
   .lever-assembly {
     width: 44px;
     gap: 3px;
@@ -1688,7 +1857,7 @@ input {
 
   .lever-interactive-box {
     width: 42px;
-    height: 112px;
+    height: 114px;
     padding-bottom: 4px;
   }
 
@@ -1723,25 +1892,15 @@ input {
     font-size: 0.58rem;
   }
 
-  /* กล่องรายละเอียดอีเวนท์กะทัดรัดพอดีพื้นที่ที่เหลือ */
   .event-panel {
     padding: 8px 9px;
     border-radius: 18px;
   }
 
   .event-card {
-    padding: 9px 10px;
-    gap: 4px;
+    padding: 10px 11px;
+    gap: 5px;
     border-radius: 14px;
-  }
-
-  .event-message {
-    line-height: 1.38;
-  }
-
-  .event-equation {
-    padding: 5px 8px;
-    line-height: 1.32;
   }
 
   .stamp-grid {
@@ -1749,14 +1908,13 @@ input {
   }
 }
 
-/* จอมือถือเตี้ยพิเศษ (เช่น สูงน้อยกว่า 700px) */
 @media (max-width: 680px) and (max-height: 700px) {
   .reel-slot-stage {
-    height: 96px;
+    height: 104px;
   }
 
   .lever-interactive-box {
-    height: 100px;
+    height: 102px;
   }
 
   .event-headline {
@@ -1764,6 +1922,6 @@ input {
   }
 
   .event-message {
-    font-size: 0.72rem;
+    font-size: 0.74rem;
   }
 }
