@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 const transactionSubSchema = new mongoose.Schema(
   {
     at: { type: Date, default: Date.now },
-    type: { type: String, default: 'SPIN' }, // DEPOSIT | WITHDRAW | SPIN_WIN | SPIN_LOSS | SEIZURE | FRIEND_IN | FRIEND_OUT | LANDMARK
+    type: { type: String, default: 'SPIN' },
     title: { type: String, default: '' },
     walletDelta: { type: Number, default: 0 },
     bankDelta: { type: Number, default: 0 },
@@ -15,11 +15,11 @@ const transactionSubSchema = new mongoose.Schema(
   { _id: false }
 );
 
-// 👤 Schema ผู้เล่น: แชร์คอลเลกชัน users ร่วมกันระหว่างบอท Discord และผู้เล่นที่สมัครผ่านเว็บ
+// 👤 Schema ผู้เล่น: แชร์คอลเลกชัน users ร่วมกันระหว่าง Discord, สมาชิกเว็บ และน้องคอร์นจ๊อบ
 const userSchema = new mongoose.Schema(
   {
     discordId: { type: String, required: true, unique: true, index: true },
-    accountType: { type: String, enum: ['discord', 'web'], default: 'discord' },
+    accountType: { type: String, enum: ['discord', 'web', 'bot'], default: 'discord' },
     name: { type: String, default: '' },
     username: { type: String, default: '' },
     avatarUrl: { type: String, default: '' },
@@ -36,7 +36,6 @@ const userSchema = new mongoose.Schema(
     bankBalance: { type: Number, default: 0 },
     pin: { type: String, default: '' },
     casinoPin: { type: String, default: '' },
-    // ฟิลด์เสริมฝั่งคาสิโน (ไม่กระทบการทำงานของบอทเดิม)
     scratchCount: { type: Number, default: 0 },
     lastScratchAt: { type: Date, default: null },
     collectedStamps: { type: [String], default: [] },

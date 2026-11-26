@@ -68,10 +68,7 @@ export default function AuthModal({
   onRefreshPlayers,
   onAuthenticated
 }) {
-  // แท็บหลัก: LOGIN | REGISTER
   const [authTab, setAuthTab] = useState('LOGIN');
-
-  // สถานะแท็บเข้าสู่ระบบ
   const [dropdownOpen, setDropdownOpen] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState('');
@@ -82,7 +79,6 @@ export default function AuthModal({
   const [pinVerified, setPinVerified] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // สถานะแท็บสมัครสมาชิกใหม่ (คนนอก Discord)
   const [regName, setRegName] = useState('');
   const [regAvatar, setRegAvatar] = useState(CAFE_AVATAR_PRESETS[0].url);
   const [regPin, setRegPin] = useState(['', '', '', '']);
@@ -94,6 +90,7 @@ export default function AuthModal({
   const regConfirmRefs = useRef([]);
 
   const selectedPlayer = players.find((p) => p.userId === selectedId) || null;
+  const isSelectedBot = selectedPlayer?.accountType === 'bot';
 
   useEffect(() => {
     if (!isOpen) return;
@@ -112,7 +109,7 @@ export default function AuthModal({
     setRegStatus({ type: 'wait', text: '' });
 
     const found = players.find((p) => p.userId === initId);
-    if (found) {
+    if (found && found.accountType !== 'bot') {
       setFlowMode(found.hasPin ? 'VERIFY' : 'IDLE');
       setPinStatus({
         type: 'wait',
@@ -125,18 +122,17 @@ export default function AuthModal({
   }, [isOpen, activePlayer, players]);
 
   useEffect(() => {
-    if (!isOpen || authTab !== 'LOGIN') return;
+    if (!isOpen || authTab !== 'LOGIN' || isSelectedBot) return;
     if (flowMode === 'VERIFY' || flowMode === 'CREATE_1' || flowMode === 'CREATE_2') {
       const t = setTimeout(() => pinRefs.current[0]?.focus(), 60);
       return () => clearTimeout(t);
     }
-  }, [isOpen, authTab, flowMode, selectedId]);
+  }, [isOpen, authTab, flowMode, selectedId, isSelectedBot]);
 
   const pinValue = digits.join('');
 
-  // ตรวจสอบ PIN อัตโนมัติเมื่อกรอกครบ 4 หลักในโหมด VERIFY
   useEffect(() => {
-    if (authTab !== 'LOGIN' || flowMode !== 'VERIFY' || !selectedPlayer) return;
+    if (authTab !== 'LOGIN' || flowMode !== 'VERIFY' || !selectedPlayer || isSelectedBot) return;
     if (pinValue.length < 4) {
       setPinVerified(false);
       setPinStatus({ type: 'wait', text: '⌨️ กรอกรหัสผ่านตัวเลข 4 หลักเพื่อตรวจสอบ...' });
@@ -161,7 +157,7 @@ export default function AuthModal({
     return () => {
       cancelled = true;
     };
-  }, [authTab, pinValue, flowMode, selectedPlayer]);
+  }, [authTab, pinValue, flowMode, selectedPlayer, isSelectedBot]);
 
   if (!isOpen) return null;
 
@@ -177,7 +173,10 @@ export default function AuthModal({
     setDigits(['', '', '', '']);
     setFirstDraft('');
     setPinVerified(false);
-    if (player.hasPin) {
+    if (player.accountType === 'bot') {
+      setFlowMode('BOT_VIEW');
+      setPinStatus({ type: 'wait', text: '' });
+    } else if (player.hasPin) {
       setFlowMode('VERIFY');
       setPinStatus({ type: 'wait', text: '⌨️ กรอกรหัสผ่านตัวเลข 4 หลักเพื่อตรวจสอบ...' });
     } else {
@@ -218,11 +217,10 @@ export default function AuthModal({
   };
 
   const handleConfirmVerify = () => {
-    if (!selectedPlayer || !pinVerified) return;
+    if (!selectedPlayer || !pinVerified || isSelectedBot) return;
     onAuthenticated(selectedPlayer, pinValue);
   };
 
-  // สมัครสมาชิกเว็บใหม่และล็อคอินเข้าเล่นทันที
   const regPinStr = regPin.join('');
   const regConfirmStr = regConfirmPin.join('');
   const regNameClean = regName.trim();
@@ -265,12 +263,15 @@ export default function AuthModal({
   const create2Matches = flowMode === 'CREATE_2' && pinValue.length === 4 && pinValue === firstDraft;
   const create2Mismatch = flowMode === 'CREATE_2' && pinValue.length === 4 && pinValue !== firstDraft;
 
-  const renderAccountBadge = (p) =>
-    p.accountType === 'web' ? (
-      <span className="account-type-tag web">🌐 เว็บ</span>
-    ) : (
-      <span className="account-type-tag discord">💬 Discord</span>
-    );
+  const renderAccountBadge = (p) => {
+    if (p.accountType === 'bot') {
+      return <span className="account-type-tag bot">🤖 บอทปลุกเว็บ</span>;
+    }
+    if (p.accountType === 'web') {
+      return <span className="account-type-tag web">🌐 เว็บ</span>;
+    }
+    return <span className="account-type-tag discord">💬 Discord</span>;
+  };
 
   return (
     <div className="modal-overlay">
@@ -289,7 +290,6 @@ export default function AuthModal({
           )}
         </div>
 
-        {/* แถบสลับโหมด เข้าสู่ระบบ / สมัครสมาชิกใหม่ */}
         <div className="auth-tabs">
           <button
             type="button"
@@ -341,13 +341,15 @@ export default function AuthModal({
                             {selectedPlayer.displayName}
                           </strong>
                           {renderAccountBadge(selectedPlayer)}
-                          <span className={`pin-badge ${selectedPlayer.hasPin ? 'locked' : 'unlocked'}`}>
-                            {selectedPlayer.hasPin ? '🔒 มีรหัสล็อก' : '🔓 ยังไม่มีรหัส'}
-                          </span>
+                          {!isSelectedBot && (
+                            <span className={`pin-badge ${selectedPlayer.hasPin ? 'locked' : 'unlocked'}`}>
+                              {selectedPlayer.hasPin ? '🔒 มีรหัสล็อก' : '🔓 ยังไม่มีรหัส'}
+                            </span>
+                          )}
                         </div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--mocha-muted)' }}>
-                          {selectedPlayer.nickname ? `คุณ${selectedPlayer.nickname}` : `@${selectedPlayer.username}`} • 🪙{' '}
-                          {Number(selectedPlayer.walletBalance || 0).toLocaleString()} เหรียญ
+                          👛 {Number(selectedPlayer.walletBalance || 0).toLocaleString()} • 🏦{' '}
+                          {Number(selectedPlayer.bankBalance || 0).toLocaleString()} เหรียญ
                         </div>
                       </div>
                     </div>
@@ -398,19 +400,23 @@ export default function AuthModal({
                             />
                             <div style={{ minWidth: 0, flex: 1 }}>
                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0, flexWrap: 'wrap' }}>
                                   <strong style={{ fontSize: '0.88rem', color: 'var(--espresso)' }}>
                                     {p.displayName}
                                   </strong>
                                   {renderAccountBadge(p)}
                                 </div>
-                                <span className={`pin-badge ${p.hasPin ? 'locked' : 'unlocked'}`}>
-                                  {p.hasPin ? '🔒' : '🔓'}
-                                </span>
+                                {p.accountType === 'bot' ? (
+                                  <span className="pin-badge bot-auto">⚡ ออโต้</span>
+                                ) : (
+                                  <span className={`pin-badge ${p.hasPin ? 'locked' : 'unlocked'}`}>
+                                    {p.hasPin ? '🔒' : '🔓'}
+                                  </span>
+                                )}
                               </div>
                               <div style={{ fontSize: '0.73rem', color: 'var(--mocha-muted)' }}>
-                                {p.nickname ? `คุณ${p.nickname}` : `@${p.username}`} • 👛{' '}
-                                {Number(p.walletBalance || 0).toLocaleString()} เหรียญ • 📖 {p.collectedStamps?.length || 0} แสตมป์
+                                👛 {Number(p.walletBalance || 0).toLocaleString()} • 🏦{' '}
+                                {Number(p.bankBalance || 0).toLocaleString()} • 📖 {p.collectedStamps?.length || 0} แสตมป์
                               </div>
                             </div>
                           </button>
@@ -421,7 +427,26 @@ export default function AuthModal({
                 )}
               </div>
 
-              {selectedPlayer && flowMode === 'VERIFY' && (
+              {/* การ์ดส่องสถานะน้องคอร์นจ๊อบ (ดูได้แต่ล็อคอินแทนไม่ได้) */}
+              {selectedPlayer && isSelectedBot && (
+                <div className="pin-panel bot-readonly-panel">
+                  <div style={{ fontSize: '1.8rem' }}>🤖☕</div>
+                  <strong style={{ color: 'var(--cinnamon)', fontSize: '0.96rem' }}>
+                    {selectedPlayer.displayName} • ผู้เล่นอัตโนมัติประจำคาเฟ่
+                  </strong>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--mocha-muted)', lineHeight: 1.5 }}>
+                    น้องจะแวะเข้ามาปลุกหน้าเว็บและโยกสล็อตให้ตัวเองอัตโนมัติทุกครั้งตามรอบ Cron-job
+                    ร่วมชิงแลนด์มาร์กและแชร์อีเวนท์กับทุกคนในร้าน (ปั่นไปแล้ว{' '}
+                    <strong>{Number(selectedPlayer.scratchCount || 0).toLocaleString()}</strong> รอบ • สะสมแสตมป์{' '}
+                    <strong>{selectedPlayer.collectedStamps?.length || 0}</strong> ดวง)
+                  </span>
+                  <button type="button" className="btn-pill" onClick={() => setDropdownOpen(true)}>
+                    👤 เลือกบัญชีของคุณด้านบนแทน
+                  </button>
+                </div>
+              )}
+
+              {selectedPlayer && !isSelectedBot && flowMode === 'VERIFY' && (
                 <div className="pin-panel">
                   <strong style={{ color: 'var(--cinnamon)', fontSize: '0.95rem' }}>
                     🔒 กรอกรหัสผ่านคาสิโน 4 หลัก
@@ -440,7 +465,7 @@ export default function AuthModal({
                 </div>
               )}
 
-              {selectedPlayer && flowMode === 'IDLE' && !selectedPlayer.hasPin && (
+              {selectedPlayer && !isSelectedBot && flowMode === 'IDLE' && !selectedPlayer.hasPin && (
                 <div className="pin-panel">
                   <div style={{ fontSize: '1.6rem' }}>🔓</div>
                   <strong style={{ color: 'var(--cinnamon)', fontSize: '0.94rem' }}>
@@ -452,7 +477,7 @@ export default function AuthModal({
                 </div>
               )}
 
-              {selectedPlayer && flowMode === 'CREATE_1' && (
+              {selectedPlayer && !isSelectedBot && flowMode === 'CREATE_1' && (
                 <div className="pin-panel">
                   <strong style={{ color: 'var(--cinnamon)', fontSize: '0.95rem' }}>
                     🔐 ตั้งรหัสผ่าน 4 หลัก (รอบที่ 1 จาก 2)
@@ -470,7 +495,7 @@ export default function AuthModal({
                 </div>
               )}
 
-              {selectedPlayer && flowMode === 'CREATE_2' && (
+              {selectedPlayer && !isSelectedBot && flowMode === 'CREATE_2' && (
                 <div className="pin-panel">
                   <strong style={{ color: 'var(--cinnamon)', fontSize: '0.95rem' }}>
                     🔐 ยืนยันรหัสผ่าน 4 หลักอีกครั้ง (รอบที่ 2 จาก 2)
@@ -493,7 +518,6 @@ export default function AuthModal({
               )}
             </>
           ) : (
-            /* แท็บสมัครสมาชิกใหม่สำหรับผู้เล่นนอก Discord */
             <>
               <div className="auth-section">
                 <strong style={{ fontSize: '0.92rem', color: 'var(--cinnamon)' }}>
@@ -600,7 +624,7 @@ export default function AuthModal({
                 </span>
               )}
 
-              {selectedPlayer && flowMode === 'VERIFY' && (
+              {selectedPlayer && !isSelectedBot && flowMode === 'VERIFY' && (
                 <button
                   type="button"
                   className="btn-primary"
@@ -611,13 +635,13 @@ export default function AuthModal({
                 </button>
               )}
 
-              {selectedPlayer && flowMode === 'IDLE' && !selectedPlayer.hasPin && (
+              {selectedPlayer && !isSelectedBot && flowMode === 'IDLE' && !selectedPlayer.hasPin && (
                 <button type="button" className="btn-primary" onClick={startCreatePin}>
                   🔐 สร้างรหัส 4 หลัก
                 </button>
               )}
 
-              {selectedPlayer && flowMode === 'CREATE_1' && (
+              {selectedPlayer && !isSelectedBot && flowMode === 'CREATE_1' && (
                 <button
                   type="button"
                   className="btn-primary"
@@ -628,7 +652,7 @@ export default function AuthModal({
                 </button>
               )}
 
-              {selectedPlayer && flowMode === 'CREATE_2' && (
+              {selectedPlayer && !isSelectedBot && flowMode === 'CREATE_2' && (
                 <button
                   type="button"
                   className="btn-primary"

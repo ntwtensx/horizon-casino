@@ -1,6 +1,5 @@
-/* ================= ธนาคาร Horizon Cafe & การเดินบัญชี 10 รายการ ================= */
+/* ================= ธนาคาร Horizon Cafe, การเดินบัญชี & ป้ายน้องคอร์นจ๊อบ ================= */
 
-/* ปุ่มกระเป๋าตังค์บนแถบบนมินิ (แตะเพื่อเปิดธนาคารได้ทันที) */
 .wallet-pill-btn {
   cursor: pointer;
   transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
@@ -16,6 +15,24 @@
   font-size: 0.72rem;
   opacity: 0.85;
   margin-left: 1px;
+}
+
+/* ป้ายสีประจำตัว น้องคอร์นจ๊อบ */
+.account-type-tag.bot {
+  background: linear-gradient(135deg, #fff3d6 0%, #fae0b5 100%);
+  color: #8c5209;
+  border: 1px solid #e3b86b;
+}
+
+.pin-badge.bot-auto {
+  background: #f3ecfa;
+  color: #63428c;
+  border: 1px solid #d1b8eb;
+}
+
+.bot-readonly-panel {
+  border-style: dashed;
+  background: linear-gradient(155deg, #fffdf8 0%, #f9efe1 100%);
 }
 
 /* แถบสรุป 2 บัญชีในลิ้นชักเมนู */
@@ -190,7 +207,6 @@
   word-break: break-word;
 }
 
-/* กล่องสรุปกติกาธนาคาร */
 .bank-rules-box {
   background: var(--surface-warm);
   border: 1px solid var(--border-cream);
@@ -316,7 +332,6 @@
   word-break: break-word;
 }
 
-/* ================= ส่วนเสริมในกล่อง EventDisplay (ธนาคาร & เผาเงินเฟ้อ) ================= */
 .event-bank-diff {
   font-size: clamp(0.73rem, 1.8vw, 0.84rem);
   font-weight: 700;
