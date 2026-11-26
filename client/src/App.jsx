@@ -18,9 +18,6 @@ const DEFAULT_LANDMARKS = [
   { id: 'RIVER', icon: '🏞️', name: 'แม่น้ำภูเขา', owned: false }
 ];
 
-const MENU_HOLD_MS = 1500; // ค้างหน้าเมนูคาเฟ่ 1.5 วินาทีก่อนพลิกการ์ด
-const FLIP_WAVE_STEP_MS = 100; // พลิกไล่เวฟทีละใบห่างกัน 0.1 วินาที
-
 function getStatusPill(balance, isTopSultan) {
   const bal = Number(balance || 0);
   if (isTopSultan && bal > 0) return { cls: 'sultan', text: '👑 สุลต่านคาเฟ่' };
@@ -40,19 +37,21 @@ export default function App() {
   const [verifiedPin, setVerifiedPin] = useState('');
   const [authModalOpen, setAuthModalOpen] = useState(true);
   const [stampModalState, setStampModalState] = useState({ open: false, category: 'ALL' });
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
 
-  // เฟสสล็อต 2 จังหวะ: IDLE -> SPINNING -> MENU_SHOW -> FLIPPING -> REVEALED
+  // เฟสสล็อต: IDLE -> SPINNING -> MENU_SHOW (รอแตะพลิกทีละใบ) -> REVEALED
   const [spinPhase, setSpinPhase] = useState('IDLE');
+  const [spinProgress, setSpinProgress] = useState(0);
   const [menuRevealedCount, setMenuRevealedCount] = useState(0);
-  const [flippedCount, setFlippedCount] = useState(0);
+  const [flippedSlots, setFlippedSlots] = useState([false, false, false]);
   const [spinResult, setSpinResult] = useState(null);
   const [isBrandNewStamp, setIsBrandNewStamp] = useState(false);
   const [spinError, setSpinError] = useState('');
   const [floatingDelta, setFloatingDelta] = useState(null);
 
   const timersRef = useRef([]);
-  const flipStartedRef = useRef(false);
+  const revealDoneRef = useRef(false);
   const pendingPayloadRef = useRef(null);
 
   const clearTimers = useCallback(() => {
@@ -96,7 +95,7 @@ export default function App() {
   }, [spinResult, stampCatalog]);
 
   const particleMood = useMemo(() => {
-    if (spinPhase === 'SPINNING' || spinPhase === 'FLIPPING') return 'spinning';
+    if (spinPhase === 'SPINNING') return 'spinning';
     const t = spinResult?.outcome?.outcomeType;
     if (spinPhase !== 'REVEALED' || !t) return 'idle';
     if (t === 'MIRACLE') return 'miracle';
@@ -105,23 +104,24 @@ export default function App() {
     return 'idle';
   }, [spinPhase, spinResult]);
 
-  const isBusy = spinPhase === 'SPINNING' || spinPhase === 'MENU_SHOW' || spinPhase === 'FLIPPING';
+  const isBusy = spinPhase === 'SPINNING' || spinPhase === 'MENU_SHOW';
 
   const handleAuthenticated = (player, pin) => {
     clearTimers();
-    flipStartedRef.current = false;
+    revealDoneRef.current = false;
     pendingPayloadRef.current = null;
     setActivePlayer(player);
     setVerifiedPin(pin);
     setAuthModalOpen(false);
+    setDrawerOpen(false);
     setSpinPhase('IDLE');
+    setSpinProgress(0);
     setMenuRevealedCount(0);
-    setFlippedCount(0);
+    setFlippedSlots([false, false, false]);
     setSpinResult(null);
     setSpinError('');
     setFloatingDelta(null);
 
-    // รองรับทั้งผู้ใช้เดิมและบัญชีที่เพิ่งสมัครใหม่บนเว็บ (web_)
     setPlayers((prev) => {
       const exists = prev.some((p) => p.userId === player.userId);
       const updated = exists
@@ -131,85 +131,84 @@ export default function App() {
     });
   };
 
-  // เริ่มเวฟพลิกการ์ด 3D ไล่ทีละใบ (0ms -> +100ms -> +200ms) แล้วค่อยเฉลยยอดเงิน & พลุ
-  const startFlipWave = useCallback(
-    (res, brandNew) => {
-      if (!res || flipStartedRef.current) return;
-      flipStartedRef.current = true;
-      clearTimers();
+  // เฉลยผลลัพธ์เต็มรูปแบบทันทีเมื่อผู้เล่นแตะพลิกครบทั้ง 3 ใบ
+  const finalizeOutcomeReveal = useCallback((res, brandNew) => {
+    if (!res || revealDoneRef.current) return;
+    revealDoneRef.current = true;
 
-      setSpinPhase('FLIPPING');
-      setFlippedCount(1);
+    setSpinPhase('REVEALED');
 
-      timersRef.current.push(setTimeout(() => setFlippedCount(2), FLIP_WAVE_STEP_MS));
-      timersRef.current.push(setTimeout(() => setFlippedCount(3), FLIP_WAVE_STEP_MS * 2));
-
-      // รอให้การ์ดใบที่ 3 พลิกจบแล้วค่อยอัปเดตตัวเลขและยิงเอฟเฟค
-      timersRef.current.push(
-        setTimeout(() => {
-          setSpinPhase('REVEALED');
-
-          setActivePlayer((curr) =>
-            curr
-              ? {
-                  ...curr,
-                  walletBalance: res.newBalance,
-                  scratchCount: res.scratchCount,
-                  collectedStamps: res.collectedStamps || curr.collectedStamps
-                }
-              : curr
-          );
-
-          const delta = Number(res.outcome?.delta || 0);
-          if (delta !== 0) {
-            setFloatingDelta({ id: Date.now(), value: delta });
-            timersRef.current.push(setTimeout(() => setFloatingDelta(null), 1900));
+    setActivePlayer((curr) =>
+      curr
+        ? {
+            ...curr,
+            walletBalance: res.newBalance,
+            scratchCount: res.scratchCount,
+            collectedStamps: res.collectedStamps || curr.collectedStamps
           }
+        : curr
+    );
 
-          fireOutcomeEffect(
-            res.outcome?.outcomeType,
-            brandNew,
-            res.outcome?.slots?.[0]?.icon || ''
-          );
-          if (brandNew) {
-            timersRef.current.push(setTimeout(() => fireStampUnlockBurst(), 360));
-          }
+    const delta = Number(res.outcome?.delta || 0);
+    if (delta !== 0) {
+      setFloatingDelta({ id: Date.now(), value: delta });
+      timersRef.current.push(setTimeout(() => setFloatingDelta(null), 1900));
+    }
 
-          const friendMap = new Map((res.affectedFriends || []).map((f) => [f.userId, f.newBalance]));
-          setPlayers((prev) =>
-            prev.map((p) => {
-              if (p.userId === res.userId) {
-                return {
-                  ...p,
-                  walletBalance: res.newBalance,
-                  scratchCount: res.scratchCount,
-                  collectedStamps: res.collectedStamps || p.collectedStamps
-                };
-              }
-              if (friendMap.has(p.userId)) {
-                return { ...p, walletBalance: friendMap.get(p.userId) };
-              }
-              return p;
-            })
-          );
+    fireOutcomeEffect(
+      res.outcome?.outcomeType,
+      brandNew,
+      res.outcome?.slots?.[0]?.icon || ''
+    );
+    if (brandNew) {
+      timersRef.current.push(setTimeout(() => fireStampUnlockBurst(), 340));
+    }
 
-          if (Array.isArray(res.landmarks) && res.landmarks.length === 5) {
-            setLandmarks(res.landmarks);
-          }
-          if (typeof res.tipJar === 'number') {
-            setTipJar(res.tipJar);
-          }
-        }, FLIP_WAVE_STEP_MS * 2 + 340)
-      );
+    const friendMap = new Map((res.affectedFriends || []).map((f) => [f.userId, f.newBalance]));
+    setPlayers((prev) =>
+      prev.map((p) => {
+        if (p.userId === res.userId) {
+          return {
+            ...p,
+            walletBalance: res.newBalance,
+            scratchCount: res.scratchCount,
+            collectedStamps: res.collectedStamps || p.collectedStamps
+          };
+        }
+        if (friendMap.has(p.userId)) {
+          return { ...p, walletBalance: friendMap.get(p.userId) };
+        }
+        return p;
+      })
+    );
+
+    if (Array.isArray(res.landmarks) && res.landmarks.length === 5) {
+      setLandmarks(res.landmarks);
+    }
+    if (typeof res.tipJar === 'number') {
+      setTipJar(res.tipJar);
+    }
+  }, []);
+
+  // แตะการ์ดทีละใบเพื่อพลิกเปิดชะตา
+  const handleFlipCard = useCallback(
+    (idx) => {
+      if (spinPhase !== 'MENU_SHOW') return;
+      setFlippedSlots((prev) => {
+        if (prev[idx]) return prev;
+        const next = [...prev];
+        next[idx] = true;
+
+        if (next.every(Boolean) && pendingPayloadRef.current && !revealDoneRef.current) {
+          const { res, brandNew } = pendingPayloadRef.current;
+          // หน่วงให้แอนิเมชันพลิกใบสุดท้ายจบสวยๆ แล้วค่อยเฉลยรายละเอียด + เงิน + พลุ
+          timersRef.current.push(setTimeout(() => finalizeOutcomeReveal(res, brandNew), 300));
+        }
+        return next;
+      });
     },
-    [clearTimers]
+    [spinPhase, finalizeOutcomeReveal]
   );
-
-  const handleQuickFlip = useCallback(() => {
-    if (spinPhase !== 'MENU_SHOW' || !pendingPayloadRef.current) return;
-    const { res, brandNew } = pendingPayloadRef.current;
-    startFlipWave(res, brandNew);
-  }, [spinPhase, startFlipWave]);
 
   const handlePullLever = async () => {
     if (!activePlayer) {
@@ -219,15 +218,17 @@ export default function App() {
     if (isBusy) return;
 
     clearTimers();
-    flipStartedRef.current = false;
+    revealDoneRef.current = false;
     pendingPayloadRef.current = null;
+    setDrawerOpen(false);
 
     setSpinError('');
     setIsBrandNewStamp(false);
     setFloatingDelta(null);
     setSpinPhase('SPINNING');
+    setSpinProgress(18);
     setMenuRevealedCount(0);
-    setFlippedCount(0);
+    setFlippedSlots([false, false, false]);
 
     const prevStamps = new Set(activePlayer.collectedStamps || []);
     const spinStartedAt = Date.now();
@@ -235,6 +236,7 @@ export default function App() {
 
     if (!res.ok) {
       setSpinPhase('IDLE');
+      setSpinProgress(0);
       setSpinError(res.error || 'ไม่สามารถหมุนสล็อตได้ในขณะนี้ค่ะ');
       return;
     }
@@ -243,26 +245,31 @@ export default function App() {
     pendingPayloadRef.current = { res, brandNew };
     setSpinResult(res);
     setIsBrandNewStamp(brandNew);
+    setSpinProgress(36);
 
-    // เฟส 1: หยุดวงล้อเผยเมนูคาเฟ่ทีละช่อง (เครื่องดื่ม -> ท็อปปิ้ง -> ขนมทานเล่น)
+    // หยุดวงล้อเผยเมนูทีละช่องพร้อมโปรเกรสบาร์ (ช่อง 1 -> ช่อง 2 -> ช่อง 3)
     const elapsed = Date.now() - spinStartedAt;
-    const stop1Delay = Math.max(240, 880 - elapsed);
-    const stop2Delay = stop1Delay + 640;
-    const stop3Delay = stop2Delay + 760;
+    const stop1Delay = Math.max(240, 820 - elapsed);
+    const stop2Delay = stop1Delay + 580;
+    const stop3Delay = stop2Delay + 680;
 
-    timersRef.current.push(setTimeout(() => setMenuRevealedCount(1), stop1Delay));
-    timersRef.current.push(setTimeout(() => setMenuRevealedCount(2), stop2Delay));
+    timersRef.current.push(
+      setTimeout(() => {
+        setMenuRevealedCount(1);
+        setSpinProgress(62);
+      }, stop1Delay)
+    );
+    timersRef.current.push(
+      setTimeout(() => {
+        setMenuRevealedCount(2);
+        setSpinProgress(84);
+      }, stop2Delay)
+    );
     timersRef.current.push(
       setTimeout(() => {
         setMenuRevealedCount(3);
+        setSpinProgress(100);
         setSpinPhase('MENU_SHOW');
-
-        // เฟส 2: ค้างโชว์เมนู 1.5 วินาที แล้วสั่งพลิกการ์ด 3D ไล่เวฟอัตโนมัติ
-        timersRef.current.push(
-          setTimeout(() => {
-            startFlipWave(res, brandNew);
-          }, MENU_HOLD_MS)
-        );
       }, stop3Delay)
     );
   };
@@ -276,147 +283,224 @@ export default function App() {
       <CafeParticles mood={particleMood} landmarks={landmarks} />
 
       <div className="cafe-app">
-        <header className="cafe-hud">
-          <div className="hud-top">
-            <div className="hud-brand">
-              <div className="brand-title">
-                <span>☕ Horizon Casino</span>
-                <span className="brand-badge">Cafe Slot</span>
-              </div>
-
-              <div className="landmarks-bar" aria-label="แลนด์มาร์กริมหน้าต่าง 5 โซน">
-                {landmarks.map((lm) => {
-                  const tip = lm.owned
-                    ? `${lm.icon} ${lm.name} • ${lm.ownerName} (ขั้น ${lm.tier} : ${lm.pct}%)${
-                        lm.curtainClosed ? ' • ปิดม่านพัก 1 รอบ' : ''
-                      }`
-                    : `${lm.icon} ${lm.name} • ยังไม่มีผู้ถือครอง`;
-                  return (
-                    <div key={lm.id} className={`lm-chip ${lm.owned ? 'owned' : 'empty'}`} tabIndex={0}>
-                      <span>{lm.icon}</span>
-                      <span className="lm-tooltip">{tip}</span>
-                    </div>
-                  );
-                })}
-              </div>
+        {/* แถบบนมินิบางเฉียบ: แสดงโปรไฟล์ย่อ + กระเป๋าตังค์ + ปุ่มเปิดลิ้นชักลอย */}
+        <header className="mini-top-bar">
+          <button
+            type="button"
+            className="mini-brand-btn"
+            onClick={() => setDrawerOpen((v) => !v)}
+            aria-expanded={drawerOpen}
+          >
+            {activePlayer ? (
+              <img
+                className="mini-avatar"
+                src={activePlayer.avatar || DEFAULT_AVATAR}
+                alt={activePlayer.displayName}
+                onError={(e) => {
+                  e.currentTarget.src = DEFAULT_AVATAR;
+                }}
+              />
+            ) : (
+              <span className="mini-brand-emoji">☕</span>
+            )}
+            <div className="mini-brand-text">
+              <span className="mini-name">
+                {activePlayer
+                  ? activePlayer.nickname
+                    ? `คุณ${activePlayer.nickname}`
+                    : activePlayer.displayName
+                  : 'Horizon Casino'}
+              </span>
+              <span className="mini-sub">☕ Horizon Slot</span>
             </div>
+          </button>
 
-            <div className="hud-controls">
-              <button
-                type="button"
-                className="btn-pill btn-stamp"
-                onClick={() => setStampModalState({ open: true, category: 'ALL' })}
-              >
-                <span>📖 สมุดแสตมป์</span>
-                <span className="stamp-pill-count">
-                  {ownedStampCount}/{stampCatalog.totalStamps || 158}
+          <div className="mini-right-group">
+            {activePlayer && (
+              <div className="wallet-pill wallet-pill-compact wallet-pill-anchor">
+                <span className={`wallet-value ${activePlayer.walletBalance < 0 ? 'negative' : ''}`}>
+                  <NumberFlow value={Number(activePlayer.walletBalance || 0)} /> 🪙
                 </span>
-              </button>
 
-              <button
-                type="button"
-                className="btn-pill"
-                onClick={() => setSoundEnabled((v) => !v)}
-                title="เปิด/ปิดเสียงสล็อต"
-              >
-                {soundEnabled ? '🔊 เสียงเปิด' : '🔇 ปิดเสียง'}
-              </button>
+                <AnimatePresence>
+                  {floatingDelta && (
+                    <motion.span
+                      key={floatingDelta.id}
+                      className={`wallet-delta-float ${floatingDelta.value > 0 ? 'pos' : 'neg'}`}
+                      initial={{ opacity: 0, y: 6, scale: 0.75 }}
+                      animate={{ opacity: 1, y: 30, scale: 1.05 }}
+                      exit={{ opacity: 0, y: 44, scale: 0.9 }}
+                      transition={{ duration: 0.55, ease: 'easeOut' }}
+                    >
+                      {floatingDelta.value > 0
+                        ? `+${floatingDelta.value.toLocaleString()} 🪙`
+                        : `${floatingDelta.value.toLocaleString()} 💸`}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
 
-              <button
-                type="button"
-                className="btn-pill"
-                onClick={() => setAuthModalOpen(true)}
-                disabled={isBusy}
-              >
-                👤 เปลี่ยนผู้เล่น
-              </button>
-            </div>
+            <button
+              type="button"
+              className={`drawer-toggle-btn ${drawerOpen ? 'open' : ''}`}
+              onClick={() => setDrawerOpen((v) => !v)}
+              aria-label="เปิดหรือซ่อนลิ้นชักเมนูคาเฟ่"
+            >
+              <span>{drawerOpen ? '▲ ซ่อน' : '▼ เมนู'}</span>
+            </button>
           </div>
-
-          {activePlayer && (
-            <div className="hud-player-bar">
-              <div className="player-info">
-                <img
-                  className="player-avatar"
-                  src={activePlayer.avatar || DEFAULT_AVATAR}
-                  alt={activePlayer.displayName}
-                  onError={(e) => {
-                    e.currentTarget.src = DEFAULT_AVATAR;
-                  }}
-                />
-                <div className="player-meta">
-                  <div className="player-name-row">
-                    <span>{activePlayer.displayName}</span>
-                    <span className="player-nick">
-                      {activePlayer.nickname ? `คุณ${activePlayer.nickname}` : `@${activePlayer.username}`}
-                    </span>
-                    <span className={`account-type-tag ${activePlayer.accountType === 'web' ? 'web' : 'discord'}`}>
-                      {activePlayer.accountType === 'web' ? '🌐 เว็บ' : '💬 Discord'}
-                    </span>
-                  </div>
-                  <div className="player-sub-row">
-                    {statusPill && <span className={`status-pill ${statusPill.cls}`}>{statusPill.text}</span>}
-                    <span>• ปั่นไปแล้ว {Number(activePlayer.scratchCount || 0).toLocaleString()} รอบ</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="hud-wallet-group">
-                <div className="tipjar-pill" title="กระปุกหมูสะสมจากคนที่โดนหักเงินในร้าน">
-                  🐷 กระปุกหมู: <NumberFlow value={Number(tipJar || 0)} />
-                </div>
-
-                <div className="wallet-pill wallet-pill-anchor">
-                  <span className="wallet-label">👛 กระเป๋าตังค์:</span>
-                  <span className={`wallet-value ${activePlayer.walletBalance < 0 ? 'negative' : ''}`}>
-                    <NumberFlow value={Number(activePlayer.walletBalance || 0)} /> 🪙
-                  </span>
-
-                  <AnimatePresence>
-                    {floatingDelta && (
-                      <motion.span
-                        key={floatingDelta.id}
-                        className={`wallet-delta-float ${floatingDelta.value > 0 ? 'pos' : 'neg'}`}
-                        initial={{ opacity: 0, y: 8, scale: 0.75 }}
-                        animate={{ opacity: 1, y: -26, scale: 1.05 }}
-                        exit={{ opacity: 0, y: -44, scale: 0.9 }}
-                        transition={{ duration: 0.55, ease: 'easeOut' }}
-                      >
-                        {floatingDelta.value > 0
-                          ? `+${floatingDelta.value.toLocaleString()} 🪙`
-                          : `${floatingDelta.value.toLocaleString()} 💸`}
-                      </motion.span>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </div>
-            </div>
-          )}
         </header>
 
+        {/* ลิ้นชักลอยด้านบน (ซ่อนข้อมูลเสริมที่ไม่เกี่ยวกับตัวตู้สล็อต) */}
+        <AnimatePresence>
+          {drawerOpen && (
+            <>
+              <motion.div
+                className="drawer-backdrop"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setDrawerOpen(false)}
+              />
+              <motion.aside
+                className="floating-top-drawer"
+                initial={{ opacity: 0, y: -18, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -16, scale: 0.98 }}
+                transition={{ type: 'spring', stiffness: 360, damping: 28 }}
+              >
+                <div className="drawer-section">
+                  <div className="drawer-row-between">
+                    <div className="brand-title">
+                      <span>☕ Horizon Casino</span>
+                      <span className="brand-badge">Cafe Slot</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="drawer-close-pill"
+                      onClick={() => setDrawerOpen(false)}
+                    >
+                      ✕ พับเก็บ
+                    </button>
+                  </div>
+
+                  {activePlayer && (
+                    <div className="drawer-player-card">
+                      <img
+                        className="player-avatar"
+                        src={activePlayer.avatar || DEFAULT_AVATAR}
+                        alt={activePlayer.displayName}
+                        onError={(e) => {
+                          e.currentTarget.src = DEFAULT_AVATAR;
+                        }}
+                      />
+                      <div className="player-meta">
+                        <div className="player-name-row">
+                          <span>{activePlayer.displayName}</span>
+                          <span className={`account-type-tag ${activePlayer.accountType === 'web' ? 'web' : 'discord'}`}>
+                            {activePlayer.accountType === 'web' ? '🌐 เว็บ' : '💬 Discord'}
+                          </span>
+                        </div>
+                        <div className="player-sub-row">
+                          {statusPill && <span className={`status-pill ${statusPill.cls}`}>{statusPill.text}</span>}
+                          <span>• ปั่นแล้ว {Number(activePlayer.scratchCount || 0).toLocaleString()} รอบ</span>
+                        </div>
+                      </div>
+                      <div className="tipjar-pill" title="กระปุกหมูสะสมจากคนที่โดนหักเงินในร้าน">
+                        🐷 <NumberFlow value={Number(tipJar || 0)} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* แลนด์มาร์กริมหน้าต่าง 5 โซน */}
+                <div className="drawer-section">
+                  <div className="drawer-label">🏰 แลนด์มาร์กริมหน้าต่างคาเฟ่ 5 โซน</div>
+                  <div className="drawer-landmarks-grid">
+                    {landmarks.map((lm) => (
+                      <div key={lm.id} className={`drawer-lm-item ${lm.owned ? 'owned' : 'empty'}`}>
+                        <span className="drawer-lm-icon">{lm.icon}</span>
+                        <div className="drawer-lm-info">
+                          <strong>{lm.name}</strong>
+                          <span>
+                            {lm.owned
+                              ? `${lm.ownerName} • ขั้น ${lm.tier} (${lm.pct}%)${lm.curtainClosed ? ' • ปิดม่าน' : ''}`
+                              : 'ว่าง • ยังไม่มีผู้ถือครอง'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* ปุ่มเครื่องมือทั้งหมด */}
+                <div className="drawer-actions">
+                  <button
+                    type="button"
+                    className="btn-pill btn-stamp"
+                    onClick={() => {
+                      setDrawerOpen(false);
+                      setStampModalState({ open: true, category: 'ALL' });
+                    }}
+                  >
+                    <span>📖 สมุดแสตมป์</span>
+                    <span className="stamp-pill-count">
+                      {ownedStampCount}/{stampCatalog.totalStamps || 158}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn-pill"
+                    onClick={() => setSoundEnabled((v) => !v)}
+                  >
+                    {soundEnabled ? '🔊 เสียงเปิด' : '🔇 ปิดเสียง'}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn-pill"
+                    onClick={() => {
+                      setDrawerOpen(false);
+                      setAuthModalOpen(true);
+                    }}
+                    disabled={isBusy}
+                  >
+                    👤 เปลี่ยนผู้เล่น
+                  </button>
+                </div>
+              </motion.aside>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* เวทีหลักเต็มจอ: ตู้สล็อต + คันโยกด้านข้าง + กล่องรายละเอียดอีเวนท์ */}
         <main className="casino-stage">
           <SlotMachine
             spinPhase={spinPhase}
+            spinProgress={spinProgress}
             menuRevealedCount={menuRevealedCount}
-            flippedCount={flippedCount}
+            flippedSlots={flippedSlots}
             cafeMenuItems={spinResult?.outcome?.cafeMenu?.items}
             slots={spinResult?.outcome?.slots}
             outcomeType={spinResult?.outcome?.outcomeType}
             soundEnabled={soundEnabled}
             disabled={!activePlayer}
             onPullLever={handlePullLever}
-            onQuickFlip={handleQuickFlip}
+            onFlipCard={handleFlipCard}
           />
 
           <EventDisplay
             spinPhase={spinPhase}
+            spinProgress={spinProgress}
             menuRevealedCount={menuRevealedCount}
+            flippedSlots={flippedSlots}
             spinResult={spinResult}
             isBrandNewStamp={isBrandNewStamp}
             matchedStamp={matchedStamp}
             errorMsg={spinError}
             onOpenStampBook={(cat) => setStampModalState({ open: true, category: cat || 'ALL' })}
-            onQuickFlip={handleQuickFlip}
           />
         </main>
 
