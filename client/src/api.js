@@ -33,5 +33,17 @@ export const casinoApi = {
     request('/spin', {
       method: 'POST',
       body: JSON.stringify({ userId, pin })
-    })
+    }),
+  deposit: (userId, pin, amount) =>
+    request('/bank/deposit', {
+      method: 'POST',
+      body: JSON.stringify({ userId, pin, amount })
+    }),
+  withdraw: (userId, pin, amount) =>
+    request('/bank/withdraw', {
+      method: 'POST',
+      body: JSON.stringify({ userId, pin, amount })
+    }),
+  getTransactions: (userId) =>
+    request(`/transactions/${encodeURIComponent(userId)}?t=${Date.now()}`)
 };

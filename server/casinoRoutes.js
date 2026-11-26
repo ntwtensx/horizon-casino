@@ -8,11 +8,19 @@ const {
   formatFriendTitle,
   calculateSlotOutcome
 } = require('./eventEngine');
+const {
+  DEPOSIT_FEE_RATE,
+  MAX_STATEMENT_ITEMS,
+  clampCoins,
+  clampBank,
+  buildTransaction,
+  applyBalanceDelta,
+  calculateDeposit,
+  calculateWithdraw
+} = require('./utils/economy');
 
 const router = express.Router();
 
-const MAX_WALLET_CAP = 9999999;
-const MIN_WALLET_CAP = -9999999;
 const DEFAULT_AVATAR = 'https://cdn.discordapp.com/embed/avatars/0.png';
 
 const spinCooldownMap = new Map();
@@ -27,10 +35,13 @@ const setNoCacheHeaders = (res) =>
     'Surrogate-Control': 'no-store'
   });
 
-const clampCoins = (val) =>
-  Math.max(MIN_WALLET_CAP, Math.min(MAX_WALLET_CAP, Math.round(Number(val || 0))));
-
 const escapeRegex = (str) => String(str || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// 🔐 ตรวจสอบความถูกต้องของ PIN 4 หลัก
+function isPinAuthorized(userDoc, rawPin) {
+  if (!userDoc?.casinoPin || !/^\d{4}$/.test(String(userDoc.casinoPin).trim())) return true;
+  return String(rawPin || '').trim() === String(userDoc.casinoPin).trim();
+}
 
 // 🛡️ เสริม: มอบยศ Discord ผ่าน REST API (ข้ามอัตโนมัติสำหรับบัญชีที่สมัครจากเว็บ web_)
 async function tryAssignDiscordPinRole(userId) {
@@ -124,7 +135,7 @@ async function saveWorldState(stateObj) {
   );
 }
 
-// 🧩 แปลง Document ผู้ใช้เป็นอ็อบเจกต์มาตรฐานสำหรับหน้าเว็บ
+// 🧩 แปลง Document ผู้ใช้เป็นอ็อบเจกต์มาตรฐานสำหรับหน้าเว็บ (รวม bankBalance)
 function formatPlayerDoc(u) {
   const hasSavedPin = Boolean(u.casinoPin && /^\d{4}$/.test(String(u.casinoPin).trim()));
   const cleanStamps = Array.isArray(u.collectedStamps)
@@ -146,6 +157,7 @@ function formatPlayerDoc(u) {
     nickname: (u.nickname || '').trim(),
     avatar: (u.avatarUrl && u.avatarUrl.trim()) || DEFAULT_AVATAR,
     walletBalance: typeof u.walletBalance === 'number' ? u.walletBalance : 0,
+    bankBalance: clampBank(u.bankBalance || 0),
     scratchCount: Number(u.scratchCount || 0),
     hasPin: hasSavedPin,
     collectedStamps: cleanStamps
@@ -154,7 +166,7 @@ function formatPlayerDoc(u) {
 
 // 📋 ดึงรายชื่อสมาชิกทั้งหมด (ทั้ง Discord และผู้เล่นที่สมัครผ่านเว็บ)
 async function buildPlayersRoster() {
-  const dbUsers = await User.find({}).lean();
+  const dbUsers = await User.find({}).select('-transactions').lean();
   const players = dbUsers.filter((u) => u && u.discordId).map(formatPlayerDoc);
   return players.sort((a, b) => a.displayName.localeCompare(b.displayName, 'th'));
 }
@@ -171,6 +183,7 @@ router.get('/init', async (req, res) => {
       players,
       landmarks: getWindowLandmarksStatus(worldState.landmarks, players),
       tipJar: worldState.cursedTipJar,
+      depositFeePct: Math.round(DEPOSIT_FEE_RATE * 100),
       stampCatalog: getMasterStampCatalog()
     });
   } catch (err) {
@@ -204,20 +217,13 @@ router.post('/register', async (req, res) => {
     const cleanConfirm = String(confirmPin || '').trim();
 
     if (cleanName.length < 2 || cleanName.length > 24) {
-      return res.status(400).json({
-        ok: false,
-        error: 'กรุณาตั้งชื่อความยาว 2 ถึง 24 ตัวอักษรค่ะ'
-      });
+      return res.status(400).json({ ok: false, error: 'กรุณาตั้งชื่อความยาว 2 ถึง 24 ตัวอักษรค่ะ' });
     }
 
     if (!/^\d{4}$/.test(cleanPin) || cleanPin !== cleanConfirm) {
-      return res.status(400).json({
-        ok: false,
-        error: 'กรุณาตั้งรหัส PIN ตัวเลข 4 หลักและยืนยันให้ตรงกันค่ะ'
-      });
+      return res.status(400).json({ ok: false, error: 'กรุณาตั้งรหัส PIN ตัวเลข 4 หลักและยืนยันให้ตรงกันค่ะ' });
     }
 
-    // ตรวจสอบไม่ให้ชื่อซ้ำกับสมาชิกที่มีอยู่แล้ว (ทั้ง Discord และเว็บ)
     const dupRegex = new RegExp(`^${escapeRegex(cleanName)}$`, 'i');
     const duplicate = await User.findOne({
       $or: [{ name: dupRegex }, { nickname: dupRegex }]
@@ -232,7 +238,6 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    // ตรวจสอบลิงก์รูปโปรไฟล์ให้ปลอดภัย (อนุญาตเฉพาะ https://)
     const safeAvatar =
       typeof avatarUrl === 'string' && /^https:\/\/[^\s"'<>]+$/i.test(avatarUrl.trim())
         ? avatarUrl.trim().slice(0, 300)
@@ -249,9 +254,11 @@ router.post('/register', async (req, res) => {
       username: webHandle,
       avatarUrl: safeAvatar,
       walletBalance: 0,
+      bankBalance: 0,
       casinoPin: cleanPin,
       scratchCount: 0,
-      collectedStamps: []
+      collectedStamps: [],
+      transactions: []
     });
 
     recentHits.push(now);
@@ -329,7 +336,119 @@ router.post('/verify-pin', async (req, res) => {
 });
 
 // ==========================================
-// 🎰 5. ปั่นสล็อต 3 ช่อง + คำนวณอีเวนท์ + ซิงค์ DB (POST /api/casino/spin)
+// 🏦 5. ธนาคาร: ฝากเงินเข้าธนาคาร (POST /api/casino/bank/deposit)
+// ==========================================
+router.post('/bank/deposit', async (req, res) => {
+  setNoCacheHeaders(res);
+  try {
+    const { userId, pin, amount } = req.body || {};
+    if (!userId || typeof userId !== 'string') {
+      return res.status(400).json({ ok: false, error: 'กรุณาเข้าสู่ระบบก่อนทำรายการค่ะ' });
+    }
+
+    const userDoc = await User.findOne({ discordId: userId }).lean();
+    if (!userDoc) return res.status(404).json({ ok: false, error: 'ไม่พบบัญชีสมาชิกนี้ค่ะ' });
+    if (!isPinAuthorized(userDoc, pin)) {
+      return res.status(403).json({ ok: false, error: 'รหัสผ่าน 4 หลักไม่ถูกต้อง กรุณายืนยันตัวตนใหม่ค่ะ 🔒' });
+    }
+
+    const calc = calculateDeposit(userDoc.walletBalance, userDoc.bankBalance, amount);
+    if (!calc.ok) return res.status(400).json({ ok: false, error: calc.error });
+
+    const updated = await User.findOneAndUpdate(
+      { discordId: userId },
+      {
+        $set: { walletBalance: calc.newWallet, bankBalance: calc.newBank },
+        $push: { transactions: { $each: [calc.tx], $slice: -MAX_STATEMENT_ITEMS } }
+      },
+      { new: true }
+    ).lean();
+
+    res.status(200).json({
+      ok: true,
+      userId,
+      walletBalance: updated.walletBalance,
+      bankBalance: clampBank(updated.bankBalance),
+      fee: calc.fee,
+      credited: calc.credited,
+      transactions: [...(updated.transactions || [])].reverse()
+    });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: 'ไม่สามารถฝากเงินได้ในขณะนี้ค่ะ' });
+  }
+});
+
+// ==========================================
+// 🏧 6. ธนาคาร: ถอนเงินเข้ากระเป๋า (POST /api/casino/bank/withdraw)
+// ==========================================
+router.post('/bank/withdraw', async (req, res) => {
+  setNoCacheHeaders(res);
+  try {
+    const { userId, pin, amount } = req.body || {};
+    if (!userId || typeof userId !== 'string') {
+      return res.status(400).json({ ok: false, error: 'กรุณาเข้าสู่ระบบก่อนทำรายการค่ะ' });
+    }
+
+    const userDoc = await User.findOne({ discordId: userId }).lean();
+    if (!userDoc) return res.status(404).json({ ok: false, error: 'ไม่พบบัญชีสมาชิกนี้ค่ะ' });
+    if (!isPinAuthorized(userDoc, pin)) {
+      return res.status(403).json({ ok: false, error: 'รหัสผ่าน 4 หลักไม่ถูกต้อง กรุณายืนยันตัวตนใหม่ค่ะ 🔒' });
+    }
+
+    const calc = calculateWithdraw(userDoc.walletBalance, userDoc.bankBalance, amount);
+    if (!calc.ok) return res.status(400).json({ ok: false, error: calc.error });
+
+    const updated = await User.findOneAndUpdate(
+      { discordId: userId },
+      {
+        $set: { walletBalance: calc.newWallet, bankBalance: calc.newBank },
+        $push: { transactions: { $each: [calc.tx], $slice: -MAX_STATEMENT_ITEMS } }
+      },
+      { new: true }
+    ).lean();
+
+    res.status(200).json({
+      ok: true,
+      userId,
+      walletBalance: updated.walletBalance,
+      bankBalance: clampBank(updated.bankBalance),
+      withdrawn: calc.amount,
+      transactions: [...(updated.transactions || [])].reverse()
+    });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: 'ไม่สามารถถอนเงินได้ในขณะนี้ค่ะ' });
+  }
+});
+
+// ==========================================
+// 📜 7. ตรวจสอบการเดินบัญชีล่าสุด 10 รายการ (GET /api/casino/transactions/:userId)
+// ==========================================
+router.get('/transactions/:userId', async (req, res) => {
+  setNoCacheHeaders(res);
+  try {
+    const userId = String(req.params.userId || '').trim();
+    if (!userId) return res.status(400).json({ ok: false, error: 'ไม่พบรหัสผู้ใช้ค่ะ' });
+
+    const userDoc = await User.findOne({ discordId: userId })
+      .select('walletBalance bankBalance transactions')
+      .lean();
+    if (!userDoc) return res.status(404).json({ ok: false, error: 'ไม่พบบัญชีสมาชิกนี้ค่ะ' });
+
+    const list = Array.isArray(userDoc.transactions) ? [...userDoc.transactions].reverse() : [];
+    res.status(200).json({
+      ok: true,
+      userId,
+      walletBalance: Number(userDoc.walletBalance || 0),
+      bankBalance: clampBank(userDoc.bankBalance || 0),
+      transactions: list.slice(0, MAX_STATEMENT_ITEMS)
+    });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: 'ไม่สามารถโหลดรายการเดินบัญชีได้ค่ะ' });
+  }
+});
+
+// ==========================================
+// 🎰 8. ปั่นสล็อต 3 ช่อง + หักเงินข้ามบัญชี + บันทึกเดินบัญชี (POST /api/casino/spin)
 // ==========================================
 router.post('/spin', async (req, res) => {
   setNoCacheHeaders(res);
@@ -349,11 +468,7 @@ router.post('/spin', async (req, res) => {
       return res.status(404).json({ ok: false, error: 'ไม่พบข้อมูลบัญชีสมาชิกนี้ค่ะ' });
     }
 
-    if (
-      existingDoc.casinoPin &&
-      /^\d{4}$/.test(String(existingDoc.casinoPin).trim()) &&
-      String(pin || '').trim() !== String(existingDoc.casinoPin).trim()
-    ) {
+    if (!isPinAuthorized(existingDoc, pin)) {
       return res.status(403).json({ ok: false, error: 'รหัสผ่าน 4 หลักไม่ถูกต้อง กรุณายืนยันตัวตนใหม่ค่ะ 🔒' });
     }
 
@@ -361,17 +476,52 @@ router.post('/spin', async (req, res) => {
 
     const [roster, worldState] = await Promise.all([buildPlayersRoster(), loadWorldState()]);
     const currentPlayer = roster.find((p) => p.userId === userId);
-    const currentBal = Number(currentPlayer?.walletBalance || 0);
+    const currentWallet = Number(currentPlayer?.walletBalance ?? existingDoc.walletBalance ?? 0);
+    const currentBank = clampBank(currentPlayer?.bankBalance ?? existingDoc.bankBalance ?? 0);
 
-    const outcome = calculateSlotOutcome(currentBal, userId, roster, worldState);
-    const clampedNewBalance = clampCoins(currentBal + outcome.delta);
+    const outcome = calculateSlotOutcome(currentWallet, userId, roster, worldState);
+
+    // 💸 คำนวณการเปลี่ยนยอด 2 บัญชี (กระเป๋า ➔ ธนาคาร ➔ หนี้ติดลบ หรือ ยึดทรัพย์ทั้งสองบัญชี)
+    const balCalc = applyBalanceDelta({
+      walletBalance: currentWallet,
+      bankBalance: currentBank,
+      delta: outcome.delta,
+      walletOnly: Boolean(outcome.walletOnly),
+      seizeBank: Boolean(outcome.seizeBank)
+    });
+
+    if (balCalc.usedBank > 0 && !outcome.seizeBank) {
+      outcome.equationText += ` ➔ (เงินกระเป๋าไม่พอ ระบบดึงเงินจากธนาคารมาช่วยจ่าย -${balCalc.usedBank.toLocaleString()} เหรียญ)`;
+    }
+
     const validStampId =
       outcome.stampId && !String(outcome.stampId).startsWith('ST_') ? String(outcome.stampId) : '';
 
+    const netPlayerChange = balCalc.walletDelta + balCalc.bankDelta;
+    const playerTxType =
+      outcome.txType || (netPlayerChange > 0 ? 'SPIN_WIN' : netPlayerChange < 0 ? 'SPIN_LOSS' : 'SPIN_ZERO');
+
+    const playerTx = buildTransaction({
+      type: playerTxType,
+      title: outcome.headline || outcome.categoryHeader || '🎰 ผลลัพธ์สล็อตคาเฟ่',
+      walletDelta: balCalc.walletDelta,
+      bankDelta: balCalc.bankDelta,
+      walletAfter: balCalc.newWallet,
+      bankAfter: balCalc.newBank,
+      burned: Number(outcome.sinkInfo?.burned || 0)
+    });
+
     const updateQuery = {
-      $set: { walletBalance: clampedNewBalance, lastScratchAt: new Date() },
+      $set: {
+        walletBalance: balCalc.newWallet,
+        bankBalance: balCalc.newBank,
+        lastScratchAt: new Date()
+      },
       $inc: { scratchCount: 1 },
-      ...(validStampId ? { $addToSet: { collectedStamps: validStampId } } : {})
+      ...(validStampId ? { $addToSet: { collectedStamps: validStampId } } : {}),
+      ...(netPlayerChange !== 0 || outcome.seizeBank
+        ? { $push: { transactions: { $each: [playerTx], $slice: -MAX_STATEMENT_ITEMS } } }
+        : {})
     };
 
     const updatedUser = await User.findOneAndUpdate({ discordId: userId }, updateQuery, { new: true });
@@ -388,28 +538,79 @@ router.post('/spin', async (req, res) => {
         const partnerEntry = roster.find((p) => p.userId === partnerId);
         const sharedDelta = Math.round(outcome.delta * 0.5);
         if (partnerEntry && sharedDelta !== 0) {
+          const myTitle = formatFriendTitle(currentPlayer);
           mutationsList.push({
             userId: partnerId,
-            newBalance: clampCoins(partnerEntry.walletBalance + sharedDelta)
+            fallbackName: partnerEntry.displayName,
+            mode: 'DELTA',
+            delta: sharedDelta,
+            walletOnly: false,
+            txType: sharedDelta >= 0 ? 'FRIEND_IN' : 'FRIEND_OUT',
+            reason: `⛓️ โซ่ล่ามชะตากับ ${myTitle} ทำงาน (รับผล 50%)`
           });
           outcome.equationText += ` ➔ โซ่ล่ามชะตาทำงาน 1 ครั้ง สะเทือนถึง ${formatFriendTitle(partnerEntry)} รับผลครึ่งหนึ่ง ${sharedDelta > 0 ? '+' : ''}${sharedDelta.toLocaleString()} เหรียญ แล้วด้ายแดงก็ขาดลง!`;
         }
       }
     }
 
+    // 🧾 อัปเดตยอดเงินและลงเดินบัญชีให้เพื่อนที่ได้รับผลกระทบ (รองรับหักข้ามธนาคาร)
     const affectedFriends = [];
     if (mutationsList.length > 0) {
-      const bulkOps = mutationsList.map((m) => {
-        const safeBal = clampCoins(m.newBalance);
-        affectedFriends.push({ userId: m.userId, newBalance: safeBal });
-        return {
+      const rosterMap = new Map(roster.map((p) => [p.userId, p]));
+      const bulkOps = [];
+
+      for (const m of mutationsList) {
+        const target = rosterMap.get(m.userId);
+        const fWallet = Number(target?.walletBalance || 0);
+        const fBank = clampBank(target?.bankBalance || 0);
+
+        let fCalc;
+        if (m.mode === 'SET') {
+          const safeWallet = clampCoins(m.newBalance);
+          fCalc = {
+            newWallet: safeWallet,
+            newBank: fBank,
+            walletDelta: safeWallet - fWallet,
+            bankDelta: 0
+          };
+        } else {
+          fCalc = applyBalanceDelta({
+            walletBalance: fWallet,
+            bankBalance: fBank,
+            delta: Number(m.delta || 0),
+            walletOnly: Boolean(m.walletOnly)
+          });
+        }
+
+        const fTx = buildTransaction({
+          type: m.txType || (fCalc.walletDelta + fCalc.bankDelta >= 0 ? 'FRIEND_IN' : 'FRIEND_OUT'),
+          title: m.reason || 'รายการจากเพื่อนในคาเฟ่',
+          walletDelta: fCalc.walletDelta,
+          bankDelta: fCalc.bankDelta,
+          walletAfter: fCalc.newWallet,
+          bankAfter: fCalc.newBank
+        });
+
+        affectedFriends.push({
+          userId: m.userId,
+          newBalance: fCalc.newWallet,
+          newBankBalance: fCalc.newBank
+        });
+
+        bulkOps.push({
           updateOne: {
             filter: { discordId: m.userId },
-            update: { $set: { walletBalance: safeBal } }
+            update: {
+              $set: { walletBalance: fCalc.newWallet, bankBalance: fCalc.newBank },
+              $push: { transactions: { $each: [fTx], $slice: -MAX_STATEMENT_ITEMS } }
+            }
           }
-        };
-      });
-      await User.bulkWrite(bulkOps, { ordered: false });
+        });
+      }
+
+      if (bulkOps.length > 0) {
+        await User.bulkWrite(bulkOps, { ordered: false });
+      }
     }
 
     await saveWorldState(worldState);
@@ -421,12 +622,18 @@ router.post('/spin', async (req, res) => {
     res.status(200).json({
       ok: true,
       userId,
-      previousBalance: currentBal,
+      previousBalance: currentWallet,
       newBalance: updatedUser.walletBalance,
+      previousBankBalance: currentBank,
+      newBankBalance: clampBank(updatedUser.bankBalance),
+      walletDelta: balCalc.walletDelta,
+      bankDelta: balCalc.bankDelta,
+      usedBank: balCalc.usedBank,
       scratchCount: updatedUser.scratchCount,
       outcome,
       unlockedStampId: validStampId || null,
       collectedStamps: cleanUserStamps,
+      transactions: [...(updatedUser.transactions || [])].reverse(),
       affectedFriends,
       landmarks: getWindowLandmarksStatus(worldState.landmarks, roster),
       tipJar: worldState.cursedTipJar

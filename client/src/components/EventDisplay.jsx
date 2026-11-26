@@ -140,9 +140,21 @@ export default function EventDisplay({
     );
   }
 
-  const { outcome, previousBalance, newBalance } = spinResult;
-  const delta = Number(outcome.delta || 0);
-  const diffClass = delta > 0 ? 'diff-pos' : delta < 0 ? 'diff-neg' : 'diff-zero';
+  const {
+    outcome,
+    previousBalance,
+    newBalance,
+    previousBankBalance,
+    newBankBalance,
+    walletDelta,
+    bankDelta,
+    usedBank
+  } = spinResult;
+
+  const wDelta = typeof walletDelta === 'number' ? walletDelta : Number(outcome.delta || 0);
+  const bDelta = typeof bankDelta === 'number' ? bankDelta : 0;
+  const walletDiffClass = wDelta > 0 ? 'diff-pos' : wDelta < 0 ? 'diff-neg' : 'diff-zero';
+  const sink = outcome.sinkInfo;
 
   return (
     <section className="event-panel">
@@ -178,10 +190,26 @@ export default function EventDisplay({
             </div>
           )}
 
-          <div className={`event-balance-diff ${diffClass}`}>
-            {Number(previousBalance || 0).toLocaleString()} ➔ {Number(newBalance || 0).toLocaleString()} เหรียญ (
-            {delta > 0 ? `+${delta.toLocaleString()}` : delta.toLocaleString()})
+          <div className={`event-balance-diff ${walletDiffClass}`}>
+            👛 กระเป๋า: {Number(previousBalance || 0).toLocaleString()} ➔{' '}
+            {Number(newBalance || 0).toLocaleString()} เหรียญ (
+            {wDelta > 0 ? `+${wDelta.toLocaleString()}` : wDelta.toLocaleString()})
           </div>
+
+          {bDelta !== 0 && (
+            <div className="event-bank-diff">
+              🏦 ธนาคาร: {Number(previousBankBalance || 0).toLocaleString()} ➔{' '}
+              {Number(newBankBalance || 0).toLocaleString()} เหรียญ ({bDelta.toLocaleString()})
+              {usedBank > 0 && !outcome.seizeBank ? ' • ดึงมาช่วยจ่ายส่วนต่าง' : ''}
+            </div>
+          )}
+
+          {sink && (sink.burned > 0 || sink.toTipJar > 0) && (
+            <div className="event-sink-note">
+              {sink.toTipJar > 0 ? `🐷 เข้ากระปุกหมู +${sink.toTipJar.toLocaleString()} (${sink.tipPct}%) • ` : ''}
+              🔥 เผาลดเงินเฟ้อ {Number(sink.burned || 0).toLocaleString()} เหรียญ
+            </div>
+          )}
 
           {isBrandNewStamp && matchedStamp && (
             <motion.button

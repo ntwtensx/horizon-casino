@@ -1,5 +1,20 @@
 const mongoose = require('mongoose');
 
+// 📜 ประวัติการเดินบัญชี (เก็บสูงสุด 10 รายการล่าสุดต่อผู้เล่น)
+const transactionSubSchema = new mongoose.Schema(
+  {
+    at: { type: Date, default: Date.now },
+    type: { type: String, default: 'SPIN' }, // DEPOSIT | WITHDRAW | SPIN_WIN | SPIN_LOSS | SEIZURE | FRIEND_IN | FRIEND_OUT | LANDMARK
+    title: { type: String, default: '' },
+    walletDelta: { type: Number, default: 0 },
+    bankDelta: { type: Number, default: 0 },
+    walletAfter: { type: Number, default: 0 },
+    bankAfter: { type: Number, default: 0 },
+    burned: { type: Number, default: 0 }
+  },
+  { _id: false }
+);
+
 // 👤 Schema ผู้เล่น: แชร์คอลเลกชัน users ร่วมกันระหว่างบอท Discord และผู้เล่นที่สมัครผ่านเว็บ
 const userSchema = new mongoose.Schema(
   {
@@ -18,17 +33,19 @@ const userSchema = new mongoose.Schema(
     likedMenu2: { type: String, default: 'ขอคิดดูก่อน' },
     likedMenus: { type: [String], default: [] },
     walletBalance: { type: Number, default: 0 },
+    bankBalance: { type: Number, default: 0 },
     pin: { type: String, default: '' },
     casinoPin: { type: String, default: '' },
     // ฟิลด์เสริมฝั่งคาสิโน (ไม่กระทบการทำงานของบอทเดิม)
     scratchCount: { type: Number, default: 0 },
     lastScratchAt: { type: Date, default: null },
-    collectedStamps: { type: [String], default: [] }
+    collectedStamps: { type: [String], default: [] },
+    transactions: { type: [transactionSubSchema], default: [] }
   },
   { timestamps: true, collection: 'users' }
 );
 
-// 🏰 Schema สถานะโลกร่วมของคาสิโน (กันข้อมูลรีเซ็ตตอน Render Free Tier Sleep)
+// 🏰 Schema สถานะโลกร่วมของคาสิโน
 const landmarkSubSchema = new mongoose.Schema(
   {
     id: { type: String, required: true },

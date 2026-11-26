@@ -1,0 +1,350 @@
+/* ================= ธนาคาร Horizon Cafe & การเดินบัญชี 10 รายการ ================= */
+
+/* ปุ่มกระเป๋าตังค์บนแถบบนมินิ (แตะเพื่อเปิดธนาคารได้ทันที) */
+.wallet-pill-btn {
+  cursor: pointer;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+
+.wallet-pill-btn:hover {
+  transform: translateY(-1px);
+  border-color: var(--cinnamon);
+  box-shadow: 0 4px 12px rgba(227, 167, 59, 0.25);
+}
+
+.wallet-bank-dot {
+  font-size: 0.72rem;
+  opacity: 0.85;
+  margin-left: 1px;
+}
+
+/* แถบสรุป 2 บัญชีในลิ้นชักเมนู */
+.drawer-finance-strip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.drawer-finance-card {
+  border: 1.5px solid var(--border-cream);
+  background: #fffdf9;
+  border-radius: 14px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.16s ease, transform 0.16s ease;
+}
+
+.drawer-finance-card:hover {
+  border-color: var(--border-caramel);
+  transform: translateY(-1px);
+}
+
+.drawer-finance-card.bank {
+  background: linear-gradient(145deg, #f7fcf9 0%, #e9f5ee 100%);
+  border-color: #b4dbc2;
+}
+
+.drawer-finance-card span {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--mocha-muted);
+}
+
+.drawer-finance-card strong {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--espresso);
+}
+
+.drawer-finance-card strong.negative {
+  color: var(--rose);
+}
+
+.drawer-finance-card.bank strong {
+  color: #246b42;
+}
+
+/* ================= หน้าต่าง BankModal ================= */
+.bank-modal-card {
+  max-width: 560px;
+}
+
+.bank-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.bank-balance-card {
+  border-radius: 16px;
+  padding: 12px 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border: 1.5px solid var(--border-cream);
+}
+
+.bank-balance-card.wallet {
+  background: linear-gradient(145deg, #fffcf3 0%, #faedd3 100%);
+  border-color: #e3be79;
+}
+
+.bank-balance-card.vault {
+  background: linear-gradient(145deg, #f6fcf8 0%, #e3f4ea 100%);
+  border-color: #97cfa9;
+}
+
+.bank-card-label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--mocha-muted);
+}
+
+.bank-card-amount {
+  font-size: clamp(1rem, 2.5vw, 1.2rem);
+  font-weight: 800;
+  color: #9b630f;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  word-break: break-word;
+}
+
+.bank-card-amount.negative {
+  color: var(--rose);
+}
+
+.bank-card-amount.vault-num {
+  color: #236e43;
+}
+
+.bank-card-hint {
+  font-size: 0.67rem;
+  color: var(--mocha-muted);
+  line-height: 1.3;
+}
+
+/* ฟอร์มฝาก / ถอน */
+.bank-action-panel {
+  background: #fffdf9;
+  border: 1.5px solid var(--border-cream);
+  border-radius: 18px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bank-mode-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.bank-mode-btn {
+  border: 1.5px solid var(--border-cream);
+  background: var(--surface-warm);
+  color: var(--mocha-muted);
+  padding: 8px 10px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+
+.bank-mode-btn.active-deposit {
+  background: linear-gradient(135deg, #5ea377 0%, #3d7d56 100%);
+  border-color: #3d7d56;
+  color: #fffdf9;
+}
+
+.bank-mode-btn.active-withdraw {
+  background: linear-gradient(135deg, #e0a341 0%, #c07b1e 100%);
+  border-color: #c07b1e;
+  color: #fffdf9;
+}
+
+.bank-input-row {
+  width: 100%;
+}
+
+.bank-quick-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.bank-preview-note {
+  background: var(--bg-oat);
+  border: 1px dashed var(--border-caramel);
+  border-radius: 11px;
+  padding: 8px 10px;
+  font-size: 0.76rem;
+  line-height: 1.45;
+  color: var(--espresso);
+  word-break: break-word;
+}
+
+/* กล่องสรุปกติกาธนาคาร */
+.bank-rules-box {
+  background: var(--surface-warm);
+  border: 1px solid var(--border-cream);
+  border-radius: 15px;
+  padding: 11px 14px;
+  font-size: 0.74rem;
+  color: #5b433d;
+  line-height: 1.48;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bank-rules-box strong {
+  color: var(--cinnamon);
+}
+
+.bank-rules-box ul {
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ================= ประวัติการเดินบัญชี 10 รายการล่าสุด ================= */
+.statement-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.statement-empty {
+  text-align: center;
+  padding: 28px 14px;
+  border-radius: 16px;
+  background: var(--surface-warm);
+  border: 1.5px dashed var(--border-cream);
+  color: var(--mocha-muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.statement-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.statement-row {
+  background: #fffdf9;
+  border: 1.5px solid var(--border-cream);
+  border-radius: 15px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.statement-row-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tx-cat-pill {
+  font-size: 0.66rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.tx-cat-pill.tx-deposit { background: var(--matcha-soft); color: #246b42; border: 1px solid #a9d9ba; }
+.tx-cat-pill.tx-withdraw { background: var(--honey-soft); color: #9a600e; border: 1px solid #ebd08c; }
+.tx-cat-pill.tx-good { background: #eaf7ef; color: #1f7443; border: 1px solid #9fd4b2; }
+.tx-cat-pill.tx-bad { background: var(--rose-soft); color: #ab3143; border: 1px solid #ebb0ba; }
+.tx-cat-pill.tx-landmark { background: var(--lavender-soft); color: #5f4287; border: 1px solid #d5bfe9; }
+.tx-cat-pill.tx-neutral { background: var(--surface-warm); color: var(--mocha-muted); border: 1px solid var(--border-cream); }
+
+.statement-time {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--mocha-muted);
+}
+
+.statement-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--espresso);
+  line-height: 1.38;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.statement-deltas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.delta-chip {
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 2px 9px;
+  border-radius: 999px;
+}
+
+.delta-chip.pos { background: var(--matcha-soft); color: #227042; }
+.delta-chip.neg { background: var(--rose-soft); color: #b13345; }
+.delta-chip.bank-pos { background: #e3f4ec; color: #1a6646; border: 1px solid #9ed4ba; }
+.delta-chip.bank-neg { background: #fde9ec; color: #a82c42; border: 1px solid #e7a2ae; }
+.delta-chip.neutral { background: var(--surface-warm); color: var(--mocha-muted); }
+
+.statement-after {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--mocha-muted);
+  padding-top: 4px;
+  border-top: 1px dashed var(--border-cream);
+  word-break: break-word;
+}
+
+/* ================= ส่วนเสริมในกล่อง EventDisplay (ธนาคาร & เผาเงินเฟ้อ) ================= */
+.event-bank-diff {
+  font-size: clamp(0.73rem, 1.8vw, 0.84rem);
+  font-weight: 700;
+  color: #a83243;
+  background: rgba(255, 255, 255, 0.76);
+  border: 1px solid #e8aab5;
+  padding: 3px 10px;
+  border-radius: 999px;
+  word-break: break-word;
+}
+
+.event-sink-note {
+  font-size: clamp(0.65rem, 1.55vw, 0.72rem);
+  font-weight: 600;
+  color: var(--mocha-muted);
+  word-break: break-word;
+}
+
+@media (max-width: 520px) {
+  .bank-summary-grid {
+    gap: 7px;
+  }
+
+  .bank-balance-card {
+    padding: 10px;
+  }
+
+  .bank-action-panel {
+    padding: 11px;
+  }
+}

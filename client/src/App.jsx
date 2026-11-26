@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import NumberFlow from '@number-flow/react';
 import { motion, AnimatePresence } from 'framer-motion';
+import './styles/bank.css';
 import { casinoApi } from './api';
 import { fireOutcomeEffect, fireStampUnlockBurst } from './utils/celebrationEffects';
 import CafeParticles from './components/CafeParticles.jsx';
@@ -8,6 +9,7 @@ import AuthModal from './components/AuthModal.jsx';
 import SlotMachine from './components/SlotMachine.jsx';
 import EventDisplay from './components/EventDisplay.jsx';
 import StampBookModal from './components/StampBookModal.jsx';
+import BankModal from './components/BankModal.jsx';
 
 const DEFAULT_AVATAR = 'https://cdn.discordapp.com/embed/avatars/0.png';
 const DEFAULT_LANDMARKS = [
@@ -18,11 +20,13 @@ const DEFAULT_LANDMARKS = [
   { id: 'RIVER', icon: '🏞️', name: 'แม่น้ำภูเขา', owned: false }
 ];
 
-function getStatusPill(balance, isTopSultan) {
-  const bal = Number(balance || 0);
-  if (isTopSultan && bal > 0) return { cls: 'sultan', text: '👑 สุลต่านคาเฟ่' };
-  if (bal < 0) return { cls: 'debt', text: '💸 เป็นหนี้' };
-  if (bal === 0) return { cls: 'broke', text: '🪙 หมดตัว' };
+function getStatusPill(walletBalance, bankBalance, isTopSultan) {
+  const wallet = Number(walletBalance || 0);
+  const bank = Math.max(0, Number(bankBalance || 0));
+  if (isTopSultan && wallet + bank > 0) return { cls: 'sultan', text: '👑 สุลต่านคาเฟ่' };
+  if (wallet < 0) return { cls: 'debt', text: '💸 เป็นหนี้' };
+  if (wallet === 0 && bank === 0) return { cls: 'broke', text: '🪙 หมดตัว' };
+  if (wallet === 0 && bank > 0) return { cls: 'normal', text: '🏦 เก็บไว้ในธนาคาร' };
   return { cls: 'normal', text: '💰 มีเงินติดกระเป๋า' };
 }
 
@@ -30,6 +34,7 @@ export default function App() {
   const [players, setPlayers] = useState([]);
   const [landmarks, setLandmarks] = useState(DEFAULT_LANDMARKS);
   const [tipJar, setTipJar] = useState(500);
+  const [depositFeePct, setDepositFeePct] = useState(3);
   const [stampCatalog, setStampCatalog] = useState({ totalStamps: 158, categories: [], stamps: [] });
   const [loadingInit, setLoadingInit] = useState(true);
 
@@ -37,12 +42,13 @@ export default function App() {
   const [verifiedPin, setVerifiedPin] = useState('');
   const [authModalOpen, setAuthModalOpen] = useState(true);
   const [stampModalState, setStampModalState] = useState({ open: false, category: 'ALL' });
+  const [bankModalState, setBankModalState] = useState({ open: false, tab: 'BANK' });
 
-  // ลิ้นชักลอยด้านบนแบบแยกชัดเจน: 'NONE' | 'LANDMARKS' | 'MENU'
+  // ลิ้นชักลอยด้านบน: 'NONE' | 'LANDMARKS' | 'MENU'
   const [activeDrawer, setActiveDrawer] = useState('NONE');
   const [soundEnabled, setSoundEnabled] = useState(true);
 
-  // เฟสสล็อต: IDLE -> SPINNING -> MENU_SHOW (รอแตะหรือลากพลิก) -> REVEALED
+  // เฟสสล็อต: IDLE -> SPINNING -> MENU_SHOW -> REVEALED
   const [spinPhase, setSpinPhase] = useState('IDLE');
   const [spinProgress, setSpinProgress] = useState(0);
   const [menuRevealedCount, setMenuRevealedCount] = useState(0);
@@ -78,6 +84,7 @@ export default function App() {
         setLandmarks(data.landmarks);
       }
       if (typeof data.tipJar === 'number') setTipJar(data.tipJar);
+      if (typeof data.depositFeePct === 'number') setDepositFeePct(data.depositFeePct);
       if (data.stampCatalog) setStampCatalog(data.stampCatalog);
     }
   }, []);
@@ -87,8 +94,13 @@ export default function App() {
     return () => clearTimers();
   }, [loadCasinoData, clearTimers]);
 
-  const maxWallet = useMemo(
-    () => Math.max(0, ...players.map((p) => Number(p.walletBalance || 0))),
+  // คำนวณยอดสุทธิสูงสุด (กระเป๋า + ธนาคาร) สำหรับตำแหน่งสุลต่าน
+  const maxNetWorth = useMemo(
+    () =>
+      Math.max(
+        0,
+        ...players.map((p) => Number(p.walletBalance || 0) + Math.max(0, Number(p.bankBalance || 0)))
+      ),
     [players]
   );
 
@@ -124,16 +136,40 @@ export default function App() {
     setActiveDrawer((curr) => (curr === target ? 'NONE' : target));
   };
 
+  const openBankModal = (tab = 'BANK') => {
+    if (!activePlayer || isBusy) return;
+    setActiveDrawer('NONE');
+    setBankModalState({ open: true, tab });
+  };
+
+  // ซิงค์ยอดกระเป๋าและธนาคารหลังฝาก/ถอน/รีเฟรชเดินบัญชี (stable callback)
+  const handleBalancesUpdated = useCallback((userId, walletBalance, bankBalance) => {
+    setActivePlayer((curr) =>
+      curr && curr.userId === userId
+        ? { ...curr, walletBalance, bankBalance }
+        : curr
+    );
+    setPlayers((prev) =>
+      prev.map((p) => (p.userId === userId ? { ...p, walletBalance, bankBalance } : p))
+    );
+  }, []);
+
   const handleAuthenticated = (player, pin) => {
     clearTimers();
     revealDoneRef.current = false;
     pendingPayloadRef.current = null;
     flippedRef.current = [false, false, false];
 
-    setActivePlayer(player);
+    const normalizedPlayer = {
+      ...player,
+      bankBalance: Math.max(0, Number(player.bankBalance || 0))
+    };
+
+    setActivePlayer(normalizedPlayer);
     setVerifiedPin(pin);
     setAuthModalOpen(false);
     setActiveDrawer('NONE');
+    setBankModalState({ open: false, tab: 'BANK' });
     updateSpinPhase('IDLE');
     setSpinProgress(0);
     setMenuRevealedCount(0);
@@ -143,15 +179,16 @@ export default function App() {
     setFloatingDelta(null);
 
     setPlayers((prev) => {
-      const exists = prev.some((p) => p.userId === player.userId);
+      const exists = prev.some((p) => p.userId === normalizedPlayer.userId);
       const updated = exists
-        ? prev.map((p) => (p.userId === player.userId ? { ...p, ...player, hasPin: true } : p))
-        : [...prev, { ...player, hasPin: true }];
+        ? prev.map((p) =>
+            p.userId === normalizedPlayer.userId ? { ...p, ...normalizedPlayer, hasPin: true } : p
+          )
+        : [...prev, { ...normalizedPlayer, hasPin: true }];
       return updated.sort((a, b) => a.displayName.localeCompare(b.displayName, 'th'));
     });
   };
 
-  // เฉลยผลลัพธ์เต็มรูปแบบเมื่อการ์ดถูกพลิกครบทั้ง 3 ช่อง
   const finalizeOutcomeReveal = useCallback(
     (res, brandNew) => {
       if (!res || revealDoneRef.current) return;
@@ -163,15 +200,20 @@ export default function App() {
           ? {
               ...curr,
               walletBalance: res.newBalance,
+              bankBalance:
+                typeof res.newBankBalance === 'number' ? res.newBankBalance : curr.bankBalance || 0,
               scratchCount: res.scratchCount,
               collectedStamps: res.collectedStamps || curr.collectedStamps
             }
           : curr
       );
 
-      const delta = Number(res.outcome?.delta || 0);
-      if (delta !== 0) {
-        setFloatingDelta({ id: Date.now(), value: delta });
+      const combinedDelta =
+        (typeof res.walletDelta === 'number' ? res.walletDelta : Number(res.outcome?.delta || 0)) +
+        (typeof res.bankDelta === 'number' ? res.bankDelta : 0);
+
+      if (combinedDelta !== 0) {
+        setFloatingDelta({ id: Date.now(), value: combinedDelta });
         timersRef.current.push(setTimeout(() => setFloatingDelta(null), 1900));
       }
 
@@ -184,19 +226,32 @@ export default function App() {
         timersRef.current.push(setTimeout(() => fireStampUnlockBurst(), 340));
       }
 
-      const friendMap = new Map((res.affectedFriends || []).map((f) => [f.userId, f.newBalance]));
+      const friendMap = new Map(
+        (res.affectedFriends || []).map((f) => [
+          f.userId,
+          { walletBalance: f.newBalance, bankBalance: f.newBankBalance }
+        ])
+      );
+
       setPlayers((prev) =>
         prev.map((p) => {
           if (p.userId === res.userId) {
             return {
               ...p,
               walletBalance: res.newBalance,
+              bankBalance:
+                typeof res.newBankBalance === 'number' ? res.newBankBalance : p.bankBalance || 0,
               scratchCount: res.scratchCount,
               collectedStamps: res.collectedStamps || p.collectedStamps
             };
           }
           if (friendMap.has(p.userId)) {
-            return { ...p, walletBalance: friendMap.get(p.userId) };
+            const fm = friendMap.get(p.userId);
+            return {
+              ...p,
+              walletBalance: fm.walletBalance,
+              bankBalance: typeof fm.bankBalance === 'number' ? fm.bankBalance : p.bankBalance || 0
+            };
           }
           return p;
         })
@@ -212,7 +267,6 @@ export default function App() {
     [updateSpinPhase]
   );
 
-  // แตะหรือลากผ่านการ์ดเพื่อพลิกเปิดทีละใบ (ใช้ ref กันลากเร็วแล้วซ้ำ)
   const handleFlipCard = useCallback(
     (idx) => {
       if (spinPhaseRef.current !== 'MENU_SHOW') return;
@@ -295,8 +349,16 @@ export default function App() {
     );
   };
 
+  const activeNetWorth = activePlayer
+    ? Number(activePlayer.walletBalance || 0) + Math.max(0, Number(activePlayer.bankBalance || 0))
+    : 0;
+
   const statusPill = activePlayer
-    ? getStatusPill(activePlayer.walletBalance, activePlayer.walletBalance > 0 && activePlayer.walletBalance >= maxWallet)
+    ? getStatusPill(
+        activePlayer.walletBalance,
+        activePlayer.bankBalance,
+        activeNetWorth > 0 && activeNetWorth >= maxNetWorth
+      )
     : null;
 
   return (
@@ -304,7 +366,7 @@ export default function App() {
       <CafeParticles mood={particleMood} landmarks={landmarks} />
 
       <div className="cafe-app">
-        {/* แถบบนมินิ: โปรไฟล์ย่อ + กระเป๋าตังค์ + ปุ่มลิ้นชักแลนด์มาร์ก + ปุ่มลิ้นชักเมนู */}
+        {/* แถบบนมินิ: โปรไฟล์ย่อ + ปุ่มกระเป๋าตังค์(แตะเปิดธนาคาร) + ลิ้นชักแลนด์มาร์ก + ลิ้นชักเมนู */}
         <header className="mini-top-bar">
           <button
             type="button"
@@ -338,9 +400,18 @@ export default function App() {
 
           <div className="mini-right-group">
             {activePlayer && (
-              <div className="wallet-pill wallet-pill-anchor">
+              <button
+                type="button"
+                className="wallet-pill wallet-pill-btn wallet-pill-anchor"
+                onClick={() => openBankModal('BANK')}
+                disabled={isBusy}
+                title="คลิกเพื่อเปิดธนาคารฝาก-ถอน และตรวจสอบการเดินบัญชี"
+              >
                 <span className={`wallet-value ${activePlayer.walletBalance < 0 ? 'negative' : ''}`}>
                   <NumberFlow value={Number(activePlayer.walletBalance || 0)} /> 🪙
+                </span>
+                <span className="wallet-bank-dot" aria-hidden="true">
+                  🏦
                 </span>
 
                 <AnimatePresence>
@@ -359,10 +430,9 @@ export default function App() {
                     </motion.span>
                   )}
                 </AnimatePresence>
-              </div>
+              </button>
             )}
 
-            {/* ปุ่มเปิดหน้าต่างลิ้นชัก 🏰 แลนด์มาร์กริมหน้าต่างโดยเฉพาะ */}
             <button
               type="button"
               className={`landmark-drawer-btn ${ownedLandmarksCount > 0 ? 'has-owned' : ''} ${
@@ -376,7 +446,6 @@ export default function App() {
               <span className="lm-btn-count">{ownedLandmarksCount}/5</span>
             </button>
 
-            {/* ปุ่มเปิดลิ้นชักเมนูคาเฟ่ */}
             <button
               type="button"
               className={`drawer-toggle-btn ${activeDrawer === 'MENU' ? 'open' : ''}`}
@@ -389,7 +458,6 @@ export default function App() {
           </div>
         </header>
 
-        {/* พื้นหลังมืดตอนเปิดลิ้นชักลอย */}
         <AnimatePresence>
           {activeDrawer !== 'NONE' && (
             <motion.div
@@ -402,7 +470,7 @@ export default function App() {
           )}
         </AnimatePresence>
 
-        {/* ลิ้นชักลอยที่ 1: 🏰 แลนด์มาร์กริมหน้าต่าง 5 โซน (เรียงแถวทีละชั้นบรรทัด อ่านครบไม่ตัดคำ) */}
+        {/* ลิ้นชักลอย 1: 🏰 แลนด์มาร์กริมหน้าต่าง 5 โซน */}
         <AnimatePresence>
           {activeDrawer === 'LANDMARKS' && (
             <div className="floating-drawer-wrap">
@@ -441,7 +509,9 @@ export default function App() {
                         <div className="landmark-row-owner">
                           {lm.owned ? (
                             <>
-                              <span>ผู้ถือหุ้น: <strong>{lm.ownerName}</strong></span>
+                              <span>
+                                ผู้ถือหุ้น: <strong>{lm.ownerName}</strong>
+                              </span>
                               {lm.curtainClosed && (
                                 <span className="landmark-curtain-tag">🪟 ปิดผ้าม่านพัก 1 รอบ</span>
                               )}
@@ -459,7 +529,7 @@ export default function App() {
           )}
         </AnimatePresence>
 
-        {/* ลิ้นชักลอยที่ 2: ข้อมูลผู้เล่น สมุดแสตมป์ เสียง และเปลี่ยนผู้เล่น */}
+        {/* ลิ้นชักลอย 2: โปรไฟล์ + กระเป๋าตังค์ & ธนาคาร + สมุดแสตมป์ + ตั้งค่า */}
         <AnimatePresence>
           {activeDrawer === 'MENU' && (
             <div className="floating-drawer-wrap">
@@ -486,31 +556,64 @@ export default function App() {
                   </div>
 
                   {activePlayer && (
-                    <div className="drawer-player-card">
-                      <img
-                        className="player-avatar"
-                        src={activePlayer.avatar || DEFAULT_AVATAR}
-                        alt={activePlayer.displayName}
-                        onError={(e) => {
-                          e.currentTarget.src = DEFAULT_AVATAR;
-                        }}
-                      />
-                      <div className="player-meta">
-                        <div className="player-name-row">
-                          <span>{activePlayer.displayName}</span>
-                          {activePlayer.nickname && (
-                            <span className="player-nick-inline">(คุณ{activePlayer.nickname})</span>
-                          )}
-                          <span className={`account-type-tag ${activePlayer.accountType === 'web' ? 'web' : 'discord'}`}>
-                            {activePlayer.accountType === 'web' ? '🌐 เว็บ' : '💬 Discord'}
-                          </span>
-                        </div>
-                        <div className="player-sub-row">
-                          {statusPill && <span className={`status-pill ${statusPill.cls}`}>{statusPill.text}</span>}
-                          <span>• ปั่นแล้ว {Number(activePlayer.scratchCount || 0).toLocaleString()} รอบ</span>
+                    <>
+                      <div className="drawer-player-card">
+                        <img
+                          className="player-avatar"
+                          src={activePlayer.avatar || DEFAULT_AVATAR}
+                          alt={activePlayer.displayName}
+                          onError={(e) => {
+                            e.currentTarget.src = DEFAULT_AVATAR;
+                          }}
+                        />
+                        <div className="player-meta">
+                          <div className="player-name-row">
+                            <span>{activePlayer.displayName}</span>
+                            {activePlayer.nickname && (
+                              <span className="player-nick-inline">(คุณ{activePlayer.nickname})</span>
+                            )}
+                            <span
+                              className={`account-type-tag ${
+                                activePlayer.accountType === 'web' ? 'web' : 'discord'
+                              }`}
+                            >
+                              {activePlayer.accountType === 'web' ? '🌐 เว็บ' : '💬 Discord'}
+                            </span>
+                          </div>
+                          <div className="player-sub-row">
+                            {statusPill && (
+                              <span className={`status-pill ${statusPill.cls}`}>{statusPill.text}</span>
+                            )}
+                            <span>• ปั่นแล้ว {Number(activePlayer.scratchCount || 0).toLocaleString()} รอบ</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
+
+                      {/* สรุปยอด 2 บัญชี แตะเพื่อเข้าธนาคาร/เดินบัญชีได้ทันที */}
+                      <div className="drawer-finance-strip">
+                        <button
+                          type="button"
+                          className="drawer-finance-card"
+                          onClick={() => openBankModal('BANK')}
+                          disabled={isBusy}
+                        >
+                          <span>👛 กระเป๋าตังค์</span>
+                          <strong className={activePlayer.walletBalance < 0 ? 'negative' : ''}>
+                            {Number(activePlayer.walletBalance || 0).toLocaleString()} 🪙
+                          </strong>
+                        </button>
+
+                        <button
+                          type="button"
+                          className="drawer-finance-card bank"
+                          onClick={() => openBankModal('BANK')}
+                          disabled={isBusy}
+                        >
+                          <span>🏦 เงินฝากธนาคาร</span>
+                          <strong>{Number(activePlayer.bankBalance || 0).toLocaleString()} 🪙</strong>
+                        </button>
+                      </div>
+                    </>
                   )}
 
                   <div className="drawer-tipjar-row">
@@ -522,6 +625,24 @@ export default function App() {
                 </div>
 
                 <div className="drawer-actions">
+                  <button
+                    type="button"
+                    className="btn-pill"
+                    onClick={() => openBankModal('BANK')}
+                    disabled={!activePlayer || isBusy}
+                  >
+                    🏦 ฝาก / ถอนธนาคาร
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn-pill"
+                    onClick={() => openBankModal('STATEMENT')}
+                    disabled={!activePlayer || isBusy}
+                  >
+                    📜 เดินบัญชี (10 รายการ)
+                  </button>
+
                   <button
                     type="button"
                     className="btn-pill btn-stamp"
@@ -541,7 +662,7 @@ export default function App() {
                     className="btn-pill"
                     onClick={() => setActiveDrawer('LANDMARKS')}
                   >
-                    <span>🏰 ดูผู้ถือหุ้นแลนด์มาร์ก ({ownedLandmarksCount}/5)</span>
+                    <span>🏰 แลนด์มาร์ก ({ownedLandmarksCount}/5)</span>
                   </button>
 
                   <button
@@ -569,7 +690,6 @@ export default function App() {
           )}
         </AnimatePresence>
 
-        {/* เวทีหลักเต็มจอ: ตู้สล็อต + คันโยกด้านข้าง + กล่องรายละเอียดอีเวนท์ */}
         <main className="casino-stage">
           <SlotMachine
             spinPhase={spinPhase}
@@ -607,6 +727,16 @@ export default function App() {
           onClose={() => setAuthModalOpen(false)}
           onRefreshPlayers={loadCasinoData}
           onAuthenticated={handleAuthenticated}
+        />
+
+        <BankModal
+          isOpen={bankModalState.open}
+          initialTab={bankModalState.tab}
+          depositFeePct={depositFeePct}
+          activePlayer={activePlayer}
+          verifiedPin={verifiedPin}
+          onClose={() => setBankModalState((s) => ({ ...s, open: false }))}
+          onBalancesUpdated={handleBalancesUpdated}
         />
 
         <StampBookModal
