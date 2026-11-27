@@ -1,4 +1,4 @@
-/* ================= Horizon Casino: Theme-FX (Data-Tone + Rainbow + Geo Landmarks + Leaderboard) ================= */
+/* ================= Horizon Casino: Theme-FX (Full Spectrum Blends + Dreamy Landmarks + Rainbow FX) ================= */
 
 @property --rainbow-angle {
   syntax: '<angle>';
@@ -6,100 +6,205 @@
   initial-value: 0deg;
 }
 
-/* 🎨 1. ศูนย์รวมสีธีมประจำอีเวนท์ (เขียนจุดเดียว ใช้ร่วมกันทั้งการ์ดสล็อต การ์ดอีเวนท์ และแสงวาบ) */
-[data-tone="jackpot"] {
-  --t-bg: linear-gradient(145deg, #fffdf2 0%, #fde7a9 55%, #f9d47e 100%);
-  --t-bd: #dfa330;
-  --t-fg: #8c5505;
-  --t-glow: rgba(235, 179, 58, 0.58);
-}
+/* 🎨 1. ชุดสีสเปกตรัมเต็มรุ้งแบบผสมเฉดสำหรับอีเวนท์ยิบย่อย */
 
+/* ม่วงผสมชมพู (ปาฏิหาริย์ / โซ่ล่ามชะตา / สลับกระเป๋า) */
+[data-tone="violet-pink"],
 [data-tone="miracle"] {
-  --t-bg: linear-gradient(145deg, #fbf7ff 0%, #ead8fc 52%, #ffe9d6 100%);
-  --t-bd: #a87fd4;
-  --t-fg: #5e3785;
-  --t-glow: rgba(168, 127, 212, 0.55);
+  --t-bg: linear-gradient(140deg, #faf3ff 0%, #ead5ff 50%, #ffd9ec 100%);
+  --t-bd: #b37ae0;
+  --t-fg: #5e248a;
+  --t-glow: rgba(179, 122, 224, 0.48);
 }
 
-[data-tone="win"] {
-  --t-bg: linear-gradient(145deg, #f4fdf7 0%, #daf3e3 100%);
-  --t-bd: #6ebc8a;
-  --t-fg: #216e3f;
-  --t-glow: rgba(94, 163, 119, 0.48);
-}
-
-[data-tone="landmark"] {
-  --t-bg: linear-gradient(145deg, #f2fbf8 0%, #dcf4ec 52%, #fff2d4 100%);
-  --t-bd: #4fa893;
-  --t-fg: #1d6456;
-  --t-glow: rgba(79, 168, 147, 0.48);
-}
-
-[data-tone="social"] {
-  --t-bg: linear-gradient(145deg, #fff8f3 0%, #fde4d2 55%, #f9d2bf 100%);
-  --t-bd: #df855c;
-  --t-fg: #9c431f;
-  --t-glow: rgba(223, 133, 92, 0.48);
-}
-
-[data-tone="bank-raid"] {
-  --t-bg: linear-gradient(145deg, #f3f5ff 0%, #e1e6fb 50%, #fbe1e8 100%);
-  --t-bd: #6b76c9;
-  --t-fg: #343d82;
-  --t-glow: rgba(107, 118, 201, 0.5);
-}
-
+/* ม่วงเข้มผสมเหลืองสายฟ้า (กับดักความโลภ / สลับอันดับย้อนศร) */
+[data-tone="purple-gold"],
 [data-tone="greed"] {
-  --t-bg: linear-gradient(145deg, #faf2ff 0%, #ebd8fa 48%, #ffe7a8 100%);
-  --t-bd: #9b52b8;
-  --t-fg: #662480;
-  --t-glow: rgba(155, 82, 184, 0.52);
+  --t-bg: linear-gradient(140deg, #f6ebff 0%, #e1c5fb 48%, #ffe59e 100%);
+  --t-bd: #8f47c4;
+  --t-fg: #581885;
+  --t-glow: rgba(143, 71, 196, 0.5);
 }
 
+/* ครามผสมน้ำเงิน (ปปง. ตรวจสอบบัญชี / ฟ้องร้องศาลคาเฟ่) */
+[data-tone="indigo-blue"] {
+  --t-bg: linear-gradient(140deg, #f0f2ff 0%, #d9dffc 52%, #cfe4ff 100%);
+  --t-bd: #5e6ad2;
+  --t-fg: #263185;
+  --t-glow: rgba(94, 106, 210, 0.46);
+}
+
+/* น้ำเงินมิดไนท์ผสมแดงไซเรน (แมวส้มแฮ็กตู้เซฟ / โจรย่องเบา) */
+[data-tone="navy-crimson"],
+[data-tone="bank-raid"] {
+  --t-bg: linear-gradient(140deg, #eef1ff 0%, #d4dcfa 46%, #fbd0db 100%);
+  --t-bd: #5663b8;
+  --t-fg: #282f73;
+  --t-glow: rgba(99, 102, 196, 0.5);
+}
+
+/* ฟ้าใสผสมครามอ่อน (ปลดหนี้ / ประกันภัย / ฝนเหรียญ / ผ้าม่านปิด) */
+[data-tone="sky-cyan"] {
+  --t-bg: linear-gradient(140deg, #eefaff 0%, #d2f0ff 52%, #dce5ff 100%);
+  --t-bd: #45a9e6;
+  --t-fg: #145b8c;
+  --t-glow: rgba(69, 169, 230, 0.46);
+}
+
+/* เขียวน้ำทะเลผสมมรกต (แลนด์มาร์กทั่วไป) */
+[data-tone="teal-emerald"],
+[data-tone="landmark"] {
+  --t-bg: linear-gradient(140deg, #eefcf8 0%, #ccf2e6 52%, #fff0cc 100%);
+  --t-bd: #3ea38a;
+  --t-fg: #145c4b;
+  --t-glow: rgba(62, 163, 138, 0.46);
+}
+
+/* เขียวสดผสมมิ้นต์ (ดวงดีมีกำไร / โรบินฮู้ด / เก็บกระเป๋าได้) */
+[data-tone="green-mint"],
+[data-tone="win"] {
+  --t-bg: linear-gradient(140deg, #effdf4 0%, #cef3db 55%, #dff9eb 100%);
+  --t-bd: #4db372;
+  --t-fg: #196636;
+  --t-glow: rgba(77, 179, 114, 0.46);
+}
+
+/* เขียวมะนาวผสมเหลืองสดใส (ยืมเพื่อนสำเร็จ / พลิกวิกฤตลาภลอย) */
+[data-tone="lime-yellow"] {
+  --t-bg: linear-gradient(140deg, #f6fee8 0%, #e1f7bc 52%, #fff2b8 100%);
+  --t-bd: #85ba36;
+  --t-fg: #3e690c;
+  --t-glow: rgba(133, 186, 54, 0.45);
+}
+
+/* เหลืองทองผสมแชมเปญ (แจ็กพอต / ตอง 777 / ขอทานเศรษฐี / เต๋าทองคำ) */
+[data-tone="gold-yellow"],
+[data-tone="jackpot"],
+[data-tone="mult"] {
+  --t-bg: linear-gradient(140deg, #fffdf0 0%, #fde69e 52%, #ffc978 100%);
+  --t-bd: #e09c24;
+  --t-fg: #874e03;
+  --t-glow: rgba(235, 174, 48, 0.56);
+}
+
+/* ส้มคาราเมลผสมพีช (กระป๋องคุกกี้ / กระปุกหมูแตก / รีวิวไวรัล) */
+[data-tone="orange-peach"] {
+  --t-bg: linear-gradient(140deg, #fff8ef 0%, #ffe0be 52%, #ffd4c4 100%);
+  --t-bd: #ea8c38;
+  --t-fg: #994506;
+  --t-glow: rgba(234, 140, 56, 0.48);
+}
+
+/* แสดผสมส้มปะการัง (เพื่อนยืมเงิน / แก๊งรุมไถ / บิลเหมาทั้งร้าน) */
+[data-tone="tangerine-coral"],
+[data-tone="social"] {
+  --t-bg: linear-gradient(140deg, #fff4ed 0%, #ffd5bd 50%, #ffbfb0 100%);
+  --t-bd: #e56a3e;
+  --t-fg: #9e2f0e;
+  --t-glow: rgba(229, 106, 62, 0.5);
+}
+
+/* แดงเพลิงผสมส้มเข้ม (ยึดทรัพย์ / ขวานผ่า / รูเล็ตต์ / ทำกระเป๋าหล่น) */
+[data-tone="crimson-red"],
 [data-tone="seizure"],
 [data-tone="divide"] {
-  --t-bg: linear-gradient(145deg, #fff2f4 0%, #f9d1d9 100%);
-  --t-bd: #cf5568;
-  --t-fg: #9e2135;
-  --t-glow: rgba(207, 85, 104, 0.52);
+  --t-bg: linear-gradient(140deg, #fff0f1 0%, #fcc8ce 52%, #ffd1ba 100%);
+  --t-bd: #d64053;
+  --t-fg: #991326;
+  --t-glow: rgba(214, 64, 83, 0.52);
 }
 
+/* แดงกุหลาบผสมชมพูเบอร์รี่ (ค่าใช้จ่ายประจำวัน / ค้ำประกันหนี้) */
+[data-tone="rose-berry"],
 [data-tone="expense"],
 [data-tone="tax"] {
-  --t-bg: linear-gradient(145deg, #fff8f9 0%, #fae4e8 100%);
-  --t-bd: #df919e;
-  --t-fg: #a63748;
-  --t-glow: rgba(223, 145, 158, 0.45);
+  --t-bg: linear-gradient(140deg, #fff4f7 0%, #fbd6e2 54%, #f5cfe8 100%);
+  --t-bd: #d9668c;
+  --t-fg: #942049;
+  --t-glow: rgba(217, 102, 140, 0.46);
 }
 
-[data-tone="mult"] {
-  --t-bg: linear-gradient(180deg, #fffdf4 0%, #fdecc2 100%);
-  --t-bd: #dfb04a;
-  --t-fg: #9c610b;
-  --t-glow: rgba(223, 176, 74, 0.55);
+/* รุ้งพาสเทลผสมหลายสี (ตรรกะวิบัติ / พลิกขั้ว / สรรพากรเฉลี่ยสุข) */
+[data-tone="prism-chaos"] {
+  --t-bg: linear-gradient(130deg, #ffe3ec 0%, #fff0cc 28%, #dcf8e6 56%, #d9ecff 80%, #ecd9ff 100%);
+  --t-bd: #b287db;
+  --t-fg: #543078;
+  --t-glow: rgba(168, 139, 230, 0.5);
 }
 
+/* โทนเฉพาะของแลนด์มาร์กทั้ง 5 โซน (ใช้ร่วมกันทั้งบนการ์ดอีเวนท์และลิ้นชักแลนด์มาร์ก) */
+[data-tone="lm-garden"] {
+  --t-bg: linear-gradient(135deg, #f0fcf5 0%, #d4f4e1 55%, #eefad8 100%);
+  --t-bd: #56a875;
+  --t-fg: #1c663b;
+  --t-glow: rgba(86, 168, 117, 0.42);
+}
+
+[data-tone="lm-sakura"] {
+  --t-bg: linear-gradient(135deg, #fff3f7 0%, #fdd9e7 52%, #ffe8d6 100%);
+  --t-bd: #eb7ea4;
+  --t-fg: #9c2d57;
+  --t-glow: rgba(235, 126, 164, 0.44);
+}
+
+[data-tone="lm-meadow"] {
+  --t-bg: linear-gradient(135deg, #f6f1ff 0%, #e5d6fe 52%, #dceaff 100%);
+  --t-bd: #9474db;
+  --t-fg: #4e2d96;
+  --t-glow: rgba(148, 116, 219, 0.44);
+}
+
+[data-tone="lm-beach"] {
+  --t-bg: linear-gradient(135deg, #edfaff 0%, #cfeeff 50%, #fff0c2 100%);
+  --t-bd: #43b5e8;
+  --t-fg: #16658c;
+  --t-glow: rgba(67, 181, 232, 0.44);
+}
+
+[data-tone="lm-river"] {
+  --t-bg: linear-gradient(135deg, #ecfaf8 0%, #cef0ea 52%, #d8eaff 100%);
+  --t-bd: #44aba0;
+  --t-fg: #18635c;
+  --t-glow: rgba(68, 171, 160, 0.44);
+}
+
+/* ดวงเกลือ / คูณศูนย์ */
 [data-tone="zero"] {
-  --t-bg: linear-gradient(145deg, #fcf9f5 0%, #efe6dc 100%);
-  --t-bd: #cfb9a5;
-  --t-fg: #755e54;
-  --t-glow: rgba(207, 185, 165, 0.45);
+  --t-bg: linear-gradient(140deg, #faf8f5 0%, #ece5de 58%, #e4e8ef 100%);
+  --t-bd: #c4b2a2;
+  --t-fg: #6b584f;
+  --t-glow: rgba(186, 168, 152, 0.38);
 }
 
-/* นำตัวแปร Data-Tone ไปใช้ร่วมกันกับทุกการ์ด */
+/* นำตัวแปร Data-Tone ไปใช้ร่วมกันกับทุกการ์ดพร้อมแสงฟุ้งรอบกรอบ */
 .event-card[data-tone],
 .flip-face-back[data-tone] {
   background: var(--t-bg);
   border-color: var(--t-bd);
 }
 
-.flip-face-back[data-tone] .reel-label {
+.event-card[data-tone] {
+  box-shadow: 0 10px 26px -6px var(--t-glow), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.flip-face-back[data-tone] .reel-label,
+.event-card[data-tone] .event-headline {
   color: var(--t-fg);
 }
 
 .event-card[data-tone] .event-category-pill {
   color: var(--t-fg);
   border-color: var(--t-bd);
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.event-card[data-tone] .event-equation {
+  background: rgba(255, 255, 255, 0.68);
+  border-color: var(--t-bd);
+}
+
+.event-card[data-tone] .event-equation strong {
+  color: var(--t-fg);
 }
 
 /* ✨ 2. แสงฟอยล์โฮโลแกรมพาดเฉียงบนการ์ดแรร์ */
@@ -115,8 +220,8 @@
   background: linear-gradient(
     112deg,
     transparent 38%,
-    rgba(255, 255, 255, 0.52) 48%,
-    rgba(255, 240, 200, 0.35) 52%,
+    rgba(255, 255, 255, 0.56) 48%,
+    rgba(255, 240, 200, 0.36) 52%,
     transparent 62%
   );
   transform: translateX(-100%);
@@ -155,8 +260,8 @@
   );
   animation: rainbowOrbit 1.45s linear infinite;
   box-shadow:
-    0 0 18px rgba(255, 198, 255, 0.6),
-    0 0 28px rgba(155, 246, 255, 0.42);
+    0 0 18px rgba(255, 198, 255, 0.62),
+    0 0 28px rgba(155, 246, 255, 0.44);
 }
 
 .reels-rainbow-wrap.is-spinning-rainbow .reels-window {
@@ -203,7 +308,7 @@
   }
 }
 
-/* ⚡ 5. เอฟเฟคกระแทก + แสงวาบ + วงแหวนตอนพลิกการ์ด (รันด้วย GPU CSS ล้วน ลดโค้ด JSX) */
+/* ⚡ 5. เอฟเฟคกระแทก + แสงวาบ + วงแหวนตอนพลิกการ์ด (รันบน GPU) */
 .reel-impact-wrapper.has-flipped-impact {
   animation: cardFlipThud 0.42s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -289,7 +394,7 @@
 
 /* 🏰 กล่องลอยแลนด์มาร์ก 5 รูปทรงเรขาคณิตไล่เฉด 2 สี */
 .lm-geo-deck {
-  background: rgba(255, 253, 249, 0.88);
+  background: rgba(255, 253, 249, 0.9);
   backdrop-filter: blur(8px);
   border: 1.5px solid var(--border-cream);
   border-radius: 18px;
@@ -324,11 +429,11 @@
 }
 
 .lm-geo-btn.owned {
-  filter: drop-shadow(0 3px 7px rgba(140, 90, 77, 0.26));
+  filter: drop-shadow(0 3px 9px var(--lm-icon-glow, rgba(140, 90, 77, 0.32)));
 }
 
 .lm-geo-btn.empty {
-  opacity: 0.72;
+  opacity: 0.7;
 }
 
 .lm-geo-svg {
@@ -374,11 +479,60 @@
   line-height: 1;
 }
 
-.landmark-row-card.is-highlighted {
-  box-shadow: 0 0 0 2.5px var(--cinnamon), 0 8px 18px rgba(140, 90, 77, 0.18);
+/* 🌸 8. กล่องรายละเอียดแลนด์มาร์กแบบสีนวลฟุ้งเรืองแสงเฉพาะโซนเมื่อมีผู้ถือครอง */
+.landmark-row-card.owned[data-tone] {
+  position: relative;
+  overflow: hidden;
+  background: var(--t-bg);
+  border: 1.8px solid var(--t-bd);
+  box-shadow:
+    0 6px 20px -4px var(--t-glow),
+    0 0 16px -4px var(--t-glow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  transition: transform 0.18s ease, box-shadow 0.2s ease;
 }
 
-/* 🏆 แถบลอย Leaderboard (สุลต่าน & ยาจก) */
+.landmark-row-card.owned[data-tone]::before {
+  content: '';
+  position: absolute;
+  inset: -30%;
+  background: radial-gradient(circle at 18% 25%, rgba(255, 255, 255, 0.72) 0%, transparent 48%),
+              radial-gradient(circle at 86% 82%, var(--t-glow) 0%, transparent 55%);
+  filter: blur(12px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.landmark-row-card.owned[data-tone] > * {
+  position: relative;
+  z-index: 1;
+}
+
+.landmark-row-card.owned[data-tone] .landmark-row-icon {
+  background: rgba(255, 255, 255, 0.82);
+  border: 1.5px solid var(--t-bd);
+  box-shadow: 0 3px 10px var(--t-glow);
+}
+
+.landmark-row-card.owned[data-tone] .landmark-row-name,
+.landmark-row-card.owned[data-tone] .landmark-row-owner strong {
+  color: var(--t-fg);
+}
+
+.landmark-row-card.owned[data-tone] .landmark-tier-pill.owned {
+  background: rgba(255, 255, 255, 0.84);
+  color: var(--t-fg);
+  border: 1px solid var(--t-bd);
+  box-shadow: 0 2px 8px var(--t-glow);
+}
+
+.landmark-row-card.is-highlighted {
+  box-shadow:
+    0 0 0 2.5px var(--t-bd, var(--cinnamon)),
+    0 10px 24px -4px var(--t-glow, rgba(140, 90, 77, 0.28)) !important;
+}
+
+/* 🏆 9. แถบลอย Leaderboard (สุลต่าน & ยาจก) */
 .lb-mini-bar {
   flex: 1;
   min-width: 0;
@@ -500,7 +654,7 @@
   color: var(--mocha-muted);
 }
 
-/* ================= 8. หน้าต่าง Leaderboard เต็มรูปแบบ (3 หมวดการเงิน) ================= */
+/* ================= 10. หน้าต่าง Leaderboard เต็มรูปแบบ ================= */
 .lb-modal-card {
   max-width: 600px;
 }
@@ -642,7 +796,7 @@
 .lb-row-net.neg { color: #b53245; }
 .lb-row-net.zero { color: var(--mocha-muted); }
 
-/* ================= 9. ปรับสัดส่วนมือถือให้กะทัดรัดเต็มจอ 100dvh ================= */
+/* ================= 11. ปรับสัดส่วนมือถือให้กะทัดรัดเต็มจอ 100dvh ================= */
 @media (max-width: 680px) {
   .bank-top-btn {
     padding: 4px 8px;

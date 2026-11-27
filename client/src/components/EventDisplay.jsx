@@ -1,35 +1,193 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const FOIL_TONES = new Set(['jackpot', 'miracle', 'landmark', 'greed']);
+const FOIL_TONES = new Set([
+  'gold-yellow',
+  'violet-pink',
+  'purple-gold',
+  'prism-chaos',
+  'sky-cyan',
+  'lm-garden',
+  'lm-sakura',
+  'lm-meadow',
+  'lm-beach',
+  'lm-river'
+]);
 
-// 🎨 คัดแยกสีธีมเฉพาะตัวของแต่ละหมวดอีเวนท์ (ดึงค่าสีจาก theme-fx.css)
+// 🎨 คัดแยกสีสเปกตรัมเต็มรุ้งแบบยิบย่อยตามหมวดและเนื้อหาอีเวนท์ (ดึงเฉดจาก theme-fx.css)
 function resolveEventTone(outcome) {
   if (!outcome) return 'zero';
   const hdr = `${outcome.categoryHeader || ''} ${outcome.headline || ''}`;
+  const sid = String(outcome.stampId || '');
   const tx = outcome.txType || '';
   const type = outcome.outcomeType || 'ZERO';
 
-  if (outcome.seizeBank || tx === 'SEIZURE') return 'seizure';
-  if (outcome.bankDirect || hdr.includes('ปปง.') || hdr.includes('ตู้เซฟ')) return 'bank-raid';
-  if (hdr.includes('ความโลภ')) return 'greed';
-  if (tx === 'LANDMARK' || String(outcome.stampId || '').startsWith('LM_') || hdr.includes('ริมหน้าต่าง')) return 'landmark';
+  // 1. แดงเพลิงผสมส้มเข้ม: ยึดทรัพย์, ขวานผ่า, รัสเซียนรูเล็ตต์, ทำกระเป๋าหล่น
   if (
-    tx === 'FRIEND_IN' ||
-    tx === 'FRIEND_OUT' ||
-    hdr.includes('ยืมเงิน') ||
-    hdr.includes('ค้ำประกัน') ||
-    hdr.includes('แก๊งเพื่อน') ||
-    hdr.includes('เหมาเลี้ยง')
+    outcome.seizeBank ||
+    tx === 'SEIZURE' ||
+    sid === 'MC_SEIZURE' ||
+    sid.startsWith('MC_LOST_') ||
+    sid === 'MC_ROULETTE_LOSE' ||
+    hdr.includes('ยึดทรัพย์') ||
+    hdr.includes('ขวานผ่า') ||
+    hdr.includes('กระเป๋าตังค์หล่น') ||
+    hdr.includes('ลืมกระเป๋าตังค์') ||
+    hdr.includes('ทิ้งกระเป๋าตังค์') ||
+    hdr.includes('พัดกระเป๋าตังค์')
   ) {
-    return 'social';
+    return 'crimson-red';
   }
 
-  if (type === 'JACKPOT') return 'jackpot';
-  if (type === 'MIRACLE') return 'miracle';
-  if (type === 'WIN') return 'win';
-  if (type === 'DIVIDER') return 'divide';
-  if (type === 'TAX' || type === 'THEFT') return 'expense';
+  // 2. ครามผสมน้ำเงิน: ปปง. ตรวจบัญชี, ศาลคาเฟ่ฟ้องร้อง
+  if (
+    hdr.includes('ปปง.') ||
+    hdr.includes('ฟ้องร้อง') ||
+    sid === 'LM_ACT_SUE_TAKE' ||
+    sid === 'LM_ACT_SUE_KICK'
+  ) {
+    return 'indigo-blue';
+  }
+
+  // 3. น้ำเงินมิดไนท์ผสมแดงไซเรน: แฮ็กเกอร์แมวส้มเจาะตู้เซฟ, โจรย่องเบา, ปล้นสุลต่าน
+  if (
+    outcome.bankDirect ||
+    hdr.includes('ตู้เซฟ') ||
+    hdr.includes('โจรย่องเบา') ||
+    hdr.includes('ปล้นสุลต่าน') ||
+    sid === 'MC_STEAL_SULTAN'
+  ) {
+    return 'navy-crimson';
+  }
+
+  // 4. ม่วงเข้มผสมเหลืองสายฟ้า: กับดักความโลภ, สลับอันดับย้อนศร, ลูกกระจ๊อกล้มยักษ์
+  if (
+    hdr.includes('ความโลภ') ||
+    hdr.includes('สลับตำแหน่งย้อนศร') ||
+    hdr.includes('ลูกกระจ๊อกล้มยักษ์') ||
+    sid === 'MC_RANK_SWAP' ||
+    sid === 'MC_GOLIATH'
+  ) {
+    return 'purple-gold';
+  }
+
+  // 5. ฟ้าใสผสมครามอ่อน: ปลดหนี้, เคลมประกัน, ฝนเหรียญบาริสต้า, ผ้าม่านปิด, เมตตาผู้ไร้ความโลภ
+  if (
+    hdr.includes('ปลดหนี้') ||
+    hdr.includes('ประกันภัย') ||
+    hdr.includes('มหาทาน') ||
+    hdr.includes('ผ้าม่าน') ||
+    hdr.includes('เมตตาผู้ไร้ความโลภ') ||
+    sid === 'MC_DEBT_CLEAR' ||
+    sid === 'MC_INSURANCE' ||
+    sid === 'MC_RAIN_MAKER' ||
+    sid === 'LM_ACT_CURTAIN'
+  ) {
+    return 'sky-cyan';
+  }
+
+  // 6. สีเฉพาะของแลนด์มาร์กริมหน้าต่างทั้ง 5 โซน
+  if (tx === 'LANDMARK' || sid.startsWith('LM_') || hdr.includes('ริมหน้าต่าง')) {
+    if (hdr.includes('รีวิว') || sid === 'LM_ACT_VIRAL') return 'orange-peach';
+    if (hdr.includes('สวนต้นไม้') || sid.includes('GARDEN')) return 'lm-garden';
+    if (hdr.includes('ซากุระ') || sid.includes('SAKURA')) return 'lm-sakura';
+    if (hdr.includes('ทุ่งดอกไม้') || sid.includes('MEADOW')) return 'lm-meadow';
+    if (hdr.includes('ชายหาด') || sid.includes('BEACH')) return 'lm-beach';
+    if (hdr.includes('แม่น้ำภูเขา') || sid.includes('RIVER')) return 'lm-river';
+    return 'teal-emerald';
+  }
+
+  // 7. รุ้งพาสเทลผสมหลายสี: ตรรกะวิบัติ 34 แบบ, พลิกขั้วชะตาเล่นตลก, สรรพากรเฉลี่ยสุข, กระจกเงา
+  if (
+    sid.startsWith('AB_') ||
+    sid.startsWith('MC_POLARITY') ||
+    sid === 'MC_COMMUNISM' ||
+    sid === 'MC_MIRROR' ||
+    hdr.includes('ชะตาเล่นตลก') ||
+    hdr.includes('สรรพากรเฉลี่ยสุข') ||
+    hdr.includes('กระจกเงา')
+  ) {
+    return 'prism-chaos';
+  }
+
+  // 8. เหลืองทองผสมแชมเปญ: แจ็กพอต, ตอง 777, ขอทานเศรษฐี, ลูกเต๋าทองคำ
+  if (
+    type === 'JACKPOT' ||
+    sid === 'MC_LOTTO_777' ||
+    sid === 'MC_BEGGAR_KING' ||
+    sid === 'MC_DICE_MULT' ||
+    hdr.includes('777') ||
+    hdr.includes('ขอทานเศรษฐี')
+  ) {
+    return 'gold-yellow';
+  }
+
+  // 9. ส้มคาราเมลผสมพีช: กระป๋องคุกกี้แดง, กระปุกหมูแตก
+  if (
+    sid.startsWith('MC_COOKIE_') ||
+    sid === 'MC_TIP_JAR' ||
+    hdr.includes('กระป๋องคุกกี้') ||
+    hdr.includes('กระปุกหมู')
+  ) {
+    return 'orange-peach';
+  }
+
+  // 10. แดงกุหลาบผสมชมพูเบอร์รี่: เซ็นค้ำประกันหนี้, ค่าใช้จ่ายประจำวัน
+  if (
+    hdr.includes('ค้ำประกัน') ||
+    sid.startsWith('EX_')
+  ) {
+    return 'rose-berry';
+  }
+
+  // 11. แสดผสมส้มปะการัง: เพื่อนยืมเงิน, แก๊งเพื่อนรุมไถ, บิลเหมาทั้งร้าน, ปลาดุกยิงหนี้, ระเบิดเวลา
+  if (
+    tx === 'FRIEND_OUT' ||
+    hdr.includes('เพื่อนยืมเงิน') ||
+    hdr.includes('แก๊งเพื่อน') ||
+    hdr.includes('เหมาเลี้ยง') ||
+    sid === 'MC_CATFISH' ||
+    sid.startsWith('MC_BOMB_')
+  ) {
+    return 'tangerine-coral';
+  }
+
+  // 12. เขียวมะนาวผสมเหลือง: ยืมเงินเพื่อนสำเร็จ, พลิกวิกฤตเป็นลาภลอย (BN_)
+  if (
+    tx === 'FRIEND_IN' ||
+    hdr.includes('ยืมเงินเพื่อน') ||
+    sid.startsWith('BN_')
+  ) {
+    return 'lime-yellow';
+  }
+
+  // 13. เขียวสดผสมมิ้นต์: โรบินฮู้ด, เก็บกระเป๋าตังค์ได้, ดวงดีมีกำไร
+  if (
+    sid === 'MC_ROBIN_HOOD' ||
+    sid.startsWith('MC_FOUND_') ||
+    hdr.includes('โรบินฮู้ด') ||
+    hdr.includes('เก็บกระเป๋าตังค์') ||
+    hdr.includes('พบกระเป๋าตังค์') ||
+    type === 'WIN'
+  ) {
+    return 'green-mint';
+  }
+
+  // 14. ม่วงผสมชมพู: โซ่ล่ามชะตา, สลับกระเป๋า, แม่เหล็ก, อยากรวย/อยากจน, ปาฏิหาริย์ทั่วไป
+  if (
+    sid === 'MC_SOUL_BOND' ||
+    sid === 'MC_WALLET_SWAP' ||
+    sid === 'MC_MAGNET' ||
+    sid.startsWith('MC_WANT_') ||
+    type === 'MIRACLE'
+  ) {
+    return 'violet-pink';
+  }
+
+  // 15. ค่ามาตรฐานตามผลลัพธ์
+  if (type === 'DIVIDER') return 'crimson-red';
+  if (type === 'THEFT') return 'navy-crimson';
+  if (type === 'TAX') return 'rose-berry';
   return 'zero';
 }
 
@@ -192,9 +350,7 @@ export default function EventDisplay({
           {menuItems.length === 3 && (
             <div className="event-order-receipt">
               <span>🧾</span>
-              <span>
-                {menuItems.map((m) => `${m.icon} ${m.label}`).join(' + ')}
-              </span>
+              <span>{menuItems.map((m) => `${m.icon} ${m.label}`).join(' + ')}</span>
             </div>
           )}
 

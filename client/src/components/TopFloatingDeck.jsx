@@ -3,9 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const DEFAULT_AVATAR = 'https://cdn.discordapp.com/embed/avatars/0.png';
 
-// รูปทรงเรขาคณิต SVG + คู่สีไล่เฉด 2 สีประจำแลนด์มาร์กทั้ง 5 โซน
+// รูปทรงเรขาคณิต SVG + คู่สีไล่เฉด 2 สี + โทนสีนวลฟุ้งประจำแลนด์มาร์กทั้ง 5 โซน
 const GEO_SHAPES = {
   GARDEN: {
+    tone: 'lm-garden',
+    glow: 'rgba(86, 168, 117, 0.55)',
     d: 'M22 3 L40 16 L33 38 L11 38 L4 16 Z', // ห้าเหลี่ยม (Pentagon)
     c1: '#5EA377',
     c2: '#A8E6CF',
@@ -14,6 +16,8 @@ const GEO_SHAPES = {
     e2: '#F6FBF8'
   },
   SAKURA: {
+    tone: 'lm-sakura',
+    glow: 'rgba(235, 126, 164, 0.55)',
     d: 'M22 3 L27.6 14.4 L40 16 L30.8 24.7 L33.2 37.5 L22 31.2 L10.8 37.5 L13.2 24.7 L4 16 L16.4 14.4 Z', // ดาว 5 แฉกมน
     c1: '#F48FB1',
     c2: '#FFD3B6',
@@ -22,6 +26,8 @@ const GEO_SHAPES = {
     e2: '#FFF6F2'
   },
   MEADOW: {
+    tone: 'lm-meadow',
+    glow: 'rgba(148, 116, 219, 0.55)',
     d: 'M22 3 L38 12.2 L38 31.8 L22 41 L6 31.8 L6 12.2 Z', // หกเหลี่ยม (Hexagon)
     c1: '#9B7EDE',
     c2: '#C4B5FD',
@@ -30,6 +36,8 @@ const GEO_SHAPES = {
     e2: '#F8F5FF'
   },
   BEACH: {
+    tone: 'lm-beach',
+    glow: 'rgba(67, 181, 232, 0.55)',
     d: 'M22 3 L40 22 L22 41 L4 22 Z', // ข้าวหลามตัด (Diamond)
     c1: '#4FC3F7',
     c2: '#FFE082',
@@ -38,6 +46,8 @@ const GEO_SHAPES = {
     e2: '#FFF9E8'
   },
   RIVER: {
+    tone: 'lm-river',
+    glow: 'rgba(68, 171, 160, 0.55)',
     d: 'M12 4 H32 Q40 4 40 12 V25 Q40 36 22 41 Q4 36 4 25 V12 Q4 4 12 4 Z', // สี่เหลี่ยมโล่มน (Squircle Shield)
     c1: '#4DB6AC',
     c2: '#90CAF9',
@@ -71,8 +81,9 @@ export default function TopFloatingDeck({
   const ranking = useMemo(() => {
     const withNet = (players || []).map((p) => ({ ...p, netWorth: netWorthOf(p) }));
     const rich = withNet.filter((p) => p.netWorth > 0).sort((a, b) => b.netWorth - a.netWorth);
-    const broke = withNet.filter((p) => p.netWorth === 0).sort((a, b) => a.displayName.localeCompare(b.displayName, 'th'));
-    // จนที่สุด (ติดลบมากสุด) ขึ้นก่อน ไล่ไปจนถึงหนี้น้อยสุด
+    const broke = withNet
+      .filter((p) => p.netWorth === 0)
+      .sort((a, b) => a.displayName.localeCompare(b.displayName, 'th'));
     const debt = withNet.filter((p) => p.netWorth < 0).sort((a, b) => a.netWorth - b.netWorth);
     return { rich, broke, debt };
   }, [players]);
@@ -83,7 +94,6 @@ export default function TopFloatingDeck({
   const otherDebt = ranking.debt.slice(1);
   const ownedCount = landmarks.filter((l) => l.owned).length;
 
-  // เลื่อนแลนด์มาร์กที่เพิ่งคลิกขึ้นมาบนสุดของลิ้นชักเพื่อให้เห็นรายละเอียดทันที
   const orderedLandmarks = useMemo(() => {
     if (!selectedLmId) return landmarks;
     const picked = landmarks.find((l) => l.id === selectedLmId);
@@ -152,7 +162,7 @@ export default function TopFloatingDeck({
   return (
     <>
       <section className="top-floating-deck" aria-label="แถบลอยแลนด์มาร์กและอันดับการเงิน">
-        {/* 🏰 กล่องลอยแลนด์มาร์ก 5 โซน: รูปทรงเรขาคณิต + สีไล่เฉด 2 สี */}
+        {/* 🏰 กล่องลอยแลนด์มาร์ก 5 โซน: รูปทรงเรขาคณิต + สีไล่เฉด 2 สี + เงาฟุ้งตามโซน */}
         <div className="lm-geo-deck" role="group" aria-label="แลนด์มาร์กริมหน้าต่าง 5 โซน">
           {landmarks.map((lm) => {
             const shape = GEO_SHAPES[lm.id] || GEO_SHAPES.RIVER;
@@ -162,6 +172,7 @@ export default function TopFloatingDeck({
                 key={lm.id}
                 type="button"
                 className={`lm-geo-btn ${lm.owned ? 'owned' : 'empty'}`}
+                style={lm.owned ? { '--lm-icon-glow': shape.glow } : undefined}
                 onClick={() => setSelectedLmId((curr) => (curr === lm.id ? null : lm.id))}
                 title={lm.owned ? `${lm.name} • ${lm.ownerName} (ขั้น ${lm.tier})` : `${lm.name} • ว่าง`}
                 aria-label={`ดูรายละเอียดแลนด์มาร์ก ${lm.name}`}
@@ -259,7 +270,7 @@ export default function TopFloatingDeck({
         </button>
       </section>
 
-      {/* 🏰 ลิ้นชักลอยรายละเอียดแลนด์มาร์ก (เปิดเมื่อคลิกที่รูปทรงใดก็ได้) */}
+      {/* 🏰 ลิ้นชักลอยรายละเอียดแลนด์มาร์ก (โซนที่มีผู้ถือครองจะเป็นสีนวลฟุ้งเรืองแสงเฉพาะโซน) */}
       <AnimatePresence>
         {selectedLmId && (
           <>
@@ -293,41 +304,45 @@ export default function TopFloatingDeck({
                 </div>
 
                 <div className="landmark-rows-list">
-                  {orderedLandmarks.map((lm, idx) => (
-                    <motion.div
-                      key={lm.id}
-                      className={`landmark-row-card ${lm.owned ? 'owned' : 'empty'} ${
-                        lm.id === selectedLmId ? 'is-highlighted' : ''
-                      }`}
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.18, delay: idx * 0.035 }}
-                    >
-                      <div className="landmark-row-icon">{lm.icon}</div>
-                      <div className="landmark-row-body">
-                        <div className="landmark-row-head">
-                          <span className="landmark-row-name">{lm.name}</span>
-                          <span className={`landmark-tier-pill ${lm.owned ? 'owned' : 'empty'}`}>
-                            {lm.owned ? `ขั้น ${lm.tier} • ${lm.pct}%` : 'ว่าง • 0%'}
-                          </span>
+                  {orderedLandmarks.map((lm, idx) => {
+                    const shape = GEO_SHAPES[lm.id] || GEO_SHAPES.RIVER;
+                    return (
+                      <motion.div
+                        key={lm.id}
+                        data-tone={lm.owned ? shape.tone : undefined}
+                        className={`landmark-row-card ${lm.owned ? 'owned foil-sheen' : 'empty'} ${
+                          lm.id === selectedLmId ? 'is-highlighted' : ''
+                        }`}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.18, delay: idx * 0.035 }}
+                      >
+                        <div className="landmark-row-icon">{lm.icon}</div>
+                        <div className="landmark-row-body">
+                          <div className="landmark-row-head">
+                            <span className="landmark-row-name">{lm.name}</span>
+                            <span className={`landmark-tier-pill ${lm.owned ? 'owned' : 'empty'}`}>
+                              {lm.owned ? `ขั้น ${lm.tier} • ${lm.pct}%` : 'ว่าง • 0%'}
+                            </span>
+                          </div>
+                          <div className="landmark-row-owner">
+                            {lm.owned ? (
+                              <>
+                                <span>
+                                  ผู้ถือหุ้น: <strong>{lm.ownerName}</strong>
+                                </span>
+                                {lm.curtainClosed && (
+                                  <span className="landmark-curtain-tag">🪟 ปิดผ้าม่านพัก 1 รอบ</span>
+                                )}
+                              </>
+                            ) : (
+                              <span>ยังไม่มีผู้ถือครอง — ปั่นสล็อตลุ้นรับสิทธิ์ขั้นที่ 1 (17%) ฟรี!</span>
+                            )}
+                          </div>
                         </div>
-                        <div className="landmark-row-owner">
-                          {lm.owned ? (
-                            <>
-                              <span>
-                                ผู้ถือหุ้น: <strong>{lm.ownerName}</strong>
-                              </span>
-                              {lm.curtainClosed && (
-                                <span className="landmark-curtain-tag">🪟 ปิดผ้าม่านพัก 1 รอบ</span>
-                              )}
-                            </>
-                          ) : (
-                            <span>ยังไม่มีผู้ถือครอง — ปั่นสล็อตลุ้นรับสิทธิ์ขั้นที่ 1 (17%) ฟรี!</span>
-                          )}
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
+                      </motion.div>
+                    );
+                  })}
                 </div>
               </motion.aside>
             </div>
@@ -380,7 +395,6 @@ export default function TopFloatingDeck({
                 </div>
               </div>
 
-              {/* แท็บกรองหมวดพร้อมพื้นหลังไหลตามนิ้ว (layoutId) */}
               <div className="lb-filter-tabs">
                 {[
                   { id: 'ALL', label: `ทั้งหมด (${players.length})` },
