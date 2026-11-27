@@ -1,4 +1,4 @@
-/* ================= Horizon Casino: Theme-FX (Full Spectrum Blends + Dreamy Landmarks + Rainbow FX) ================= */
+/* ================= Horizon Casino: Theme-FX (Full Spectrum Blends • Slots • Stamps • Landmarks • Rainbow) ================= */
 
 @property --rainbow-angle {
   syntax: '<angle>';
@@ -6,9 +6,9 @@
   initial-value: 0deg;
 }
 
-/* 🎨 1. ชุดสีสเปกตรัมเต็มรุ้งแบบผสมเฉดสำหรับอีเวนท์ยิบย่อย */
+/* 🎨 1. ชุดสีสเปกตรัมเต็มรุ้งแบบผสมเฉด 19 โทน (ใช้ร่วมกันทั้งเว็บในที่เดียว) */
 
-/* ม่วงผสมชมพู (ปาฏิหาริย์ / โซ่ล่ามชะตา / สลับกระเป๋า) */
+/* ม่วงผสมชมพู (ปาฏิหาริย์ / โซ่ล่ามชะตา / สลับกระเป๋า / เผือก-อัญชัน) */
 [data-tone="violet-pink"],
 [data-tone="miracle"] {
   --t-bg: linear-gradient(140deg, #faf3ff 0%, #ead5ff 50%, #ffd9ec 100%);
@@ -17,7 +17,7 @@
   --t-glow: rgba(179, 122, 224, 0.48);
 }
 
-/* ม่วงเข้มผสมเหลืองสายฟ้า (กับดักความโลภ / สลับอันดับย้อนศร) */
+/* ม่วงเข้มผสมเหลืองสายฟ้า (กับดักความโลภ / สลับอันดับย้อนศร / ล้มยักษ์) */
 [data-tone="purple-gold"],
 [data-tone="greed"] {
   --t-bg: linear-gradient(140deg, #f6ebff 0%, #e1c5fb 48%, #ffe59e 100%);
@@ -26,7 +26,7 @@
   --t-glow: rgba(143, 71, 196, 0.5);
 }
 
-/* ครามผสมน้ำเงิน (ปปง. ตรวจสอบบัญชี / ฟ้องร้องศาลคาเฟ่) */
+/* ครามผสมน้ำเงิน (ปปง. ตรวจบัญชี / ศาลคาเฟ่ฟ้องร้อง) */
 [data-tone="indigo-blue"] {
   --t-bg: linear-gradient(140deg, #f0f2ff 0%, #d9dffc 52%, #cfe4ff 100%);
   --t-bd: #5e6ad2;
@@ -34,7 +34,7 @@
   --t-glow: rgba(94, 106, 210, 0.46);
 }
 
-/* น้ำเงินมิดไนท์ผสมแดงไซเรน (แมวส้มแฮ็กตู้เซฟ / โจรย่องเบา) */
+/* น้ำเงินมิดไนท์ผสมแดงไซเรน (แมวส้มแฮ็กตู้เซฟ / โจรย่องเบา / ปล้นสุลต่าน) */
 [data-tone="navy-crimson"],
 [data-tone="bank-raid"] {
   --t-bg: linear-gradient(140deg, #eef1ff 0%, #d4dcfa 46%, #fbd0db 100%);
@@ -43,7 +43,7 @@
   --t-glow: rgba(99, 102, 196, 0.5);
 }
 
-/* ฟ้าใสผสมครามอ่อน (ปลดหนี้ / ประกันภัย / ฝนเหรียญ / ผ้าม่านปิด) */
+/* ฟ้าใสผสมครามอ่อน (ปลดหนี้ / ประกันภัย / ฝนเหรียญ / ผ้าม่านปิด / โซดา) */
 [data-tone="sky-cyan"] {
   --t-bg: linear-gradient(140deg, #eefaff 0%, #d2f0ff 52%, #dce5ff 100%);
   --t-bd: #45a9e6;
@@ -60,7 +60,7 @@
   --t-glow: rgba(62, 163, 138, 0.46);
 }
 
-/* เขียวสดผสมมิ้นต์ (ดวงดีมีกำไร / โรบินฮู้ด / เก็บกระเป๋าได้) */
+/* เขียวสดผสมมิ้นต์ (ดวงดีมีกำไร / โรบินฮู้ด / เก็บกระเป๋าได้ / มัทฉะ) */
 [data-tone="green-mint"],
 [data-tone="win"] {
   --t-bg: linear-gradient(140deg, #effdf4 0%, #cef3db 55%, #dff9eb 100%);
@@ -69,7 +69,7 @@
   --t-glow: rgba(77, 179, 114, 0.46);
 }
 
-/* เขียวมะนาวผสมเหลืองสดใส (ยืมเพื่อนสำเร็จ / พลิกวิกฤตลาภลอย) */
+/* เขียวมะนาวผสมเหลืองสดใส (ยืมเพื่อนสำเร็จ / พลิกวิกฤตลาภลอย / เลมอน-ยูซุ) */
 [data-tone="lime-yellow"] {
   --t-bg: linear-gradient(140deg, #f6fee8 0%, #e1f7bc 52%, #fff2b8 100%);
   --t-bd: #85ba36;
@@ -77,7 +77,7 @@
   --t-glow: rgba(133, 186, 54, 0.45);
 }
 
-/* เหลืองทองผสมแชมเปญ (แจ็กพอต / ตอง 777 / ขอทานเศรษฐี / เต๋าทองคำ) */
+/* เหลืองทองผสมแชมเปญ (แจ็กพอต / ตอง 777 / ขอทานเศรษฐี / น้ำผึ้ง-พุดดิ้ง) */
 [data-tone="gold-yellow"],
 [data-tone="jackpot"],
 [data-tone="mult"] {
@@ -87,7 +87,7 @@
   --t-glow: rgba(235, 174, 48, 0.56);
 }
 
-/* ส้มคาราเมลผสมพีช (กระป๋องคุกกี้ / กระปุกหมูแตก / รีวิวไวรัล) */
+/* ส้มคาราเมลผสมพีช (กระป๋องคุกกี้ / กระปุกหมูแตก / รีวิวไวรัล / ครัวซองต์) */
 [data-tone="orange-peach"] {
   --t-bg: linear-gradient(140deg, #fff8ef 0%, #ffe0be 52%, #ffd4c4 100%);
   --t-bd: #ea8c38;
@@ -95,7 +95,7 @@
   --t-glow: rgba(234, 140, 56, 0.48);
 }
 
-/* แสดผสมส้มปะการัง (เพื่อนยืมเงิน / แก๊งรุมไถ / บิลเหมาทั้งร้าน) */
+/* แสดผสมส้มปะการัง (เพื่อนยืมเงิน / แก๊งรุมไถ / บิลเหมาทั้งร้าน / กาแฟ-ชานม) */
 [data-tone="tangerine-coral"],
 [data-tone="social"] {
   --t-bg: linear-gradient(140deg, #fff4ed 0%, #ffd5bd 50%, #ffbfb0 100%);
@@ -114,7 +114,7 @@
   --t-glow: rgba(214, 64, 83, 0.52);
 }
 
-/* แดงกุหลาบผสมชมพูเบอร์รี่ (ค่าใช้จ่ายประจำวัน / ค้ำประกันหนี้) */
+/* แดงกุหลาบผสมชมพูเบอร์รี่ (ค่าใช้จ่ายประจำวัน / ค้ำประกัน / สตรอว์เบอร์รี่) */
 [data-tone="rose-berry"],
 [data-tone="expense"],
 [data-tone="tax"] {
@@ -124,48 +124,48 @@
   --t-glow: rgba(217, 102, 140, 0.46);
 }
 
-/* รุ้งพาสเทลผสมหลายสี (ตรรกะวิบัติ / พลิกขั้ว / สรรพากรเฉลี่ยสุข) */
+/* รุ้งพาสเทลผสมหลายสี (ตรรกะวิบัติ 34 แบบ / พลิกขั้ว / เฉลี่ยสุข / กระจกเงา) */
 [data-tone="prism-chaos"] {
   --t-bg: linear-gradient(130deg, #ffe3ec 0%, #fff0cc 28%, #dcf8e6 56%, #d9ecff 80%, #ecd9ff 100%);
   --t-bd: #b287db;
   --t-fg: #543078;
-  --t-glow: rgba(168, 139, 230, 0.5);
+  --t-glow: rgba(168, 139, 230, 0.52);
 }
 
-/* โทนเฉพาะของแลนด์มาร์กทั้ง 5 โซน (ใช้ร่วมกันทั้งบนการ์ดอีเวนท์และลิ้นชักแลนด์มาร์ก) */
+/* โทนเฉพาะของแลนด์มาร์กทั้ง 5 โซน */
 [data-tone="lm-garden"] {
   --t-bg: linear-gradient(135deg, #f0fcf5 0%, #d4f4e1 55%, #eefad8 100%);
   --t-bd: #56a875;
   --t-fg: #1c663b;
-  --t-glow: rgba(86, 168, 117, 0.42);
+  --t-glow: rgba(86, 168, 117, 0.44);
 }
 
 [data-tone="lm-sakura"] {
   --t-bg: linear-gradient(135deg, #fff3f7 0%, #fdd9e7 52%, #ffe8d6 100%);
   --t-bd: #eb7ea4;
   --t-fg: #9c2d57;
-  --t-glow: rgba(235, 126, 164, 0.44);
+  --t-glow: rgba(235, 126, 164, 0.46);
 }
 
 [data-tone="lm-meadow"] {
   --t-bg: linear-gradient(135deg, #f6f1ff 0%, #e5d6fe 52%, #dceaff 100%);
   --t-bd: #9474db;
   --t-fg: #4e2d96;
-  --t-glow: rgba(148, 116, 219, 0.44);
+  --t-glow: rgba(148, 116, 219, 0.46);
 }
 
 [data-tone="lm-beach"] {
   --t-bg: linear-gradient(135deg, #edfaff 0%, #cfeeff 50%, #fff0c2 100%);
   --t-bd: #43b5e8;
   --t-fg: #16658c;
-  --t-glow: rgba(67, 181, 232, 0.44);
+  --t-glow: rgba(67, 181, 232, 0.46);
 }
 
 [data-tone="lm-river"] {
   --t-bg: linear-gradient(135deg, #ecfaf8 0%, #cef0ea 52%, #d8eaff 100%);
   --t-bd: #44aba0;
   --t-fg: #18635c;
-  --t-glow: rgba(68, 171, 160, 0.44);
+  --t-glow: rgba(68, 171, 160, 0.46);
 }
 
 /* ดวงเกลือ / คูณศูนย์ */
@@ -176,18 +176,55 @@
   --t-glow: rgba(186, 168, 152, 0.38);
 }
 
-/* นำตัวแปร Data-Tone ไปใช้ร่วมกันกับทุกการ์ดพร้อมแสงฟุ้งรอบกรอบ */
-.event-card[data-tone],
+/* 🎨 2. จ่ายสีสเปกตรัมลงทุกพื้นผิว: ช่องสล็อตหน้า-หลัง, การ์ดอีเวนท์, ป้ายปลดล็อก & สมุดแสตมป์ */
+
+/* ช่องสล็อต 3 ช่อง (ทั้งหน้าเมนูและหลังอีเวนท์) */
+.flip-face-front[data-tone],
 .flip-face-back[data-tone] {
   background: var(--t-bg);
   border-color: var(--t-bd);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.88),
+    0 6px 16px -6px var(--t-glow);
 }
 
+.flip-face-front[data-tone]::before,
+.flip-face-back[data-tone]::before {
+  content: '';
+  position: absolute;
+  inset: -25%;
+  background:
+    radial-gradient(circle at 22% 18%, rgba(255, 255, 255, 0.72) 0%, transparent 48%),
+    radial-gradient(circle at 84% 86%, var(--t-glow) 0%, transparent 56%);
+  filter: blur(10px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.flip-face-front[data-tone] > *,
+.flip-face-back[data-tone] > * {
+  position: relative;
+  z-index: 1;
+}
+
+.flip-face-front[data-tone] .reel-label,
+.flip-face-back[data-tone] .reel-label {
+  color: var(--t-fg);
+}
+
+.flip-face-front[data-tone] .tap-flip-pill {
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--t-fg);
+  border: 1px solid var(--t-bd);
+}
+
+/* การ์ดสรุปผลอีเวนท์หลัก */
 .event-card[data-tone] {
-  box-shadow: 0 10px 26px -6px var(--t-glow), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  background: var(--t-bg);
+  border-color: var(--t-bd);
+  box-shadow: 0 10px 26px -6px var(--t-glow), inset 0 1px 0 rgba(255, 255, 255, 0.82);
 }
 
-.flip-face-back[data-tone] .reel-label,
 .event-card[data-tone] .event-headline {
   color: var(--t-fg);
 }
@@ -195,7 +232,7 @@
 .event-card[data-tone] .event-category-pill {
   color: var(--t-fg);
   border-color: var(--t-bd);
-  background: rgba(255, 255, 255, 0.78);
+  background: rgba(255, 255, 255, 0.8);
 }
 
 .event-card[data-tone] .event-equation {
@@ -207,7 +244,60 @@
   color: var(--t-fg);
 }
 
-/* ✨ 2. แสงฟอยล์โฮโลแกรมพาดเฉียงบนการ์ดแรร์ */
+/* ป้ายปลดล็อกแสตมป์ใหม่ใต้ผลลัพธ์ */
+.stamp-unlock-banner[data-tone] {
+  background: var(--t-bg);
+  border: 2px solid var(--t-bd);
+  color: var(--t-fg);
+  box-shadow: 0 6px 18px -4px var(--t-glow), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+/* สมุดสะสมแสตมป์ 158 ดวง (ดวงที่ปลดล็อกแล้วจะมีพื้นหลังผสมสีฟุ้งเรืองแสงเฉพาะดวง) */
+.stamp-card.owned[data-tone] {
+  position: relative;
+  overflow: hidden;
+  background: var(--t-bg);
+  border: 1.8px solid var(--t-bd);
+  box-shadow:
+    0 6px 18px -5px var(--t-glow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.86);
+  transition: transform 0.16s ease, box-shadow 0.18s ease;
+}
+
+.stamp-card.owned[data-tone]:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px -4px var(--t-glow);
+}
+
+.stamp-card.owned[data-tone]::before {
+  content: '';
+  position: absolute;
+  inset: -28%;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.72) 0%, transparent 48%),
+    radial-gradient(circle at 85% 85%, var(--t-glow) 0%, transparent 56%);
+  filter: blur(11px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.stamp-card.owned[data-tone] > * {
+  position: relative;
+  z-index: 1;
+}
+
+.stamp-card.owned[data-tone] .stamp-title {
+  color: var(--t-fg);
+}
+
+.stamp-card.owned[data-tone] .stamp-badge,
+.stamp-card.owned[data-tone] .stamp-status-pill {
+  background: rgba(255, 255, 255, 0.84);
+  color: var(--t-fg);
+  border: 1px solid var(--t-bd);
+}
+
+/* ✨ 3. แสงฟอยล์โฮโลแกรมพาดเฉียงบนการ์ดแรร์ & แสตมป์หายาก */
 .foil-sheen {
   position: relative;
   overflow: hidden;
@@ -227,6 +317,7 @@
   transform: translateX(-100%);
   animation: foilGlide 3.4s ease-in-out infinite;
   pointer-events: none;
+  z-index: 2;
 }
 
 @keyframes foilGlide {
@@ -234,7 +325,7 @@
   100% { transform: translateX(115%); }
 }
 
-/* 🌈 3. ขอบสีรุ้งพาสเทลวิ่งวิบวับรอบ 3 ช่องตอนกำลังปั่นสล็อต */
+/* 🌈 4. ขอบสีรุ้งพาสเทลวิ่งวิบวับรอบ 3 ช่องตอนกำลังปั่นสล็อต */
 .reels-rainbow-wrap {
   position: relative;
   flex: 1;
@@ -272,7 +363,7 @@
   to { --rainbow-angle: 360deg; }
 }
 
-/* 💥 4. ปาติเคิลอิโมจิระเบิดกระจายจากกึ่งกลางการ์ดตอนเมนูหยุดแต่ละช่อง */
+/* 💥 5. ปาติเคิลอิโมจิระเบิดกระจายจากกึ่งกลางการ์ดตอนเมนูหยุดแต่ละช่อง */
 .emoji-burst-layer {
   position: absolute;
   inset: 0;
@@ -308,7 +399,7 @@
   }
 }
 
-/* ⚡ 5. เอฟเฟคกระแทก + แสงวาบ + วงแหวนตอนพลิกการ์ด (รันบน GPU) */
+/* ⚡ 6. เอฟเฟคกระแทก + แสงวาบ + วงแหวนตอนพลิกการ์ด (รันบน GPU) */
 .reel-impact-wrapper.has-flipped-impact {
   animation: cardFlipThud 0.42s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -354,7 +445,7 @@
   100% { opacity: 0; }
 }
 
-/* 🏦 6. ปุ่มธนาคารแยกอิสระจากยอดเงินกระเป๋าตังค์บนแถบบน */
+/* 🏦 7. ปุ่มธนาคารแยกอิสระจากยอดเงินกระเป๋าตังค์บนแถบบน */
 .bank-top-btn {
   border: 1.5px solid #8ec9a3;
   background: linear-gradient(135deg, #f3fcf6 0%, #dcf2e5 100%);
@@ -381,7 +472,7 @@
   cursor: not-allowed;
 }
 
-/* ================= 7. แถบลอยคู่: แลนด์มาร์ก 5 รูปทรง + Leaderboard สุลต่าน/ยาจก ================= */
+/* ================= 8. แถบลอยคู่: แลนด์มาร์ก 5 รูปทรง + Leaderboard สุลต่าน/ยาจก ================= */
 .top-floating-deck {
   flex-shrink: 0;
   display: flex;
@@ -479,7 +570,7 @@
   line-height: 1;
 }
 
-/* 🌸 8. กล่องรายละเอียดแลนด์มาร์กแบบสีนวลฟุ้งเรืองแสงเฉพาะโซนเมื่อมีผู้ถือครอง */
+/* 🌸 9. กล่องรายละเอียดแลนด์มาร์กแบบสีนวลฟุ้งเรืองแสงเฉพาะโซนเมื่อมีผู้ถือครอง */
 .landmark-row-card.owned[data-tone] {
   position: relative;
   overflow: hidden;
@@ -496,8 +587,9 @@
   content: '';
   position: absolute;
   inset: -30%;
-  background: radial-gradient(circle at 18% 25%, rgba(255, 255, 255, 0.72) 0%, transparent 48%),
-              radial-gradient(circle at 86% 82%, var(--t-glow) 0%, transparent 55%);
+  background:
+    radial-gradient(circle at 18% 25%, rgba(255, 255, 255, 0.72) 0%, transparent 48%),
+    radial-gradient(circle at 86% 82%, var(--t-glow) 0%, transparent 55%);
   filter: blur(12px);
   pointer-events: none;
   z-index: 0;
@@ -532,7 +624,7 @@
     0 10px 24px -4px var(--t-glow, rgba(140, 90, 77, 0.28)) !important;
 }
 
-/* 🏆 9. แถบลอย Leaderboard (สุลต่าน & ยาจก) */
+/* 🏆 10. แถบลอย Leaderboard (สุลต่าน & ยาจก) */
 .lb-mini-bar {
   flex: 1;
   min-width: 0;
@@ -654,7 +746,7 @@
   color: var(--mocha-muted);
 }
 
-/* ================= 10. หน้าต่าง Leaderboard เต็มรูปแบบ ================= */
+/* ================= 11. หน้าต่าง Leaderboard เต็มรูปแบบ ================= */
 .lb-modal-card {
   max-width: 600px;
 }
@@ -796,7 +888,7 @@
 .lb-row-net.neg { color: #b53245; }
 .lb-row-net.zero { color: var(--mocha-muted); }
 
-/* ================= 11. ปรับสัดส่วนมือถือให้กะทัดรัดเต็มจอ 100dvh ================= */
+/* ================= 12. ปรับสัดส่วนมือถือให้กะทัดรัดเต็มจอ 100dvh ================= */
 @media (max-width: 680px) {
   .bank-top-btn {
     padding: 4px 8px;

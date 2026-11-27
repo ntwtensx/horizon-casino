@@ -1,15 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
 import { createCafeAudio } from '../utils/cafeAudio';
+import { FOIL_TONES, resolveMenuCardTone, resolveSlotCardTone } from '../utils/eventTones';
 
 const MENU_TITLES = ['☕ เครื่องดื่ม', '✨ ท็อปปิ้ง', '🍰 ขนม'];
 const EVENT_TITLES = ['ช่อง 1 • จุดเริ่ม', 'ช่อง 2 • พลิกผัน', 'ช่อง 3 • ชะตา'];
 const SPIN_EMOJIS = ['☕', '🧋', '🍵', '🥐', '🧁', '🍓', '🌸', '🍮', '✨', '🍯', '🧇', '🍡', '🪙', '🎰'];
-const RARE_TONES = new Set(['miracle', 'mult', 'jackpot', 'landmark']);
 
 const IDLE_MENU_SLOTS = [
   { icon: '☕', label: 'Horizon Latte', sub: 'พร้อมชงเมนู', menuTone: 'cafe-honey' },
-  { icon: '☁️', label: 'ฟองนมละมุน', sub: 'โยกคันโยกเลย!', menuTone: 'cafe-cream' },
+  { icon: '☁️', label: 'ฟองนมละมุน', sub: 'โยกคันโยกเลย!', menuTone: 'cafe-sky' },
   { icon: '🥐', label: 'ครัวซองต์อุ่น', sub: 'ลากพลิกลุ้นชะตา', menuTone: 'cafe-lavender' }
 ];
 
@@ -41,6 +41,7 @@ export default function SlotMachine({
   flippedSlots = [false, false, false],
   cafeMenuItems,
   slots,
+  outcome,
   outcomeType,
   soundEnabled,
   disabled,
@@ -75,7 +76,6 @@ export default function SlotMachine({
   const eventList =
     Array.isArray(slots) && slots.length === 3 ? slots : FALLBACK_EVENT_SLOTS;
 
-  // รีเซ็ตสถานะลากพลิกและเคลียร์ไทเมอร์ปาติเคิลเมื่อถอดคอมโพเนนต์
   useEffect(() => {
     const endSwipe = () => {
       isSwipeFlippingRef.current = false;
@@ -89,7 +89,6 @@ export default function SlotMachine({
     };
   }, []);
 
-  // หมุนอิโมจิรัวๆ เฉพาะช่วง SPINNING
   useEffect(() => {
     if (spinPhase !== 'SPINNING') return;
     const id = setInterval(() => {
@@ -127,7 +126,7 @@ export default function SlotMachine({
     prevMenuCountRef.current = menuRevealedCount;
   }, [menuRevealedCount, soundEnabled, menuList]);
 
-  // เสียงกระแทก + ประกายแสงวาบทุกครั้งที่การ์ดถูกพลิก
+  // เสียงกระแทก + ประกายแสงวาบทุกครั้งที่การ์ดถูกพลิก (ส่ง raw tone ให้ audio แยกโทนเสียงได้แม่นยำ)
   useEffect(() => {
     flippedSlots.forEach((isFlipped, idx) => {
       if (isFlipped && !prevFlippedRef.current[idx] && soundEnabled) {
@@ -137,7 +136,6 @@ export default function SlotMachine({
     prevFlippedRef.current = [...flippedSlots];
   }, [flippedSlots, soundEnabled, eventList]);
 
-  // เสียงเฉลยผลลัพธ์รวมเมื่อพลิกครบทั้ง 3 ใบ
   useEffect(() => {
     if (spinPhase === 'REVEALED' && prevPhaseRef.current !== 'REVEALED' && outcomeType) {
       if (soundEnabled) {
@@ -214,7 +212,6 @@ export default function SlotMachine({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.28 }}
     >
-      {/* แถบหัวตู้ + โปรเกรสบาร์ */}
       <div className="machine-top-strip">
         <div className="machine-status-row">
           <span className="machine-status-text">{barCaption}</span>
@@ -244,7 +241,6 @@ export default function SlotMachine({
         </div>
       </div>
 
-      {/* ตัวตู้ 3 ช่อง (มีขอบสีรุ้งพาสเทลวิ่งวนตอนปั่น) + คันโยกด้านข้าง */}
       <div className="machine-body">
         <div className={`reels-rainbow-wrap ${spinPhase === 'SPINNING' ? 'is-spinning-rainbow' : ''}`}>
           <div
@@ -274,7 +270,8 @@ export default function SlotMachine({
 
               const menuItem = menuList[idx] || IDLE_MENU_SLOTS[idx];
               const eventItem = eventList[idx] || FALLBACK_EVENT_SLOTS[idx];
-              const cardTone = eventItem.tone || 'zero';
+              const menuCardTone = resolveMenuCardTone(menuItem, idx);
+              const eventCardTone = resolveSlotCardTone(eventItem, idx, outcome);
               const burst = slotBursts[idx];
 
               return (
@@ -309,7 +306,7 @@ export default function SlotMachine({
                     ) : (
                       <div
                         className={`reel-impact-wrapper ${isFlipped ? 'has-flipped-impact' : ''}`}
-                        data-tone={cardTone}
+                        data-tone={eventCardTone}
                       >
                         <motion.div
                           className="flip-card-inner"
@@ -318,11 +315,10 @@ export default function SlotMachine({
                           transition={{ type: 'spring', stiffness: 290, damping: 20, mass: 0.85 }}
                           style={{ transformStyle: 'preserve-3d' }}
                         >
-                          {/* ด้านหน้า: เมนูคาเฟ่ */}
+                          {/* ด้านหน้า: เมนูคาเฟ่พร้อมพื้นหลังสเปกตรัมฟุ้งเฉพาะเมนู */}
                           <div
-                            className={`flip-face flip-face-front menu-tone-${
-                              menuItem.menuTone || 'cafe-cream'
-                            } ${canTapToFlip ? 'tap-ready-card' : ''}`}
+                            className={`flip-face flip-face-front ${canTapToFlip ? 'tap-ready-card' : ''}`}
+                            data-tone={menuCardTone}
                           >
                             <motion.div
                               key={`menu-${idx}-${menuItem.label}-${isMenuJustLanded ? 'in' : 'idle'}`}
@@ -338,10 +334,12 @@ export default function SlotMachine({
                             </motion.div>
                           </div>
 
-                          {/* ด้านหลัง: อีเวนท์ 3 ช่อง (ดึงสีจาก data-tone + ฟอยล์โฮโลแกรมสำหรับการ์ดแรร์) */}
+                          {/* ด้านหลัง: อีเวนท์ 3 ช่องพร้อมสีสเปกตรัมผสมเฉด + ฟอยล์โฮโลแกรมสำหรับการ์ดแรร์ */}
                           <div
-                            className={`flip-face flip-face-back ${RARE_TONES.has(cardTone) ? 'foil-sheen' : ''}`}
-                            data-tone={cardTone}
+                            className={`flip-face flip-face-back ${
+                              FOIL_TONES.has(eventCardTone) ? 'foil-sheen' : ''
+                            }`}
+                            data-tone={eventCardTone}
                           >
                             <div className="reel-card">
                               <div className="reel-icon">{eventItem.icon}</div>
