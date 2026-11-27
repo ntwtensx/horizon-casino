@@ -1,6 +1,25 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import NumberFlow from '@number-flow/react';
 import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Wallet,
+  Landmark,
+  Coins,
+  ChevronDown,
+  BookOpen,
+  ScrollText,
+  Volume2,
+  VolumeX,
+  UserRound,
+  PiggyBank,
+  X,
+  Coffee,
+  MessageCircle,
+  Globe,
+  Crown,
+  TrendingDown,
+  CircleOff
+} from 'lucide-react';
 import './styles/bank.css';
 import './styles/theme-fx.css';
 import { casinoApi } from './api';
@@ -12,6 +31,7 @@ import SlotMachine from './components/SlotMachine.jsx';
 import EventDisplay from './components/EventDisplay.jsx';
 import StampBookModal from './components/StampBookModal.jsx';
 import BankModal from './components/BankModal.jsx';
+import { AnimatedText, EntranceBlock, ICON_BASE } from './components/MotionPrimitives.jsx';
 
 const DEFAULT_AVATAR = 'https://cdn.discordapp.com/embed/avatars/0.png';
 const DEFAULT_LANDMARKS = [
@@ -25,11 +45,11 @@ const DEFAULT_LANDMARKS = [
 function getStatusPill(walletBalance, bankBalance, isTopSultan) {
   const wallet = Number(walletBalance || 0);
   const bank = Math.max(0, Number(bankBalance || 0));
-  if (isTopSultan && wallet + bank > 0) return { cls: 'sultan', text: '👑 สุลต่านคาเฟ่' };
-  if (wallet < 0) return { cls: 'debt', text: '💸 เป็นหนี้' };
-  if (wallet === 0 && bank === 0) return { cls: 'broke', text: '🪙 หมดตัว' };
-  if (wallet === 0 && bank > 0) return { cls: 'normal', text: '🏦 เก็บไว้ในธนาคาร' };
-  return { cls: 'normal', text: '💰 มีเงินติดกระเป๋า' };
+  if (isTopSultan && wallet + bank > 0) return { cls: 'sultan', Icon: Crown, text: 'สุลต่านคาเฟ่' };
+  if (wallet < 0) return { cls: 'debt', Icon: TrendingDown, text: 'เป็นหนี้' };
+  if (wallet === 0 && bank === 0) return { cls: 'broke', Icon: CircleOff, text: 'หมดตัว' };
+  if (wallet === 0 && bank > 0) return { cls: 'normal', Icon: Landmark, text: 'เก็บไว้ในธนาคาร' };
+  return { cls: 'normal', Icon: Coins, text: 'มีเงินติดกระเป๋า' };
 }
 
 export default function App() {
@@ -334,112 +354,142 @@ export default function App() {
       )
     : null;
 
+  const StatusIcon = statusPill?.Icon || Coins;
+
   return (
     <>
       <CafeParticles mood={particleMood} landmarks={landmarks} />
 
       <div className="cafe-app">
-        {/* แถบบนมินิ: โปรไฟล์ย่อ + ปุ่มกระเป๋าตังค์ (แยกเดี่ยว) + ปุ่มธนาคาร (แยกเดี่ยว) + ปุ่มเมนู */}
-        <header className="mini-top-bar">
-          <button
-            type="button"
-            className="mini-brand-btn"
-            onClick={() => setMenuOpen((v) => !v)}
-            aria-expanded={menuOpen}
-          >
-            {activePlayer ? (
-              <img
-                className="mini-avatar"
-                src={activePlayer.avatar || DEFAULT_AVATAR}
-                alt={activePlayer.displayName}
-                onError={(e) => {
-                  e.currentTarget.src = DEFAULT_AVATAR;
-                }}
-              />
-            ) : (
-              <span className="mini-brand-emoji">☕</span>
-            )}
-            <div className="mini-brand-text">
-              <span className="mini-name">
-                {activePlayer
-                  ? activePlayer.nickname
-                    ? `คุณ${activePlayer.nickname}`
-                    : activePlayer.displayName
-                  : 'Horizon Casino'}
-              </span>
-              <span className="mini-sub">☕ Horizon Slot</span>
-            </div>
-          </button>
-
-          <div className="mini-right-group">
-            {activePlayer && (
-              <>
-                {/* 👛 ปุ่มกระเป๋าตังค์แยกเดี่ยว — แตะเพื่อดูการเดินบัญชีล่าสุด 10 รายการ */}
-                <button
-                  type="button"
-                  className="wallet-pill wallet-pill-btn wallet-pill-anchor"
-                  onClick={() => openBankModal('STATEMENT')}
-                  disabled={isBusy}
-                  title="กระเป๋าตังค์ — คลิกเพื่อดูการเดินบัญชีล่าสุด 10 รายการ"
-                >
-                  <span className={`wallet-value ${activePlayer.walletBalance < 0 ? 'negative' : ''}`}>
-                    👛 <NumberFlow value={Number(activePlayer.walletBalance || 0)} /> 🪙
-                  </span>
-
-                  <AnimatePresence>
-                    {floatingDelta && (
-                      <motion.span
-                        key={floatingDelta.id}
-                        className={`wallet-delta-float ${floatingDelta.value > 0 ? 'pos' : 'neg'}`}
-                        initial={{ opacity: 0, y: 6, scale: 0.75 }}
-                        animate={{ opacity: 1, y: 30, scale: 1.05 }}
-                        exit={{ opacity: 0, y: 44, scale: 0.9 }}
-                        transition={{ duration: 0.55, ease: 'easeOut' }}
-                      >
-                        {floatingDelta.value > 0
-                          ? `+${floatingDelta.value.toLocaleString()} 🪙`
-                          : `${floatingDelta.value.toLocaleString()} 💸`}
-                      </motion.span>
-                    )}
-                  </AnimatePresence>
-                </button>
-
-                {/* 🏦 ปุ่มธนาคารแยกอิสระ — แตะเพื่อฝาก/ถอนเงิน */}
-                <button
-                  type="button"
-                  className="bank-top-btn"
-                  onClick={() => openBankModal('BANK')}
-                  disabled={isBusy}
-                  title={`ธนาคารคาเฟ่ (ฝากอยู่ ${Number(activePlayer.bankBalance || 0).toLocaleString()} เหรียญ)`}
-                  aria-label="เปิดธนาคารฝากถอนเงิน"
-                >
-                  <span>🏦</span>
-                  <span className="bank-top-amount">
-                    <NumberFlow value={Number(activePlayer.bankBalance || 0)} />
-                  </span>
-                </button>
-              </>
-            )}
-
+        {/* 1. แถบบนมินิเปิดตัวจากขอบบน */}
+        <EntranceBlock delay={0} from="top">
+          <header className="mini-top-bar">
             <button
               type="button"
-              className={`drawer-toggle-btn ${menuOpen ? 'open' : ''}`}
+              className="mini-brand-btn"
               onClick={() => setMenuOpen((v) => !v)}
               aria-expanded={menuOpen}
-              aria-label="เปิดหรือซ่อนลิ้นชักเมนู"
             >
-              <span>{menuOpen ? '▲' : '▼ เมนู'}</span>
+              {activePlayer ? (
+                <img
+                  className="mini-avatar"
+                  src={activePlayer.avatar || DEFAULT_AVATAR}
+                  alt={activePlayer.displayName}
+                  onError={(e) => {
+                    e.currentTarget.src = DEFAULT_AVATAR;
+                  }}
+                />
+              ) : (
+                <span className="mini-brand-emoji" style={{ display: 'inline-flex', alignItems: 'center' }}>
+                  <Coffee {...ICON_BASE} size={18} />
+                </span>
+              )}
+              <div className="mini-brand-text">
+                <span className="mini-name">
+                  <AnimatedText
+                    key={activePlayer?.userId || 'guest'}
+                    text={
+                      activePlayer
+                        ? activePlayer.nickname
+                          ? `คุณ${activePlayer.nickname}`
+                          : activePlayer.displayName
+                        : 'Horizon Casino'
+                    }
+                    variant="pop"
+                    stagger={0.022}
+                  />
+                </span>
+                <span className="mini-sub" style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                  <Coffee {...ICON_BASE} size={11} /> Horizon Slot
+                </span>
+              </div>
             </button>
-          </div>
-        </header>
 
-        {/* แถบลอยใหม่: 🏰 แลนด์มาร์ก 5 รูปทรงไล่เฉด 2 สี + 🏆 Leaderboard สุลต่าน & ยาจก */}
-        <TopFloatingDeck
-          landmarks={landmarks}
-          players={players}
-          activePlayerId={activePlayer?.userId || ''}
-          onRefreshPlayers={loadCasinoData}
-        />
+            <div className="mini-right-group">
+              {activePlayer && (
+                <>
+                  {/* ปุ่มกระเป๋าตังค์แยกเดี่ยว — แตะเพื่อดูการเดินบัญชีล่าสุด 10 รายการ */}
+                  <button
+                    type="button"
+                    className="wallet-pill wallet-pill-btn wallet-pill-anchor"
+                    onClick={() => openBankModal('STATEMENT')}
+                    disabled={isBusy}
+                    title="กระเป๋าตังค์ — คลิกเพื่อดูการเดินบัญชีล่าสุด 10 รายการ"
+                  >
+                    <span
+                      className={`wallet-value ${activePlayer.walletBalance < 0 ? 'negative' : ''}`}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                    >
+                      <Wallet {...ICON_BASE} size={14} />
+                      <NumberFlow value={Number(activePlayer.walletBalance || 0)} />
+                      <Coins {...ICON_BASE} size={13} />
+                    </span>
+
+                    <AnimatePresence>
+                      {floatingDelta && (
+                        <motion.span
+                          key={floatingDelta.id}
+                          className={`wallet-delta-float ${floatingDelta.value > 0 ? 'pos' : 'neg'}`}
+                          initial={{ opacity: 0, y: 6, scale: 0.75 }}
+                          animate={{ opacity: 1, y: 30, scale: 1.05 }}
+                          exit={{ opacity: 0, y: 44, scale: 0.9 }}
+                          transition={{ duration: 0.55, ease: 'easeOut' }}
+                        >
+                          {floatingDelta.value > 0
+                            ? `+${floatingDelta.value.toLocaleString()}`
+                            : floatingDelta.value.toLocaleString()}
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </button>
+
+                  {/* ปุ่มธนาคารแยกอิสระ — แตะเพื่อฝาก/ถอนเงิน */}
+                  <button
+                    type="button"
+                    className="bank-top-btn"
+                    onClick={() => openBankModal('BANK')}
+                    disabled={isBusy}
+                    title={`ธนาคารคาเฟ่ (ฝากอยู่ ${Number(activePlayer.bankBalance || 0).toLocaleString()} เหรียญ)`}
+                    aria-label="เปิดธนาคารฝากถอนเงิน"
+                  >
+                    <Landmark {...ICON_BASE} size={14} />
+                    <span className="bank-top-amount">
+                      <NumberFlow value={Number(activePlayer.bankBalance || 0)} />
+                    </span>
+                  </button>
+                </>
+              )}
+
+              <button
+                type="button"
+                className={`drawer-toggle-btn ${menuOpen ? 'open' : ''}`}
+                onClick={() => setMenuOpen((v) => !v)}
+                aria-expanded={menuOpen}
+                aria-label="เปิดหรือซ่อนลิ้นชักเมนู"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}
+              >
+                <motion.span
+                  animate={{ rotate: menuOpen ? 180 : 0 }}
+                  transition={{ duration: 0.22 }}
+                  style={{ display: 'inline-flex', alignItems: 'center' }}
+                >
+                  <ChevronDown {...ICON_BASE} size={14} />
+                </motion.span>
+                <span>{menuOpen ? 'ซ่อน' : 'เมนู'}</span>
+              </button>
+            </div>
+          </header>
+        </EntranceBlock>
+
+        {/* 2. แถบลอยแลนด์มาร์ก 5 รูปทรง + Leaderboard สุลต่าน & ยาจก */}
+        <EntranceBlock delay={0.1} from="top">
+          <TopFloatingDeck
+            landmarks={landmarks}
+            players={players}
+            activePlayerId={activePlayer?.userId || ''}
+            onRefreshPlayers={loadCasinoData}
+          />
+        </EntranceBlock>
 
         {/* ลิ้นชักเมนูโปรไฟล์ & ตั้งค่า */}
         <AnimatePresence>
@@ -455,23 +505,25 @@ export default function App() {
               <div className="floating-drawer-wrap">
                 <motion.aside
                   className="floating-top-drawer"
-                  initial={{ opacity: 0, y: -16, scale: 0.97 }}
+                  initial={{ opacity: 0, y: -16, scale: 0.96 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -14, scale: 0.97 }}
+                  exit={{ opacity: 0, y: -14, scale: 0.96 }}
                   transition={{ type: 'spring', stiffness: 360, damping: 28 }}
                 >
                   <div className="drawer-section">
                     <div className="drawer-row-between">
-                      <div className="brand-title">
-                        <span>☕ Horizon Casino</span>
+                      <div className="brand-title" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        <Coffee {...ICON_BASE} size={16} />
+                        <span>Horizon Casino</span>
                         <span className="brand-badge">Cafe Slot</span>
                       </div>
                       <button
                         type="button"
                         className="drawer-close-pill"
                         onClick={() => setMenuOpen(false)}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}
                       >
-                        ✕ พับเก็บ
+                        <X {...ICON_BASE} size={13} /> พับเก็บ
                       </button>
                     </div>
 
@@ -496,13 +548,27 @@ export default function App() {
                                 className={`account-type-tag ${
                                   activePlayer.accountType === 'web' ? 'web' : 'discord'
                                 }`}
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}
                               >
-                                {activePlayer.accountType === 'web' ? '🌐 เว็บ' : '💬 Discord'}
+                                {activePlayer.accountType === 'web' ? (
+                                  <>
+                                    <Globe {...ICON_BASE} size={11} /> เว็บ
+                                  </>
+                                ) : (
+                                  <>
+                                    <MessageCircle {...ICON_BASE} size={11} /> Discord
+                                  </>
+                                )}
                               </span>
                             </div>
                             <div className="player-sub-row">
                               {statusPill && (
-                                <span className={`status-pill ${statusPill.cls}`}>{statusPill.text}</span>
+                                <span
+                                  className={`status-pill ${statusPill.cls}`}
+                                  style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}
+                                >
+                                  <StatusIcon {...ICON_BASE} size={12} /> {statusPill.text}
+                                </span>
                               )}
                               <span>• ปั่นแล้ว {Number(activePlayer.scratchCount || 0).toLocaleString()} รอบ</span>
                             </div>
@@ -516,9 +582,11 @@ export default function App() {
                             onClick={() => openBankModal('STATEMENT')}
                             disabled={isBusy}
                           >
-                            <span>👛 กระเป๋าตังค์</span>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                              <Wallet {...ICON_BASE} size={13} /> กระเป๋าตังค์
+                            </span>
                             <strong className={activePlayer.walletBalance < 0 ? 'negative' : ''}>
-                              {Number(activePlayer.walletBalance || 0).toLocaleString()} 🪙
+                              {Number(activePlayer.walletBalance || 0).toLocaleString()}
                             </strong>
                           </button>
 
@@ -528,15 +596,19 @@ export default function App() {
                             onClick={() => openBankModal('BANK')}
                             disabled={isBusy}
                           >
-                            <span>🏦 เงินฝากธนาคาร</span>
-                            <strong>{Number(activePlayer.bankBalance || 0).toLocaleString()} 🪙</strong>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                              <Landmark {...ICON_BASE} size={13} /> เงินฝากธนาคาร
+                            </span>
+                            <strong>{Number(activePlayer.bankBalance || 0).toLocaleString()}</strong>
                           </button>
                         </div>
                       </>
                     )}
 
                     <div className="drawer-tipjar-row">
-                      <span>🐷 กระปุกหมูสะสมหน้าเคาน์เตอร์</span>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                        <PiggyBank {...ICON_BASE} size={15} /> กระปุกหมูสะสมหน้าเคาน์เตอร์
+                      </span>
                       <strong>
                         <NumberFlow value={Number(tipJar || 0)} /> เหรียญ
                       </strong>
@@ -550,7 +622,7 @@ export default function App() {
                       onClick={() => openBankModal('BANK')}
                       disabled={!activePlayer || isBusy}
                     >
-                      🏦 ฝาก / ถอนธนาคาร
+                      <Landmark {...ICON_BASE} size={14} /> ฝาก / ถอนธนาคาร
                     </button>
 
                     <button
@@ -559,7 +631,7 @@ export default function App() {
                       onClick={() => openBankModal('STATEMENT')}
                       disabled={!activePlayer || isBusy}
                     >
-                      📜 เดินบัญชี (10 รายการ)
+                      <ScrollText {...ICON_BASE} size={14} /> เดินบัญชี (10 รายการ)
                     </button>
 
                     <button
@@ -570,7 +642,8 @@ export default function App() {
                         setStampModalState({ open: true, category: 'ALL' });
                       }}
                     >
-                      <span>📖 สมุดแสตมป์</span>
+                      <BookOpen {...ICON_BASE} size={14} />
+                      <span>สมุดแสตมป์</span>
                       <span className="stamp-pill-count">
                         {ownedStampCount}/{stampCatalog.totalStamps || 158}
                       </span>
@@ -581,7 +654,15 @@ export default function App() {
                       className="btn-pill"
                       onClick={() => setSoundEnabled((v) => !v)}
                     >
-                      {soundEnabled ? '🔊 เสียงเปิด' : '🔇 ปิดเสียง'}
+                      {soundEnabled ? (
+                        <>
+                          <Volume2 {...ICON_BASE} size={14} /> เสียงเปิด
+                        </>
+                      ) : (
+                        <>
+                          <VolumeX {...ICON_BASE} size={14} /> ปิดเสียง
+                        </>
+                      )}
                     </button>
 
                     <button
@@ -593,7 +674,7 @@ export default function App() {
                       }}
                       disabled={isBusy}
                     >
-                      👤 เปลี่ยนผู้เล่น
+                      <UserRound {...ICON_BASE} size={14} /> เปลี่ยนผู้เล่น
                     </button>
                   </div>
                 </motion.aside>
@@ -602,33 +683,38 @@ export default function App() {
           )}
         </AnimatePresence>
 
+        {/* 3. เวทีหลัก: ตู้สล็อต + กล่องอีเวนท์เปิดตัวตามลำดับ */}
         <main className="casino-stage">
-          <SlotMachine
-            spinPhase={spinPhase}
-            spinProgress={spinProgress}
-            menuRevealedCount={menuRevealedCount}
-            flippedSlots={flippedSlots}
-            cafeMenuItems={spinResult?.outcome?.cafeMenu?.items}
-            slots={spinResult?.outcome?.slots}
-            outcome={spinResult?.outcome}
-            outcomeType={spinResult?.outcome?.outcomeType}
-            soundEnabled={soundEnabled}
-            disabled={!activePlayer}
-            onPullLever={handlePullLever}
-            onFlipCard={handleFlipCard}
-          />
+          <EntranceBlock delay={0.18} from="scale">
+            <SlotMachine
+              spinPhase={spinPhase}
+              spinProgress={spinProgress}
+              menuRevealedCount={menuRevealedCount}
+              flippedSlots={flippedSlots}
+              cafeMenuItems={spinResult?.outcome?.cafeMenu?.items}
+              slots={spinResult?.outcome?.slots}
+              outcome={spinResult?.outcome}
+              outcomeType={spinResult?.outcome?.outcomeType}
+              soundEnabled={soundEnabled}
+              disabled={!activePlayer}
+              onPullLever={handlePullLever}
+              onFlipCard={handleFlipCard}
+            />
+          </EntranceBlock>
 
-          <EventDisplay
-            spinPhase={spinPhase}
-            spinProgress={spinProgress}
-            menuRevealedCount={menuRevealedCount}
-            flippedSlots={flippedSlots}
-            spinResult={spinResult}
-            isBrandNewStamp={isBrandNewStamp}
-            matchedStamp={matchedStamp}
-            errorMsg={spinError}
-            onOpenStampBook={(cat) => setStampModalState({ open: true, category: cat || 'ALL' })}
-          />
+          <EntranceBlock delay={0.28} from="bottom" style={{ flex: 1, minHeight: 0, display: 'flex' }}>
+            <EventDisplay
+              spinPhase={spinPhase}
+              spinProgress={spinProgress}
+              menuRevealedCount={menuRevealedCount}
+              flippedSlots={flippedSlots}
+              spinResult={spinResult}
+              isBrandNewStamp={isBrandNewStamp}
+              matchedStamp={matchedStamp}
+              errorMsg={spinError}
+              onOpenStampBook={(cat) => setStampModalState({ open: true, category: cat || 'ALL' })}
+            />
+          </EntranceBlock>
         </main>
 
         <AuthModal
