@@ -1,6 +1,38 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+const FOIL_TONES = new Set(['jackpot', 'miracle', 'landmark', 'greed']);
+
+// 🎨 คัดแยกสีธีมเฉพาะตัวของแต่ละหมวดอีเวนท์ (ดึงค่าสีจาก theme-fx.css)
+function resolveEventTone(outcome) {
+  if (!outcome) return 'zero';
+  const hdr = `${outcome.categoryHeader || ''} ${outcome.headline || ''}`;
+  const tx = outcome.txType || '';
+  const type = outcome.outcomeType || 'ZERO';
+
+  if (outcome.seizeBank || tx === 'SEIZURE') return 'seizure';
+  if (outcome.bankDirect || hdr.includes('ปปง.') || hdr.includes('ตู้เซฟ')) return 'bank-raid';
+  if (hdr.includes('ความโลภ')) return 'greed';
+  if (tx === 'LANDMARK' || String(outcome.stampId || '').startsWith('LM_') || hdr.includes('ริมหน้าต่าง')) return 'landmark';
+  if (
+    tx === 'FRIEND_IN' ||
+    tx === 'FRIEND_OUT' ||
+    hdr.includes('ยืมเงิน') ||
+    hdr.includes('ค้ำประกัน') ||
+    hdr.includes('แก๊งเพื่อน') ||
+    hdr.includes('เหมาเลี้ยง')
+  ) {
+    return 'social';
+  }
+
+  if (type === 'JACKPOT') return 'jackpot';
+  if (type === 'MIRACLE') return 'miracle';
+  if (type === 'WIN') return 'win';
+  if (type === 'DIVIDER') return 'divide';
+  if (type === 'TAX' || type === 'THEFT') return 'expense';
+  return 'zero';
+}
+
 function renderDiscordText(rawText) {
   if (!rawText) return null;
   const regex = /<(a?):([a-zA-Z0-9_]+):(\d+)>/g;
@@ -9,16 +41,13 @@ function renderDiscordText(rawText) {
   let match;
 
   while ((match = regex.exec(rawText)) !== null) {
-    if (match.index > lastIdx) {
-      parts.push(rawText.slice(lastIdx, match.index));
-    }
+    if (match.index > lastIdx) parts.push(rawText.slice(lastIdx, match.index));
     const [, isAnim, name, id] = match;
-    const ext = isAnim === 'a' ? 'gif' : 'png';
     parts.push(
       <img
         key={`${id}-${match.index}`}
         className="discord-emoji-inline"
-        src={`https://cdn.discordapp.com/emojis/${id}.${ext}?size=48&quality=lossless`}
+        src={`https://cdn.discordapp.com/emojis/${id}.${isAnim === 'a' ? 'gif' : 'png'}?size=48&quality=lossless`}
         alt={name}
         onError={(e) => {
           e.currentTarget.style.display = 'none';
@@ -28,9 +57,7 @@ function renderDiscordText(rawText) {
     lastIdx = regex.lastIndex;
   }
 
-  if (lastIdx < rawText.length) {
-    parts.push(rawText.slice(lastIdx));
-  }
+  if (lastIdx < rawText.length) parts.push(rawText.slice(lastIdx));
   return parts;
 }
 
@@ -53,9 +80,7 @@ export default function EventDisplay({
       <section className="event-panel">
         <div className="event-idle">
           <div className="event-idle-emoji">☕</div>
-          <div className="event-idle-title" style={{ color: 'var(--rose)' }}>
-            {errorMsg}
-          </div>
+          <div className="event-idle-title" style={{ color: 'var(--rose)' }}>{errorMsg}</div>
           <div className="event-idle-desc">ลองดึงคันโยกใหม่อีกครั้งในอีกสักครู่นะคะ</div>
         </div>
       </section>
@@ -63,24 +88,23 @@ export default function EventDisplay({
   }
 
   if (spinPhase === 'SPINNING') {
-    const suspenseText =
-      menuRevealedCount === 0
-        ? 'กำลังชงเครื่องดื่มสุดแฟนซี...'
-        : menuRevealedCount === 1
-          ? 'ได้เครื่องดื่มแล้ว! กำลังสุ่มท็อปปิ้ง...'
-          : 'กำลังจัดจานขนมทานเล่นชิ้นสุดท้าย...';
+    const suspense = [
+      'กำลังชงเครื่องดื่มสุดแฟนซี...',
+      'ได้เครื่องดื่มแล้ว! กำลังสุ่มท็อปปิ้ง...',
+      'กำลังจัดจานขนมทานเล่นชิ้นสุดท้าย...'
+    ][Math.min(menuRevealedCount, 2)];
 
     return (
       <section className="event-panel">
         <motion.div
-          key={`spin-menu-${menuRevealedCount}`}
+          key={`spin-${menuRevealedCount}`}
           className="event-idle"
           initial={{ opacity: 0, y: 5 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.2 }}
         >
-          <div className="event-idle-emoji">☕</div>
-          <div className="event-idle-title">{suspenseText}</div>
+          <div className="event-idle-emoji">🌈</div>
+          <div className="event-idle-title">{suspense}</div>
           <div className="event-idle-desc">ความคืบหน้าการชงออเดอร์ {spinProgress}% • รอลุ้นเปิดบิลชะตา!</div>
         </motion.div>
       </section>
@@ -103,12 +127,8 @@ export default function EventDisplay({
           {menuItems.length === 3 && (
             <div className="menu-preview-chips">
               {menuItems.map((m, idx) => (
-                <span
-                  key={idx}
-                  className={`menu-preview-chip ${flippedSlots[idx] ? 'is-flipped' : ''}`}
-                >
-                  {flippedSlots[idx] ? '✓ ' : ''}
-                  {m.icon} {m.label}
+                <span key={idx} className={`menu-preview-chip ${flippedSlots[idx] ? 'is-flipped' : ''}`}>
+                  {flippedSlots[idx] ? '✓ ' : ''}{m.icon} {m.label}
                 </span>
               ))}
             </div>
@@ -126,7 +146,7 @@ export default function EventDisplay({
     );
   }
 
-  if (spinPhase !== 'REVEALED' || !spinResult || !spinResult.outcome) {
+  if (spinPhase !== 'REVEALED' || !spinResult?.outcome) {
     return (
       <section className="event-panel">
         <div className="event-idle">
@@ -151,6 +171,7 @@ export default function EventDisplay({
     usedBank
   } = spinResult;
 
+  const tone = resolveEventTone(outcome);
   const wDelta = typeof walletDelta === 'number' ? walletDelta : Number(outcome.delta || 0);
   const bDelta = typeof bankDelta === 'number' ? bankDelta : 0;
   const walletDiffClass = wDelta > 0 ? 'diff-pos' : wDelta < 0 ? 'diff-neg' : 'diff-zero';
@@ -161,7 +182,8 @@ export default function EventDisplay({
       <AnimatePresence mode="wait">
         <motion.div
           key={`${spinResult.scratchCount}-${outcome.headline}`}
-          className={`event-card outcome-${outcome.outcomeType || 'ZERO'}`}
+          className={`event-card outcome-${outcome.outcomeType || 'ZERO'} ${FOIL_TONES.has(tone) ? 'foil-sheen' : ''}`}
+          data-tone={tone}
           initial={{ opacity: 0, y: 10, scale: 0.97 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -6 }}
@@ -171,16 +193,13 @@ export default function EventDisplay({
             <div className="event-order-receipt">
               <span>🧾</span>
               <span>
-                {menuItems[0].icon} {menuItems[0].label} + {menuItems[1].icon} {menuItems[1].label} +{' '}
-                {menuItems[2].icon} {menuItems[2].label}
+                {menuItems.map((m) => `${m.icon} ${m.label}`).join(' + ')}
               </span>
             </div>
           )}
 
           <div className="event-category-pill">{outcome.categoryHeader || '🌟 ผลการลุ้นดวง'}</div>
-
           <h2 className="event-headline">{outcome.headline}</h2>
-
           <p className="event-message">{renderDiscordText(outcome.message)}</p>
 
           {outcome.equationText && (
@@ -192,15 +211,18 @@ export default function EventDisplay({
 
           <div className={`event-balance-diff ${walletDiffClass}`}>
             👛 กระเป๋า: {Number(previousBalance || 0).toLocaleString()} ➔{' '}
-            {Number(newBalance || 0).toLocaleString()} เหรียญ (
-            {wDelta > 0 ? `+${wDelta.toLocaleString()}` : wDelta.toLocaleString()})
+            {Number(newBalance || 0).toLocaleString()} เหรียญ ({wDelta > 0 ? `+${wDelta.toLocaleString()}` : wDelta.toLocaleString()})
           </div>
 
           {bDelta !== 0 && (
             <div className="event-bank-diff">
               🏦 ธนาคาร: {Number(previousBankBalance || 0).toLocaleString()} ➔{' '}
               {Number(newBankBalance || 0).toLocaleString()} เหรียญ ({bDelta.toLocaleString()})
-              {usedBank > 0 && !outcome.seizeBank ? ' • ดึงมาช่วยจ่ายส่วนต่าง' : ''}
+              {outcome.bankDirect
+                ? ' • เจาะหักจากธนาคารโดยตรง'
+                : usedBank > 0 && !outcome.seizeBank
+                  ? ' • ดึงมาช่วยจ่ายส่วนต่าง'
+                  : ''}
             </div>
           )}
 

@@ -2,9 +2,11 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import NumberFlow from '@number-flow/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './styles/bank.css';
+import './styles/theme-fx.css';
 import { casinoApi } from './api';
 import { fireOutcomeEffect, fireStampUnlockBurst } from './utils/celebrationEffects';
 import CafeParticles from './components/CafeParticles.jsx';
+import TopFloatingDeck from './components/TopFloatingDeck.jsx';
 import AuthModal from './components/AuthModal.jsx';
 import SlotMachine from './components/SlotMachine.jsx';
 import EventDisplay from './components/EventDisplay.jsx';
@@ -33,8 +35,8 @@ function getStatusPill(walletBalance, bankBalance, isTopSultan) {
 export default function App() {
   const [players, setPlayers] = useState([]);
   const [landmarks, setLandmarks] = useState(DEFAULT_LANDMARKS);
-  const [tipJar, setTipJar] = useState(500);
-  const [depositFeePct, setDepositFeePct] = useState(3);
+  const [tipJar, setTipJar] = useState(400);
+  const [depositFeePct, setDepositFeePct] = useState(5);
   const [stampCatalog, setStampCatalog] = useState({ totalStamps: 158, categories: [], stamps: [] });
   const [loadingInit, setLoadingInit] = useState(true);
 
@@ -43,9 +45,7 @@ export default function App() {
   const [authModalOpen, setAuthModalOpen] = useState(true);
   const [stampModalState, setStampModalState] = useState({ open: false, category: 'ALL' });
   const [bankModalState, setBankModalState] = useState({ open: false, tab: 'BANK' });
-
-  // ลิ้นชักลอยด้านบน: 'NONE' | 'LANDMARKS' | 'MENU'
-  const [activeDrawer, setActiveDrawer] = useState('NONE');
+  const [menuOpen, setMenuOpen] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
 
   // เฟสสล็อต: IDLE -> SPINNING -> MENU_SHOW -> REVEALED
@@ -94,7 +94,6 @@ export default function App() {
     return () => clearTimers();
   }, [loadCasinoData, clearTimers]);
 
-  // คำนวณยอดสุทธิสูงสุด (กระเป๋า + ธนาคาร) สำหรับตำแหน่งสุลต่าน
   const maxNetWorth = useMemo(
     () =>
       Math.max(
@@ -102,11 +101,6 @@ export default function App() {
         ...players.map((p) => Number(p.walletBalance || 0) + Math.max(0, Number(p.bankBalance || 0)))
       ),
     [players]
-  );
-
-  const ownedLandmarksCount = useMemo(
-    () => landmarks.filter((lm) => Boolean(lm.owned)).length,
-    [landmarks]
   );
 
   const ownedStampCount = useMemo(() => {
@@ -132,22 +126,15 @@ export default function App() {
 
   const isBusy = spinPhase === 'SPINNING' || spinPhase === 'MENU_SHOW';
 
-  const toggleDrawer = (target) => {
-    setActiveDrawer((curr) => (curr === target ? 'NONE' : target));
-  };
-
   const openBankModal = (tab = 'BANK') => {
     if (!activePlayer || isBusy) return;
-    setActiveDrawer('NONE');
+    setMenuOpen(false);
     setBankModalState({ open: true, tab });
   };
 
-  // ซิงค์ยอดกระเป๋าและธนาคารหลังฝาก/ถอน/รีเฟรชเดินบัญชี (stable callback)
   const handleBalancesUpdated = useCallback((userId, walletBalance, bankBalance) => {
     setActivePlayer((curr) =>
-      curr && curr.userId === userId
-        ? { ...curr, walletBalance, bankBalance }
-        : curr
+      curr && curr.userId === userId ? { ...curr, walletBalance, bankBalance } : curr
     );
     setPlayers((prev) =>
       prev.map((p) => (p.userId === userId ? { ...p, walletBalance, bankBalance } : p))
@@ -160,15 +147,15 @@ export default function App() {
     pendingPayloadRef.current = null;
     flippedRef.current = [false, false, false];
 
-    const normalizedPlayer = {
+    const normalized = {
       ...player,
       bankBalance: Math.max(0, Number(player.bankBalance || 0))
     };
 
-    setActivePlayer(normalizedPlayer);
+    setActivePlayer(normalized);
     setVerifiedPin(pin);
     setAuthModalOpen(false);
-    setActiveDrawer('NONE');
+    setMenuOpen(false);
     setBankModalState({ open: false, tab: 'BANK' });
     updateSpinPhase('IDLE');
     setSpinProgress(0);
@@ -179,12 +166,10 @@ export default function App() {
     setFloatingDelta(null);
 
     setPlayers((prev) => {
-      const exists = prev.some((p) => p.userId === normalizedPlayer.userId);
+      const exists = prev.some((p) => p.userId === normalized.userId);
       const updated = exists
-        ? prev.map((p) =>
-            p.userId === normalizedPlayer.userId ? { ...p, ...normalizedPlayer, hasPin: true } : p
-          )
-        : [...prev, { ...normalizedPlayer, hasPin: true }];
+        ? prev.map((p) => (p.userId === normalized.userId ? { ...p, ...normalized, hasPin: true } : p))
+        : [...prev, { ...normalized, hasPin: true }];
       return updated.sort((a, b) => a.displayName.localeCompare(b.displayName, 'th'));
     });
   };
@@ -217,11 +202,7 @@ export default function App() {
         timersRef.current.push(setTimeout(() => setFloatingDelta(null), 1900));
       }
 
-      fireOutcomeEffect(
-        res.outcome?.outcomeType,
-        brandNew,
-        res.outcome?.slots?.[0]?.icon || ''
-      );
+      fireOutcomeEffect(res.outcome?.outcomeType, brandNew, res.outcome?.slots?.[0]?.icon || '');
       if (brandNew) {
         timersRef.current.push(setTimeout(() => fireStampUnlockBurst(), 340));
       }
@@ -257,12 +238,8 @@ export default function App() {
         })
       );
 
-      if (Array.isArray(res.landmarks) && res.landmarks.length === 5) {
-        setLandmarks(res.landmarks);
-      }
-      if (typeof res.tipJar === 'number') {
-        setTipJar(res.tipJar);
-      }
+      if (Array.isArray(res.landmarks) && res.landmarks.length === 5) setLandmarks(res.landmarks);
+      if (typeof res.tipJar === 'number') setTipJar(res.tipJar);
     },
     [updateSpinPhase]
   );
@@ -296,7 +273,7 @@ export default function App() {
     revealDoneRef.current = false;
     pendingPayloadRef.current = null;
     flippedRef.current = [false, false, false];
-    setActiveDrawer('NONE');
+    setMenuOpen(false);
 
     setSpinError('');
     setIsBrandNewStamp(false);
@@ -332,15 +309,11 @@ export default function App() {
       setTimeout(() => {
         setMenuRevealedCount(1);
         setSpinProgress(62);
-      }, stop1Delay)
-    );
-    timersRef.current.push(
+      }, stop1Delay),
       setTimeout(() => {
         setMenuRevealedCount(2);
         setSpinProgress(84);
-      }, stop2Delay)
-    );
-    timersRef.current.push(
+      }, stop2Delay),
       setTimeout(() => {
         setMenuRevealedCount(3);
         setSpinProgress(100);
@@ -366,13 +339,13 @@ export default function App() {
       <CafeParticles mood={particleMood} landmarks={landmarks} />
 
       <div className="cafe-app">
-        {/* แถบบนมินิ: โปรไฟล์ย่อ + ปุ่มกระเป๋าตังค์(แตะเปิดธนาคาร) + ลิ้นชักแลนด์มาร์ก + ลิ้นชักเมนู */}
+        {/* แถบบนมินิ: โปรไฟล์ย่อ + ปุ่มกระเป๋าตังค์ (แยกเดี่ยว) + ปุ่มธนาคาร (แยกเดี่ยว) + ปุ่มเมนู */}
         <header className="mini-top-bar">
           <button
             type="button"
             className="mini-brand-btn"
-            onClick={() => toggleDrawer('MENU')}
-            aria-expanded={activeDrawer === 'MENU'}
+            onClick={() => setMenuOpen((v) => !v)}
+            aria-expanded={menuOpen}
           >
             {activePlayer ? (
               <img
@@ -400,293 +373,232 @@ export default function App() {
 
           <div className="mini-right-group">
             {activePlayer && (
-              <button
-                type="button"
-                className="wallet-pill wallet-pill-btn wallet-pill-anchor"
-                onClick={() => openBankModal('BANK')}
-                disabled={isBusy}
-                title="คลิกเพื่อเปิดธนาคารฝาก-ถอน และตรวจสอบการเดินบัญชี"
-              >
-                <span className={`wallet-value ${activePlayer.walletBalance < 0 ? 'negative' : ''}`}>
-                  <NumberFlow value={Number(activePlayer.walletBalance || 0)} /> 🪙
-                </span>
-                <span className="wallet-bank-dot" aria-hidden="true">
-                  🏦
-                </span>
+              <>
+                {/* 👛 ปุ่มกระเป๋าตังค์แยกเดี่ยว — แตะเพื่อดูการเดินบัญชีล่าสุด 10 รายการ */}
+                <button
+                  type="button"
+                  className="wallet-pill wallet-pill-btn wallet-pill-anchor"
+                  onClick={() => openBankModal('STATEMENT')}
+                  disabled={isBusy}
+                  title="กระเป๋าตังค์ — คลิกเพื่อดูการเดินบัญชีล่าสุด 10 รายการ"
+                >
+                  <span className={`wallet-value ${activePlayer.walletBalance < 0 ? 'negative' : ''}`}>
+                    👛 <NumberFlow value={Number(activePlayer.walletBalance || 0)} /> 🪙
+                  </span>
 
-                <AnimatePresence>
-                  {floatingDelta && (
-                    <motion.span
-                      key={floatingDelta.id}
-                      className={`wallet-delta-float ${floatingDelta.value > 0 ? 'pos' : 'neg'}`}
-                      initial={{ opacity: 0, y: 6, scale: 0.75 }}
-                      animate={{ opacity: 1, y: 30, scale: 1.05 }}
-                      exit={{ opacity: 0, y: 44, scale: 0.9 }}
-                      transition={{ duration: 0.55, ease: 'easeOut' }}
-                    >
-                      {floatingDelta.value > 0
-                        ? `+${floatingDelta.value.toLocaleString()} 🪙`
-                        : `${floatingDelta.value.toLocaleString()} 💸`}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-              </button>
+                  <AnimatePresence>
+                    {floatingDelta && (
+                      <motion.span
+                        key={floatingDelta.id}
+                        className={`wallet-delta-float ${floatingDelta.value > 0 ? 'pos' : 'neg'}`}
+                        initial={{ opacity: 0, y: 6, scale: 0.75 }}
+                        animate={{ opacity: 1, y: 30, scale: 1.05 }}
+                        exit={{ opacity: 0, y: 44, scale: 0.9 }}
+                        transition={{ duration: 0.55, ease: 'easeOut' }}
+                      >
+                        {floatingDelta.value > 0
+                          ? `+${floatingDelta.value.toLocaleString()} 🪙`
+                          : `${floatingDelta.value.toLocaleString()} 💸`}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </button>
+
+                {/* 🏦 ปุ่มธนาคารแยกอิสระ — แตะเพื่อฝาก/ถอนเงิน */}
+                <button
+                  type="button"
+                  className="bank-top-btn"
+                  onClick={() => openBankModal('BANK')}
+                  disabled={isBusy}
+                  title={`ธนาคารคาเฟ่ (ฝากอยู่ ${Number(activePlayer.bankBalance || 0).toLocaleString()} เหรียญ)`}
+                  aria-label="เปิดธนาคารฝากถอนเงิน"
+                >
+                  <span>🏦</span>
+                  <span className="bank-top-amount">
+                    <NumberFlow value={Number(activePlayer.bankBalance || 0)} />
+                  </span>
+                </button>
+              </>
             )}
 
             <button
               type="button"
-              className={`landmark-drawer-btn ${ownedLandmarksCount > 0 ? 'has-owned' : ''} ${
-                activeDrawer === 'LANDMARKS' ? 'open' : ''
-              }`}
-              onClick={() => toggleDrawer('LANDMARKS')}
-              aria-expanded={activeDrawer === 'LANDMARKS'}
-              title="ดูรายการผู้ถือหุ้นแลนด์มาร์กริมหน้าต่าง 5 โซน"
-            >
-              <span>🏰</span>
-              <span className="lm-btn-count">{ownedLandmarksCount}/5</span>
-            </button>
-
-            <button
-              type="button"
-              className={`drawer-toggle-btn ${activeDrawer === 'MENU' ? 'open' : ''}`}
-              onClick={() => toggleDrawer('MENU')}
-              aria-expanded={activeDrawer === 'MENU'}
+              className={`drawer-toggle-btn ${menuOpen ? 'open' : ''}`}
+              onClick={() => setMenuOpen((v) => !v)}
+              aria-expanded={menuOpen}
               aria-label="เปิดหรือซ่อนลิ้นชักเมนู"
             >
-              <span>{activeDrawer === 'MENU' ? '▲' : '▼ เมนู'}</span>
+              <span>{menuOpen ? '▲' : '▼ เมนู'}</span>
             </button>
           </div>
         </header>
 
-        <AnimatePresence>
-          {activeDrawer !== 'NONE' && (
-            <motion.div
-              className="drawer-backdrop"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setActiveDrawer('NONE')}
-            />
-          )}
-        </AnimatePresence>
+        {/* แถบลอยใหม่: 🏰 แลนด์มาร์ก 5 รูปทรงไล่เฉด 2 สี + 🏆 Leaderboard สุลต่าน & ยาจก */}
+        <TopFloatingDeck
+          landmarks={landmarks}
+          players={players}
+          activePlayerId={activePlayer?.userId || ''}
+          onRefreshPlayers={loadCasinoData}
+        />
 
-        {/* ลิ้นชักลอย 1: 🏰 แลนด์มาร์กริมหน้าต่าง 5 โซน */}
+        {/* ลิ้นชักเมนูโปรไฟล์ & ตั้งค่า */}
         <AnimatePresence>
-          {activeDrawer === 'LANDMARKS' && (
-            <div className="floating-drawer-wrap">
-              <motion.aside
-                className="floating-top-drawer"
-                initial={{ opacity: 0, y: -16, scale: 0.97 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -14, scale: 0.97 }}
-                transition={{ type: 'spring', stiffness: 360, damping: 28 }}
-              >
-                <div className="drawer-row-between">
-                  <div className="brand-title">
-                    <span>🏰 แลนด์มาร์กริมหน้าต่าง</span>
-                    <span className="brand-badge">ถือครอง {ownedLandmarksCount}/5 โซน</span>
-                  </div>
-                  <button
-                    type="button"
-                    className="drawer-close-pill"
-                    onClick={() => setActiveDrawer('NONE')}
-                  >
-                    ✕ พับเก็บ
-                  </button>
-                </div>
-
-                <div className="landmark-rows-list">
-                  {landmarks.map((lm) => (
-                    <div key={lm.id} className={`landmark-row-card ${lm.owned ? 'owned' : 'empty'}`}>
-                      <div className="landmark-row-icon">{lm.icon}</div>
-                      <div className="landmark-row-body">
-                        <div className="landmark-row-head">
-                          <span className="landmark-row-name">{lm.name}</span>
-                          <span className={`landmark-tier-pill ${lm.owned ? 'owned' : 'empty'}`}>
-                            {lm.owned ? `ขั้น ${lm.tier} • ${lm.pct}%` : 'ว่าง • 0%'}
-                          </span>
-                        </div>
-                        <div className="landmark-row-owner">
-                          {lm.owned ? (
-                            <>
-                              <span>
-                                ผู้ถือหุ้น: <strong>{lm.ownerName}</strong>
-                              </span>
-                              {lm.curtainClosed && (
-                                <span className="landmark-curtain-tag">🪟 ปิดผ้าม่านพัก 1 รอบ</span>
-                              )}
-                            </>
-                          ) : (
-                            <span>ยังไม่มีผู้ถือครอง — ปั่นสล็อตลุ้นรับสิทธิ์ขั้นที่ 1 (17%) ฟรี!</span>
-                          )}
-                        </div>
+          {menuOpen && (
+            <>
+              <motion.div
+                className="drawer-backdrop"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setMenuOpen(false)}
+              />
+              <div className="floating-drawer-wrap">
+                <motion.aside
+                  className="floating-top-drawer"
+                  initial={{ opacity: 0, y: -16, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -14, scale: 0.97 }}
+                  transition={{ type: 'spring', stiffness: 360, damping: 28 }}
+                >
+                  <div className="drawer-section">
+                    <div className="drawer-row-between">
+                      <div className="brand-title">
+                        <span>☕ Horizon Casino</span>
+                        <span className="brand-badge">Cafe Slot</span>
                       </div>
+                      <button
+                        type="button"
+                        className="drawer-close-pill"
+                        onClick={() => setMenuOpen(false)}
+                      >
+                        ✕ พับเก็บ
+                      </button>
                     </div>
-                  ))}
-                </div>
-              </motion.aside>
-            </div>
-          )}
-        </AnimatePresence>
 
-        {/* ลิ้นชักลอย 2: โปรไฟล์ + กระเป๋าตังค์ & ธนาคาร + สมุดแสตมป์ + ตั้งค่า */}
-        <AnimatePresence>
-          {activeDrawer === 'MENU' && (
-            <div className="floating-drawer-wrap">
-              <motion.aside
-                className="floating-top-drawer"
-                initial={{ opacity: 0, y: -16, scale: 0.97 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -14, scale: 0.97 }}
-                transition={{ type: 'spring', stiffness: 360, damping: 28 }}
-              >
-                <div className="drawer-section">
-                  <div className="drawer-row-between">
-                    <div className="brand-title">
-                      <span>☕ Horizon Casino</span>
-                      <span className="brand-badge">Cafe Slot</span>
+                    {activePlayer && (
+                      <>
+                        <div className="drawer-player-card">
+                          <img
+                            className="player-avatar"
+                            src={activePlayer.avatar || DEFAULT_AVATAR}
+                            alt={activePlayer.displayName}
+                            onError={(e) => {
+                              e.currentTarget.src = DEFAULT_AVATAR;
+                            }}
+                          />
+                          <div className="player-meta">
+                            <div className="player-name-row">
+                              <span>{activePlayer.displayName}</span>
+                              {activePlayer.nickname && (
+                                <span className="player-nick-inline">(คุณ{activePlayer.nickname})</span>
+                              )}
+                              <span
+                                className={`account-type-tag ${
+                                  activePlayer.accountType === 'web' ? 'web' : 'discord'
+                                }`}
+                              >
+                                {activePlayer.accountType === 'web' ? '🌐 เว็บ' : '💬 Discord'}
+                              </span>
+                            </div>
+                            <div className="player-sub-row">
+                              {statusPill && (
+                                <span className={`status-pill ${statusPill.cls}`}>{statusPill.text}</span>
+                              )}
+                              <span>• ปั่นแล้ว {Number(activePlayer.scratchCount || 0).toLocaleString()} รอบ</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="drawer-finance-strip">
+                          <button
+                            type="button"
+                            className="drawer-finance-card"
+                            onClick={() => openBankModal('STATEMENT')}
+                            disabled={isBusy}
+                          >
+                            <span>👛 กระเป๋าตังค์</span>
+                            <strong className={activePlayer.walletBalance < 0 ? 'negative' : ''}>
+                              {Number(activePlayer.walletBalance || 0).toLocaleString()} 🪙
+                            </strong>
+                          </button>
+
+                          <button
+                            type="button"
+                            className="drawer-finance-card bank"
+                            onClick={() => openBankModal('BANK')}
+                            disabled={isBusy}
+                          >
+                            <span>🏦 เงินฝากธนาคาร</span>
+                            <strong>{Number(activePlayer.bankBalance || 0).toLocaleString()} 🪙</strong>
+                          </button>
+                        </div>
+                      </>
+                    )}
+
+                    <div className="drawer-tipjar-row">
+                      <span>🐷 กระปุกหมูสะสมหน้าเคาน์เตอร์</span>
+                      <strong>
+                        <NumberFlow value={Number(tipJar || 0)} /> เหรียญ
+                      </strong>
                     </div>
+                  </div>
+
+                  <div className="drawer-actions">
                     <button
                       type="button"
-                      className="drawer-close-pill"
-                      onClick={() => setActiveDrawer('NONE')}
+                      className="btn-pill"
+                      onClick={() => openBankModal('BANK')}
+                      disabled={!activePlayer || isBusy}
                     >
-                      ✕ พับเก็บ
+                      🏦 ฝาก / ถอนธนาคาร
+                    </button>
+
+                    <button
+                      type="button"
+                      className="btn-pill"
+                      onClick={() => openBankModal('STATEMENT')}
+                      disabled={!activePlayer || isBusy}
+                    >
+                      📜 เดินบัญชี (10 รายการ)
+                    </button>
+
+                    <button
+                      type="button"
+                      className="btn-pill btn-stamp"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        setStampModalState({ open: true, category: 'ALL' });
+                      }}
+                    >
+                      <span>📖 สมุดแสตมป์</span>
+                      <span className="stamp-pill-count">
+                        {ownedStampCount}/{stampCatalog.totalStamps || 158}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="btn-pill"
+                      onClick={() => setSoundEnabled((v) => !v)}
+                    >
+                      {soundEnabled ? '🔊 เสียงเปิด' : '🔇 ปิดเสียง'}
+                    </button>
+
+                    <button
+                      type="button"
+                      className="btn-pill"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        setAuthModalOpen(true);
+                      }}
+                      disabled={isBusy}
+                    >
+                      👤 เปลี่ยนผู้เล่น
                     </button>
                   </div>
-
-                  {activePlayer && (
-                    <>
-                      <div className="drawer-player-card">
-                        <img
-                          className="player-avatar"
-                          src={activePlayer.avatar || DEFAULT_AVATAR}
-                          alt={activePlayer.displayName}
-                          onError={(e) => {
-                            e.currentTarget.src = DEFAULT_AVATAR;
-                          }}
-                        />
-                        <div className="player-meta">
-                          <div className="player-name-row">
-                            <span>{activePlayer.displayName}</span>
-                            {activePlayer.nickname && (
-                              <span className="player-nick-inline">(คุณ{activePlayer.nickname})</span>
-                            )}
-                            <span
-                              className={`account-type-tag ${
-                                activePlayer.accountType === 'web' ? 'web' : 'discord'
-                              }`}
-                            >
-                              {activePlayer.accountType === 'web' ? '🌐 เว็บ' : '💬 Discord'}
-                            </span>
-                          </div>
-                          <div className="player-sub-row">
-                            {statusPill && (
-                              <span className={`status-pill ${statusPill.cls}`}>{statusPill.text}</span>
-                            )}
-                            <span>• ปั่นแล้ว {Number(activePlayer.scratchCount || 0).toLocaleString()} รอบ</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* สรุปยอด 2 บัญชี แตะเพื่อเข้าธนาคาร/เดินบัญชีได้ทันที */}
-                      <div className="drawer-finance-strip">
-                        <button
-                          type="button"
-                          className="drawer-finance-card"
-                          onClick={() => openBankModal('BANK')}
-                          disabled={isBusy}
-                        >
-                          <span>👛 กระเป๋าตังค์</span>
-                          <strong className={activePlayer.walletBalance < 0 ? 'negative' : ''}>
-                            {Number(activePlayer.walletBalance || 0).toLocaleString()} 🪙
-                          </strong>
-                        </button>
-
-                        <button
-                          type="button"
-                          className="drawer-finance-card bank"
-                          onClick={() => openBankModal('BANK')}
-                          disabled={isBusy}
-                        >
-                          <span>🏦 เงินฝากธนาคาร</span>
-                          <strong>{Number(activePlayer.bankBalance || 0).toLocaleString()} 🪙</strong>
-                        </button>
-                      </div>
-                    </>
-                  )}
-
-                  <div className="drawer-tipjar-row">
-                    <span>🐷 กระปุกหมูสะสมหน้าเคาน์เตอร์</span>
-                    <strong>
-                      <NumberFlow value={Number(tipJar || 0)} /> เหรียญ
-                    </strong>
-                  </div>
-                </div>
-
-                <div className="drawer-actions">
-                  <button
-                    type="button"
-                    className="btn-pill"
-                    onClick={() => openBankModal('BANK')}
-                    disabled={!activePlayer || isBusy}
-                  >
-                    🏦 ฝาก / ถอนธนาคาร
-                  </button>
-
-                  <button
-                    type="button"
-                    className="btn-pill"
-                    onClick={() => openBankModal('STATEMENT')}
-                    disabled={!activePlayer || isBusy}
-                  >
-                    📜 เดินบัญชี (10 รายการ)
-                  </button>
-
-                  <button
-                    type="button"
-                    className="btn-pill btn-stamp"
-                    onClick={() => {
-                      setActiveDrawer('NONE');
-                      setStampModalState({ open: true, category: 'ALL' });
-                    }}
-                  >
-                    <span>📖 สมุดแสตมป์</span>
-                    <span className="stamp-pill-count">
-                      {ownedStampCount}/{stampCatalog.totalStamps || 158}
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    className="btn-pill"
-                    onClick={() => setActiveDrawer('LANDMARKS')}
-                  >
-                    <span>🏰 แลนด์มาร์ก ({ownedLandmarksCount}/5)</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    className="btn-pill"
-                    onClick={() => setSoundEnabled((v) => !v)}
-                  >
-                    {soundEnabled ? '🔊 เสียงเปิด' : '🔇 ปิดเสียง'}
-                  </button>
-
-                  <button
-                    type="button"
-                    className="btn-pill"
-                    onClick={() => {
-                      setActiveDrawer('NONE');
-                      setAuthModalOpen(true);
-                    }}
-                    disabled={isBusy}
-                  >
-                    👤 เปลี่ยนผู้เล่น
-                  </button>
-                </div>
-              </motion.aside>
-            </div>
+                </motion.aside>
+              </div>
+            </>
           )}
         </AnimatePresence>
 

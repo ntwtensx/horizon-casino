@@ -1,0 +1,714 @@
+/* ================= Horizon Casino: Theme-FX (Data-Tone + Rainbow + Geo Landmarks + Leaderboard) ================= */
+
+@property --rainbow-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+/* 🎨 1. ศูนย์รวมสีธีมประจำอีเวนท์ (เขียนจุดเดียว ใช้ร่วมกันทั้งการ์ดสล็อต การ์ดอีเวนท์ และแสงวาบ) */
+[data-tone="jackpot"] {
+  --t-bg: linear-gradient(145deg, #fffdf2 0%, #fde7a9 55%, #f9d47e 100%);
+  --t-bd: #dfa330;
+  --t-fg: #8c5505;
+  --t-glow: rgba(235, 179, 58, 0.58);
+}
+
+[data-tone="miracle"] {
+  --t-bg: linear-gradient(145deg, #fbf7ff 0%, #ead8fc 52%, #ffe9d6 100%);
+  --t-bd: #a87fd4;
+  --t-fg: #5e3785;
+  --t-glow: rgba(168, 127, 212, 0.55);
+}
+
+[data-tone="win"] {
+  --t-bg: linear-gradient(145deg, #f4fdf7 0%, #daf3e3 100%);
+  --t-bd: #6ebc8a;
+  --t-fg: #216e3f;
+  --t-glow: rgba(94, 163, 119, 0.48);
+}
+
+[data-tone="landmark"] {
+  --t-bg: linear-gradient(145deg, #f2fbf8 0%, #dcf4ec 52%, #fff2d4 100%);
+  --t-bd: #4fa893;
+  --t-fg: #1d6456;
+  --t-glow: rgba(79, 168, 147, 0.48);
+}
+
+[data-tone="social"] {
+  --t-bg: linear-gradient(145deg, #fff8f3 0%, #fde4d2 55%, #f9d2bf 100%);
+  --t-bd: #df855c;
+  --t-fg: #9c431f;
+  --t-glow: rgba(223, 133, 92, 0.48);
+}
+
+[data-tone="bank-raid"] {
+  --t-bg: linear-gradient(145deg, #f3f5ff 0%, #e1e6fb 50%, #fbe1e8 100%);
+  --t-bd: #6b76c9;
+  --t-fg: #343d82;
+  --t-glow: rgba(107, 118, 201, 0.5);
+}
+
+[data-tone="greed"] {
+  --t-bg: linear-gradient(145deg, #faf2ff 0%, #ebd8fa 48%, #ffe7a8 100%);
+  --t-bd: #9b52b8;
+  --t-fg: #662480;
+  --t-glow: rgba(155, 82, 184, 0.52);
+}
+
+[data-tone="seizure"],
+[data-tone="divide"] {
+  --t-bg: linear-gradient(145deg, #fff2f4 0%, #f9d1d9 100%);
+  --t-bd: #cf5568;
+  --t-fg: #9e2135;
+  --t-glow: rgba(207, 85, 104, 0.52);
+}
+
+[data-tone="expense"],
+[data-tone="tax"] {
+  --t-bg: linear-gradient(145deg, #fff8f9 0%, #fae4e8 100%);
+  --t-bd: #df919e;
+  --t-fg: #a63748;
+  --t-glow: rgba(223, 145, 158, 0.45);
+}
+
+[data-tone="mult"] {
+  --t-bg: linear-gradient(180deg, #fffdf4 0%, #fdecc2 100%);
+  --t-bd: #dfb04a;
+  --t-fg: #9c610b;
+  --t-glow: rgba(223, 176, 74, 0.55);
+}
+
+[data-tone="zero"] {
+  --t-bg: linear-gradient(145deg, #fcf9f5 0%, #efe6dc 100%);
+  --t-bd: #cfb9a5;
+  --t-fg: #755e54;
+  --t-glow: rgba(207, 185, 165, 0.45);
+}
+
+/* นำตัวแปร Data-Tone ไปใช้ร่วมกันกับทุกการ์ด */
+.event-card[data-tone],
+.flip-face-back[data-tone] {
+  background: var(--t-bg);
+  border-color: var(--t-bd);
+}
+
+.flip-face-back[data-tone] .reel-label {
+  color: var(--t-fg);
+}
+
+.event-card[data-tone] .event-category-pill {
+  color: var(--t-fg);
+  border-color: var(--t-bd);
+}
+
+/* ✨ 2. แสงฟอยล์โฮโลแกรมพาดเฉียงบนการ์ดแรร์ */
+.foil-sheen {
+  position: relative;
+  overflow: hidden;
+}
+
+.foil-sheen::after {
+  content: '';
+  position: absolute;
+  inset: -20% -60%;
+  background: linear-gradient(
+    112deg,
+    transparent 38%,
+    rgba(255, 255, 255, 0.52) 48%,
+    rgba(255, 240, 200, 0.35) 52%,
+    transparent 62%
+  );
+  transform: translateX(-100%);
+  animation: foilGlide 3.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes foilGlide {
+  0%, 45% { transform: translateX(-100%); }
+  100% { transform: translateX(115%); }
+}
+
+/* 🌈 3. ขอบสีรุ้งพาสเทลวิ่งวิบวับรอบ 3 ช่องตอนกำลังปั่นสล็อต */
+.reels-rainbow-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  border-radius: 20px;
+  padding: 2.5px;
+  background: transparent;
+  transition: box-shadow 0.3s ease;
+}
+
+.reels-rainbow-wrap.is-spinning-rainbow {
+  background: conic-gradient(
+    from var(--rainbow-angle),
+    #ffadad,
+    #ffd6a5,
+    #fdffb6,
+    #caffbf,
+    #9bf6ff,
+    #a0c4ff,
+    #bdb2ff,
+    #ffc6ff,
+    #ffadad
+  );
+  animation: rainbowOrbit 1.45s linear infinite;
+  box-shadow:
+    0 0 18px rgba(255, 198, 255, 0.6),
+    0 0 28px rgba(155, 246, 255, 0.42);
+}
+
+.reels-rainbow-wrap.is-spinning-rainbow .reels-window {
+  border-color: rgba(255, 255, 255, 0.85);
+}
+
+@keyframes rainbowOrbit {
+  to { --rainbow-angle: 360deg; }
+}
+
+/* 💥 4. ปาติเคิลอิโมจิระเบิดกระจายจากกึ่งกลางการ์ดตอนเมนูหยุดแต่ละช่อง */
+.emoji-burst-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 12;
+  overflow: visible;
+}
+
+.emoji-burst-dot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  font-size: 1.05rem;
+  line-height: 1;
+  transform: translate(-50%, -50%) scale(0.3);
+  animation: emojiBurstOut 0.72s cubic-bezier(0.16, 0.88, 0.32, 1) forwards;
+  animation-delay: var(--d, 0s);
+  filter: drop-shadow(0 2px 4px rgba(74, 53, 49, 0.18));
+}
+
+@keyframes emojiBurstOut {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.35) rotate(0deg);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(calc(-50% + var(--tx) * 0.45), calc(-50% + var(--ty) * 0.45)) scale(1.15) rotate(calc(var(--rot) * 0.5));
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(0.65) rotate(var(--rot));
+  }
+}
+
+/* ⚡ 5. เอฟเฟคกระแทก + แสงวาบ + วงแหวนตอนพลิกการ์ด (รันด้วย GPU CSS ล้วน ลดโค้ด JSX) */
+.reel-impact-wrapper.has-flipped-impact {
+  animation: cardFlipThud 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.reel-impact-wrapper.has-flipped-impact::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 17px;
+  border: 3px solid var(--t-bd, #e3a73b);
+  box-shadow: 0 0 18px var(--t-glow, rgba(227, 167, 59, 0.5));
+  pointer-events: none;
+  z-index: 8;
+  animation: impactRingPop 0.46s ease-out forwards;
+}
+
+.reel-impact-wrapper.has-flipped-impact::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.94) 0%, var(--t-glow, rgba(255, 224, 130, 0.6)) 55%, transparent 82%);
+  pointer-events: none;
+  z-index: 9;
+  animation: impactFlashFade 0.4s ease-out forwards;
+}
+
+@keyframes cardFlipThud {
+  0% { transform: scale(1) translateY(0); }
+  32% { transform: scale(1.08) translateY(-6px); }
+  62% { transform: scale(0.94) translateY(3px); }
+  100% { transform: scale(1) translateY(0); }
+}
+
+@keyframes impactRingPop {
+  0% { opacity: 0.95; transform: scale(0.9); }
+  100% { opacity: 0; transform: scale(1.18); }
+}
+
+@keyframes impactFlashFade {
+  0% { opacity: 0; }
+  28% { opacity: 0.95; }
+  100% { opacity: 0; }
+}
+
+/* 🏦 6. ปุ่มธนาคารแยกอิสระจากยอดเงินกระเป๋าตังค์บนแถบบน */
+.bank-top-btn {
+  border: 1.5px solid #8ec9a3;
+  background: linear-gradient(135deg, #f3fcf6 0%, #dcf2e5 100%);
+  color: #1f6b41;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.bank-top-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(94, 163, 119, 0.28);
+}
+
+.bank-top-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ================= 7. แถบลอยคู่: แลนด์มาร์ก 5 รูปทรง + Leaderboard สุลต่าน/ยาจก ================= */
+.top-floating-deck {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  position: relative;
+  z-index: 40;
+}
+
+/* 🏰 กล่องลอยแลนด์มาร์ก 5 รูปทรงเรขาคณิตไล่เฉด 2 สี */
+.lm-geo-deck {
+  background: rgba(255, 253, 249, 0.88);
+  backdrop-filter: blur(8px);
+  border: 1.5px solid var(--border-cream);
+  border-radius: 18px;
+  padding: 4px 8px;
+  box-shadow: var(--shadow-card);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.lm-geo-btn {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), filter 0.18s ease;
+}
+
+.lm-geo-btn:hover {
+  transform: translateY(-2px) scale(1.08);
+}
+
+.lm-geo-btn:active {
+  transform: scale(0.92);
+}
+
+.lm-geo-btn.owned {
+  filter: drop-shadow(0 3px 7px rgba(140, 90, 77, 0.26));
+}
+
+.lm-geo-btn.empty {
+  opacity: 0.72;
+}
+
+.lm-geo-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.lm-geo-emoji {
+  position: relative;
+  z-index: 2;
+  font-size: 1.05rem;
+  line-height: 1;
+  filter: drop-shadow(0 1px 2px rgba(255, 255, 255, 0.85));
+}
+
+.lm-geo-tier {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  z-index: 3;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: #4a3531;
+  color: #ffe28a;
+  font-size: 0.56rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid #fffdf9;
+}
+
+.lm-geo-curtain {
+  position: absolute;
+  left: -2px;
+  top: -2px;
+  z-index: 3;
+  font-size: 0.62rem;
+  line-height: 1;
+}
+
+.landmark-row-card.is-highlighted {
+  box-shadow: 0 0 0 2.5px var(--cinnamon), 0 8px 18px rgba(140, 90, 77, 0.18);
+}
+
+/* 🏆 แถบลอย Leaderboard (สุลต่าน & ยาจก) */
+.lb-mini-bar {
+  flex: 1;
+  min-width: 0;
+  border: 1.5px solid var(--border-cream);
+  background: rgba(255, 253, 249, 0.9);
+  backdrop-filter: blur(8px);
+  border-radius: 18px;
+  padding: 5px 10px;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.16s ease, transform 0.16s ease;
+}
+
+.lb-mini-bar:hover {
+  border-color: var(--border-caramel);
+  transform: translateY(-1px);
+}
+
+.lb-side {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+
+.lb-side.beggar {
+  justify-content: flex-end;
+}
+
+.lb-divider {
+  width: 1px;
+  height: 22px;
+  background: var(--border-cream);
+  flex-shrink: 0;
+}
+
+.lb-crown-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.lb-crown-badge.sultan {
+  background: linear-gradient(135deg, #fff4cc 0%, #f9d87c 100%);
+  color: #6b4106;
+  border: 1px solid #e4b448;
+}
+
+.lb-crown-badge.beggar {
+  background: linear-gradient(135deg, #fcecef 0%, #f7d2da 100%);
+  color: #9e2438;
+  border: 1px solid #e49aa6;
+}
+
+.lb-crown-badge.peace {
+  background: var(--matcha-soft);
+  color: #276e43;
+  border: 1px solid #a8d9ba;
+}
+
+.lb-crown-icon {
+  display: inline-block;
+  flex-shrink: 0;
+  animation: crownFloat 2.4s ease-in-out infinite;
+}
+
+@keyframes crownFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+.lb-champ-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lb-avatar-stack {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.lb-mini-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid #fffdf9;
+  margin-left: -6px;
+  background: var(--surface-warm);
+  box-shadow: 0 1px 4px rgba(74, 53, 49, 0.16);
+}
+
+.lb-mini-avatar:first-child {
+  margin-left: 0;
+}
+
+.lb-mini-avatar.is-debt {
+  border-color: #e49aa6;
+}
+
+.lb-more-dot {
+  margin-left: 3px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: var(--mocha-muted);
+}
+
+/* ================= 8. หน้าต่าง Leaderboard เต็มรูปแบบ (3 หมวดการเงิน) ================= */
+.lb-modal-card {
+  max-width: 600px;
+}
+
+.lb-filter-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  padding: 9px 16px;
+  background: var(--surface-warm);
+  border-bottom: 1px solid var(--border-cream);
+}
+
+.lb-tab-btn {
+  position: relative;
+  border: none;
+  background: transparent;
+  color: var(--mocha-muted);
+  border-radius: 11px;
+  padding: 7px 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.lb-tab-btn.active {
+  color: #fffdf9;
+}
+
+.lb-tab-pill-bg {
+  position: absolute;
+  inset: 0;
+  border-radius: 11px;
+  background: linear-gradient(135deg, #d8906e 0%, #b1624e 100%);
+  z-index: -1;
+  box-shadow: 0 3px 10px rgba(177, 98, 78, 0.25);
+}
+
+.lb-section-block {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.lb-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--cinnamon);
+  padding: 2px 4px;
+}
+
+.lb-player-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 15px;
+  background: #fffdf9;
+  border: 1.5px solid var(--border-cream);
+}
+
+.lb-player-row.rank-sultan {
+  background: linear-gradient(135deg, #fffdf2 0%, #fcebc2 100%);
+  border-color: #e2b144;
+}
+
+.lb-player-row.rank-beggar {
+  background: linear-gradient(135deg, #fff6f7 0%, #fadce2 100%);
+  border-color: #de8a97;
+}
+
+.lb-player-row.is-me {
+  box-shadow: 0 0 0 2px rgba(140, 90, 77, 0.35);
+}
+
+.lb-rank-num {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--surface-warm);
+  color: var(--cinnamon);
+  font-size: 0.74rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.lb-row-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--border-caramel);
+  flex-shrink: 0;
+}
+
+.lb-row-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.lb-row-name-line {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  font-size: 0.84rem;
+  font-weight: 800;
+  color: var(--espresso);
+  word-break: break-word;
+}
+
+.lb-row-breakdown {
+  font-size: 0.7rem;
+  color: var(--mocha-muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.lb-row-net {
+  font-size: 0.88rem;
+  font-weight: 800;
+  text-align: right;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.lb-row-net.pos { color: #227344; }
+.lb-row-net.neg { color: #b53245; }
+.lb-row-net.zero { color: var(--mocha-muted); }
+
+/* ================= 9. ปรับสัดส่วนมือถือให้กะทัดรัดเต็มจอ 100dvh ================= */
+@media (max-width: 680px) {
+  .bank-top-btn {
+    padding: 4px 8px;
+    font-size: 0.72rem;
+  }
+
+  .bank-top-amount {
+    display: none;
+  }
+
+  .top-floating-deck {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 5px;
+  }
+
+  .lm-geo-deck {
+    justify-content: space-between;
+    padding: 3px 10px;
+    border-radius: 15px;
+  }
+
+  .lm-geo-btn {
+    width: 34px;
+    height: 34px;
+  }
+
+  .lm-geo-emoji {
+    font-size: 0.96rem;
+  }
+
+  .lb-mini-bar {
+    padding: 4px 8px;
+    border-radius: 15px;
+    gap: 5px;
+  }
+
+  .lb-crown-badge {
+    font-size: 0.65rem;
+    padding: 2px 6px;
+  }
+
+  .lb-mini-avatar {
+    width: 19px;
+    height: 19px;
+  }
+
+  .lb-divider {
+    height: 18px;
+  }
+
+  .reel-slot-stage {
+    height: 106px;
+  }
+
+  .lever-interactive-box {
+    height: 104px;
+  }
+}
+
+@media (max-width: 680px) and (max-height: 700px) {
+  .reel-slot-stage {
+    height: 94px;
+  }
+
+  .lever-interactive-box {
+    height: 94px;
+  }
+}
