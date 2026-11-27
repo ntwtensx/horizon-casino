@@ -13,6 +13,7 @@ const {
   MAX_STATEMENT_ITEMS,
   clampCoins,
   clampBank,
+  calculateSpinFee,
   buildTransaction,
   applyBalanceDelta,
   calculateDeposit,
@@ -33,7 +34,7 @@ const CRON_BOT_PROFILE = {
   username: 'cronjob_bot',
   avatarUrl: 'https://api.dicebear.com/9.x/bottts-neutral/svg?seed=NongCronJob&backgroundColor=fcefd6'
 };
-const CRON_SPIN_COOLDOWN_MS = 8 * 60 * 1000; // ปั่นได้สูงสุด 1 ครั้งต่อ 8 นาที (กันสแปม แต่รองรับ Cron ทุก 10 นาทีสบาย)
+const CRON_SPIN_COOLDOWN_MS = 8 * 60 * 1000;
 
 const spinCooldownMap = new Map();
 const pinVerifyAttemptMap = new Map();
@@ -55,13 +56,11 @@ const isBotAccount = (userDoc, userId = '') =>
       String(userId || userDoc?.discordId || '').startsWith('bot_')
   );
 
-// 🔐 ตรวจสอบความถูกต้องของ PIN 4 หลัก
 function isPinAuthorized(userDoc, rawPin) {
   if (!userDoc?.casinoPin || !/^\d{4}$/.test(String(userDoc.casinoPin).trim())) return true;
   return String(rawPin || '').trim() === String(userDoc.casinoPin).trim();
 }
 
-// 🛡️ เสริม: มอบยศ Discord ผ่าน REST API (ข้ามอัตโนมัติสำหรับบัญชีเว็บ web_ และบอท bot_)
 async function tryAssignDiscordPinRole(userId) {
   if (!userId || String(userId).startsWith('web_') || String(userId).startsWith('bot_')) return;
   const token = process.env.DISCORD_BOT_TOKEN;
@@ -85,13 +84,12 @@ async function tryAssignDiscordPinRole(userId) {
   }
 }
 
-// 🤖 สร้างหรือดึงข้อมูลบัญชี "น้องคอร์นจ๊อบ" ใน MongoDB อัตโนมัติ
 async function ensureCronBotUser() {
   let doc = await User.findOne({ discordId: CRON_BOT_ID }).lean();
   if (!doc) {
     const created = await User.create({
       ...CRON_BOT_PROFILE,
-      walletBalance: 500, // ทุนตั้งต้นให้น้องคอร์นจ๊อบพร้อมแจก/โดนยืมตั้งแต่วันแรก
+      walletBalance: 500,
       bankBalance: 0,
       casinoPin: '',
       scratchCount: 0,
@@ -112,7 +110,6 @@ async function ensureCronBotUser() {
   return doc;
 }
 
-// 🏰 โหลดสถานะโลกร่วมของคาสิโนจาก MongoDB
 async function loadWorldState() {
   let doc = await CasinoState.findOne({ key: 'global' }).lean();
   if (!doc) {
@@ -128,7 +125,7 @@ async function loadWorldState() {
       landmarks: initialLandmarks,
       lostWallets: [],
       timeCapsule: null,
-      cursedTipJar: 500,
+      cursedTipJar: 400,
       soulBonds: {}
     });
     doc = created.toObject();
@@ -150,12 +147,11 @@ async function loadWorldState() {
     landmarks: normalizedLandmarks,
     lostWallets: Array.isArray(doc.lostWallets) ? [...doc.lostWallets] : [],
     timeCapsule: doc.timeCapsule ? { ...doc.timeCapsule } : null,
-    cursedTipJar: typeof doc.cursedTipJar === 'number' ? doc.cursedTipJar : 500,
+    cursedTipJar: typeof doc.cursedTipJar === 'number' ? doc.cursedTipJar : 400,
     soulBonds: doc.soulBonds && typeof doc.soulBonds === 'object' ? { ...doc.soulBonds } : {}
   };
 }
 
-// 💾 บันทึกสถานะโลกร่วมกลับลง MongoDB
 async function saveWorldState(stateObj) {
   const leanLandmarks = stateObj.landmarks.map((lm) => ({
     id: lm.id,
@@ -172,7 +168,7 @@ async function saveWorldState(stateObj) {
         landmarks: leanLandmarks,
         lostWallets: (stateObj.lostWallets || []).slice(-30),
         timeCapsule: stateObj.timeCapsule || null,
-        cursedTipJar: Number(stateObj.cursedTipJar || 500),
+        cursedTipJar: Number(stateObj.cursedTipJar || 400),
         soulBonds: stateObj.soulBonds || {}
       }
     },
@@ -180,7 +176,6 @@ async function saveWorldState(stateObj) {
   );
 }
 
-// 🧩 แปลง Document ผู้ใช้เป็นอ็อบเจกต์มาตรฐานสำหรับหน้าเว็บ
 function formatPlayerDoc(u) {
   const hasSavedPin = Boolean(u.casinoPin && /^\d{4}$/.test(String(u.casinoPin).trim()));
   const cleanStamps = Array.isArray(u.collectedStamps)
@@ -214,7 +209,6 @@ function formatPlayerDoc(u) {
   };
 }
 
-// 📋 ดึงรายชื่อสมาชิกทั้งหมด (Discord + สมาชิกเว็บ + น้องคอร์นจ๊อบ)
 async function buildPlayersRoster() {
   const dbUsers = await User.find({}).select('-transactions').lean();
   const players = dbUsers.filter((u) => u && u.discordId).map(formatPlayerDoc);
@@ -222,7 +216,7 @@ async function buildPlayersRoster() {
 }
 
 // ==========================================
-// ⚙️ แกนกลางปั่นสล็อต (ใช้ร่วมกันทั้งผู้เล่นจริงและน้องคอร์นจ๊อบ 100%)
+// ⚙️ แกนกลางปั่นสล็อต (ใช้ร่วมกันทั้งผู้เล่นจริงและน้องคอร์นจ๊อบ + ค่าตั๋วขั้นบันได + เจาะธนาคาร)
 // ==========================================
 async function executeSlotSpin({ userId, existingDoc, isBot = false }) {
   const [roster, worldState] = await Promise.all([buildPlayersRoster(), loadWorldState()]);
@@ -230,41 +224,76 @@ async function executeSlotSpin({ userId, existingDoc, isBot = false }) {
   const currentWallet = Number(currentPlayer?.walletBalance ?? existingDoc.walletBalance ?? 0);
   const currentBank = clampBank(currentPlayer?.bankBalance ?? existingDoc.bankBalance ?? 0);
 
-  const outcome = calculateSlotOutcome(currentWallet, userId, roster, worldState);
+  // 🎟️ 1. หักค่าตั๋วโยกสล็อตแบบขั้นบันได (คนติดหนี้/หมดตัวฟรี 0 เหรียญ • คนรวยจ่ายและเผาทิ้ง 100%)
+  const spinFee = calculateSpinFee(currentWallet, currentBank);
+  const feeCalc =
+    spinFee > 0
+      ? applyBalanceDelta({
+          walletBalance: currentWallet,
+          bankBalance: currentBank,
+          delta: -spinFee,
+          walletOnly: false
+        })
+      : { newWallet: currentWallet, newBank: currentBank, usedBank: 0 };
 
+  // อัปเดตยอดหลังจ่ายค่าตั๋วให้ roster ชั่วคราวก่อนส่งเข้าเครื่องยนต์
+  const adjustedRoster = roster.map((p) =>
+    p.userId === userId ? { ...p, walletBalance: feeCalc.newWallet, bankBalance: feeCalc.newBank } : p
+  );
+
+  // 🎰 2. สุ่มผลสล็อต 3 ช่องตามกติกาสายโหด
+  const outcome = calculateSlotOutcome(feeCalc.newWallet, userId, adjustedRoster, worldState);
+
+  // 💸 3. คำนวณการเปลี่ยนยอด 2 บัญชี (รองรับ walletOnly, bankDirect และ seizeBank)
   const balCalc = applyBalanceDelta({
-    walletBalance: currentWallet,
-    bankBalance: currentBank,
+    walletBalance: feeCalc.newWallet,
+    bankBalance: feeCalc.newBank,
     delta: outcome.delta,
     walletOnly: Boolean(outcome.walletOnly),
-    seizeBank: Boolean(outcome.seizeBank)
+    seizeBank: Boolean(outcome.seizeBank),
+    bankDirect: Boolean(outcome.bankDirect)
   });
 
-  if (balCalc.usedBank > 0 && !outcome.seizeBank) {
-    outcome.equationText += ` ➔ (เงินกระเป๋าไม่พอ ระบบดึงเงินจากธนาคารมาช่วยจ่าย -${balCalc.usedBank.toLocaleString()} เหรียญ)`;
+  const finalWallet = balCalc.newWallet;
+  const finalBank = balCalc.newBank;
+  const totalWalletDelta = finalWallet - currentWallet;
+  const totalBankDelta = finalBank - currentBank;
+  const totalUsedBank = Number(feeCalc.usedBank || 0) + Number(balCalc.usedBank || 0);
+
+  if (balCalc.usedBank > 0 && !outcome.seizeBank && !outcome.bankDirect) {
+    outcome.equationText += ` ➔ (เงินกระเป๋าไม่พอ ระบบดึงจากธนาคารมาช่วยจ่าย -${balCalc.usedBank.toLocaleString()} เหรียญ)`;
+  }
+
+  if (spinFee > 0) {
+    outcome.equationText += ` • 🎟️ ค่าตั๋วโยกสล็อต -${spinFee.toLocaleString()} เหรียญ (เผาลดเงินเฟ้อ)`;
+    const prevSink = outcome.sinkInfo || { tipPct: 0, toTipJar: 0, burned: 0 };
+    outcome.sinkInfo = {
+      ...prevSink,
+      burned: Number(prevSink.burned || 0) + spinFee
+    };
   }
 
   const validStampId =
     outcome.stampId && !String(outcome.stampId).startsWith('ST_') ? String(outcome.stampId) : '';
 
-  const netPlayerChange = balCalc.walletDelta + balCalc.bankDelta;
+  const netPlayerChange = totalWalletDelta + totalBankDelta;
   const playerTxType =
     outcome.txType || (netPlayerChange > 0 ? 'SPIN_WIN' : netPlayerChange < 0 ? 'SPIN_LOSS' : 'SPIN_ZERO');
 
   const playerTx = buildTransaction({
     type: playerTxType,
     title: outcome.headline || outcome.categoryHeader || '🎰 ผลลัพธ์สล็อตคาเฟ่',
-    walletDelta: balCalc.walletDelta,
-    bankDelta: balCalc.bankDelta,
-    walletAfter: balCalc.newWallet,
-    bankAfter: balCalc.newBank,
+    walletDelta: totalWalletDelta,
+    bankDelta: totalBankDelta,
+    walletAfter: finalWallet,
+    bankAfter: finalBank,
     burned: Number(outcome.sinkInfo?.burned || 0)
   });
 
   const updateQuery = {
     $set: {
-      walletBalance: balCalc.newWallet,
-      bankBalance: balCalc.newBank,
+      walletBalance: finalWallet,
+      bankBalance: finalBank,
       lastScratchAt: new Date()
     },
     $inc: { scratchCount: 1 },
@@ -276,7 +305,7 @@ async function executeSlotSpin({ userId, existingDoc, isBot = false }) {
 
   let updatedUser = await User.findOneAndUpdate({ discordId: userId }, updateQuery, { new: true });
 
-  // 🏦 นิสัยน่ารักของน้องคอร์นจ๊อบ: ถ้ารวยเกิน 2,500 เหรียญในกระเป๋า มีโอกาส 35% ที่น้องจะแวะฝากธนาคาร 40% เองเหมือนผู้เล่นทั่วไป
+  // 🏦 นิสัยน้องคอร์นจ๊อบ: ถ้ารวยเกิน 2,500 เหรียญในกระเป๋า มีโอกาส 35% แวะฝากธนาคาร 40% เอง
   let botAutoDeposit = null;
   if (isBot && updatedUser && updatedUser.walletBalance >= 2500 && Math.random() < 0.35) {
     const depAmount = Math.floor(updatedUser.walletBalance * 0.4);
@@ -394,9 +423,10 @@ async function executeSlotSpin({ userId, existingDoc, isBot = false }) {
     newBalance: updatedUser.walletBalance,
     previousBankBalance: currentBank,
     newBankBalance: clampBank(updatedUser.bankBalance),
-    walletDelta: balCalc.walletDelta,
-    bankDelta: balCalc.bankDelta,
-    usedBank: balCalc.usedBank,
+    walletDelta: totalWalletDelta,
+    bankDelta: totalBankDelta,
+    usedBank: totalUsedBank,
+    spinFee,
     scratchCount: updatedUser.scratchCount,
     outcome,
     unlockedStampId: validStampId || null,
@@ -415,7 +445,6 @@ async function executeSlotSpin({ userId, existingDoc, isBot = false }) {
 router.get('/cron-wake', async (req, res) => {
   setNoCacheHeaders(res);
   try {
-    // ถ้าตั้งค่า CRON_SECRET ใน Environment ของ Render ไว้ จะตรวจสอบ ?key=... ด้วย
     const requiredSecret = String(process.env.CRON_SECRET || '').trim();
     if (requiredSecret && String(req.query.key || '').trim() !== requiredSecret) {
       return res.status(403).json({ ok: false, error: 'CRON_SECRET ไม่ถูกต้องค่ะ' });
@@ -423,7 +452,6 @@ router.get('/cron-wake', async (req, res) => {
 
     const botDoc = await ensureCronBotUser();
 
-    // เช็กคูลดาวน์ 8 นาทีจากฐานข้อมูล (กันคนแอบสแปม URL แต่ส่ง 200 OK ให้ Cron-job เสมอ)
     const lastSpinMs = botDoc.lastScratchAt ? new Date(botDoc.lastScratchAt).getTime() : 0;
     const elapsedMs = Date.now() - lastSpinMs;
     if (lastSpinMs > 0 && elapsedMs < CRON_SPIN_COOLDOWN_MS) {
@@ -441,7 +469,6 @@ router.get('/cron-wake', async (req, res) => {
       });
     }
 
-    // 🎰 น้องคอร์นจ๊อบโยกสล็อตเหมือนผู้เล่นจริง!
     const spinPayload = await executeSlotSpin({
       userId: CRON_BOT_ID,
       existingDoc: botDoc,
@@ -449,7 +476,7 @@ router.get('/cron-wake', async (req, res) => {
     });
 
     console.log(
-      `🤖 [Cron-Wake] น้องคอร์นจ๊อบโยกรอที่ #${spinPayload.scratchCount}: ${spinPayload.outcome.headline} (Wallet: ${spinPayload.newBalance}, Bank: ${spinPayload.newBankBalance})`
+      `🤖 [Cron-Wake] น้องคอร์นจ๊อบโยกรอบที่ #${spinPayload.scratchCount}: ${spinPayload.outcome.headline} (Wallet: ${spinPayload.newBalance}, Bank: ${spinPayload.newBankBalance})`
     );
 
     res.status(200).json({

@@ -1,10 +1,10 @@
 // server/utils/economy.js
-// 🏦 ศูนย์รวมสูตรสมดุลเศรษฐกิจ: กระเป๋าตังค์ + ธนาคาร + หักเงินข้ามบัญชี + ลดเงินเฟ้อ (Money Sink)
+// 🏦 ศูนย์รวมสูตรสมดุลเศรษฐกิจสายโหด: กระเป๋า + ธนาคาร + เจาะตู้เซฟ + ค่าตั๋วขั้นบันได + เผาลดเงินเฟ้อ
 
 const MAX_WALLET_CAP = 9999999;
 const MIN_WALLET_CAP = -9999999;
-const TIP_JAR_CAP = 18000; // เพดานกระปุกหมู (ลดจาก 60,000 เพื่อคุมเงินเฟ้อ)
-const DEPOSIT_FEE_RATE = 0.03; // ค่าธรรมเนียมฝากธนาคาร 3% (เผาทิ้งออกจากระบบจริง)
+const TIP_JAR_CAP = 10000; // เพดานกระปุกหมู (คุมไม่ให้แตกจนเงินเฟ้อ)
+const DEPOSIT_FEE_RATE = 0.05; // ค่าธรรมเนียมฝากธนาคาร 5% (เผาทิ้งออกจากระบบถาวร • ถอนฟรี 0%)
 const MAX_STATEMENT_ITEMS = 10;
 
 const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
@@ -14,6 +14,15 @@ const clampCoins = (val) =>
 
 const clampBank = (val) =>
   Math.max(0, Math.min(MAX_WALLET_CAP, Math.round(Number(val || 0))));
+
+// 🎟️ ค่าตั๋วโยกสล็อตแบบขั้นบันไดตามความรวย (ติดหนี้หรือหมดตัวปั่นฟรี 0 เหรียญ • คนรวยจ่ายหนักและเผาทิ้ง 100%)
+function calculateSpinFee(walletBalance = 0, bankBalance = 0) {
+  const netWorth = Number(walletBalance || 0) + clampBank(bankBalance);
+  if (netWorth <= 0) return 0;
+  if (netWorth <= 2000) return 15;
+  if (netWorth <= 8000) return 40;
+  return Math.min(250, Math.max(40, Math.round(netWorth * 0.01)));
+}
 
 // 📜 สร้างอ็อบเจกต์รายการเดินบัญชี 1 รายการ
 function buildTransaction({
@@ -37,7 +46,7 @@ function buildTransaction({
   };
 }
 
-// 🔥 กลไกคุมเงินเฟ้อ: สุ่มอัตราเข้ากระปุกหมู 10%–50% (ถ่วงน้ำหนักให้อยู่ช่วง 10%–25% บ่อยกว่า) ส่วนที่เหลือเผาทิ้งถาวร
+// 🔥 กลไกคุมเงินเฟ้อสายตึง: สุ่มเข้ากระปุกหมูแค่ 10%–35% (ถ่วงน้ำหนักต่ำ) ส่วนที่เหลือ 65%–90% เผาหายถาวร
 function applyTipJarSink(rawLossAmount, worldState) {
   const loss = Math.abs(Math.round(Number(rawLossAmount || 0)));
   if (loss <= 0 || !worldState) {
@@ -46,12 +55,12 @@ function applyTipJarSink(rawLossAmount, worldState) {
 
   const r = Math.random();
   let tipPct;
-  if (r < 0.50) tipPct = randInt(10, 22);
-  else if (r < 0.85) tipPct = randInt(23, 36);
-  else tipPct = randInt(37, 50);
+  if (r < 0.60) tipPct = randInt(10, 18);
+  else if (r < 0.90) tipPct = randInt(19, 27);
+  else tipPct = randInt(28, 35);
 
   const toTipJar = Math.max(5, Math.round((loss * tipPct) / 100));
-  const currentJar = Number(worldState.cursedTipJar || 500);
+  const currentJar = Number(worldState.cursedTipJar || 400);
   const nextJar = Math.min(TIP_JAR_CAP, currentJar + toTipJar);
   const actualAdded = Math.max(0, nextJar - currentJar);
   const burned = Math.max(0, loss - actualAdded);
@@ -62,16 +71,18 @@ function applyTipJarSink(rawLossAmount, worldState) {
 
 /**
  * 💸 คำนวณการเปลี่ยนแปลงยอดเงิน 2 บัญชี (Wallet + Bank)
- * - seizeBank = true : ยึดทรัพย์ทั้งกระเป๋า (เหลือ 1) และอายัดธนาคาร (เหลือ 0)
- * - walletOnly = true: กระทบเฉพาะกระเป๋าตังค์เท่านั้น (ธนาคารปลอดภัย 100%)
- * - delta < 0 (ปกติ) : หักกระเป๋าตังค์ก่อน ➔ ไม่พอให้ดึงจากธนาคาร ➔ หมดแล้วยังไม่พอจึงติดหนี้ในกระเป๋า
+ * - seizeBank = true  : ยึดทรัพย์ทั้งกระเป๋า (เหลือ 1) และอายัดธนาคาร (เหลือ 0)
+ * - bankDirect = true : เจาะหักจากธนาคารก่อน ➔ ถ้าธนาคารไม่พอค่อยดึงจากกระเป๋า
+ * - walletOnly = true : กระทบเฉพาะกระเป๋าตังค์เท่านั้น (ธนาคารปลอดภัย 100%)
+ * - delta < 0 (ปกติ)  : หักกระเป๋าตังค์ก่อน ➔ ไม่พอให้ดึงจากธนาคาร ➔ หมดแล้วยังไม่พอจึงติดหนี้ในกระเป๋า
  */
 function applyBalanceDelta({
   walletBalance = 0,
   bankBalance = 0,
   delta = 0,
   walletOnly = false,
-  seizeBank = false
+  seizeBank = false,
+  bankDirect = false
 }) {
   const wallet = clampCoins(walletBalance);
   const bank = clampBank(bankBalance);
@@ -89,6 +100,21 @@ function applyBalanceDelta({
     };
   }
 
+  if (bankDirect && change < 0) {
+    const need = Math.abs(change);
+    const fromBank = Math.min(bank, need);
+    const remAfterBank = need - fromBank;
+    const newBank = clampBank(bank - fromBank);
+    const newWallet = clampCoins(wallet - remAfterBank);
+    return {
+      newWallet,
+      newBank,
+      walletDelta: newWallet - wallet,
+      bankDelta: newBank - bank,
+      usedBank: fromBank
+    };
+  }
+
   if (walletOnly || change >= 0) {
     const newWallet = clampCoins(wallet + change);
     return {
@@ -100,7 +126,7 @@ function applyBalanceDelta({
     };
   }
 
-  // กรณีโดนหักเงินแบบข้ามบัญชี (Waterfall Deduction: Wallet -> Bank -> Debt)
+  // หักเงินข้ามบัญชีแบบปกติ (Waterfall: Wallet -> Bank -> Debt)
   const need = Math.abs(change);
   const fromWalletPositive = wallet > 0 ? Math.min(wallet, need) : 0;
   const remAfterWallet = need - fromWalletPositive;
@@ -119,7 +145,7 @@ function applyBalanceDelta({
   };
 }
 
-// 🏦 คำนวณการฝากเงิน (Wallet ➔ Bank) พร้อมค่าธรรมเนียม 3% เผาออกจากระบบ
+// 🏦 คำนวณการฝากเงิน (Wallet ➔ Bank) พร้อมค่าธรรมเนียม 5% เผาออกจากระบบ
 function calculateDeposit(walletBalance, bankBalance, rawAmount) {
   const wallet = clampCoins(walletBalance);
   const bank = clampBank(bankBalance);
@@ -197,6 +223,7 @@ module.exports = {
   MAX_STATEMENT_ITEMS,
   clampCoins,
   clampBank,
+  calculateSpinFee,
   buildTransaction,
   applyTipJarSink,
   applyBalanceDelta,
