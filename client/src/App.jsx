@@ -610,6 +610,7 @@ export default function App() {
             flippedSlots={flippedSlots}
             cafeMenuItems={spinResult?.outcome?.cafeMenu?.items}
             slots={spinResult?.outcome?.slots}
+            outcome={spinResult?.outcome}
             outcomeType={spinResult?.outcome?.outcomeType}
             soundEnabled={soundEnabled}
             disabled={!activePlayer}
@@ -658,20 +659,6 @@ export default function App() {
           activePlayer={activePlayer}
           initialCategory={stampModalState.category}
         />
-        <SlotMachine
-            spinPhase={spinPhase}
-            spinProgress={spinProgress}
-            menuRevealedCount={menuRevealedCount}
-            flippedSlots={flippedSlots}
-            cafeMenuItems={spinResult?.outcome?.cafeMenu?.items}
-            slots={spinResult?.outcome?.slots}
-            outcome={spinResult?.outcome}
-            outcomeType={spinResult?.outcome?.outcomeType}
-            soundEnabled={soundEnabled}
-            disabled={!activePlayer}
-            onPullLever={handlePullLever}
-            onFlipCard={handleFlipCard}
-          />
       </div>
     </>
   );
