@@ -19,7 +19,6 @@ const FALLBACK_EVENT_SLOTS = [
   { icon: '✨', label: 'ชะตา 3', sub: 'กำลังเปิดเผย', tone: 'zero' }
 ];
 
-// ทิศทางกระจาย 8 แฉกรอบกึ่งกลางการ์ดสำหรับปาติเคิลอิโมจิเมนู
 const BURST_VECTORS = [
   { tx: '-46px', ty: '-44px', rot: '-35deg', d: '0s' },
   { tx: '0px', ty: '-58px', rot: '12deg', d: '0.02s' },
@@ -98,7 +97,6 @@ export default function SlotMachine({
     return () => clearInterval(id);
   }, [spinPhase, soundEnabled]);
 
-  // เมื่อเมนูแต่ละช่องหยุด: เล่นเสียงป๊อป + ระเบิดปาติเคิลอิโมจิของเมนูนั้นจากกึ่งกลางการ์ด
   useEffect(() => {
     if (menuRevealedCount === 0) {
       setSlotBursts([null, null, null]);
@@ -126,7 +124,6 @@ export default function SlotMachine({
     prevMenuCountRef.current = menuRevealedCount;
   }, [menuRevealedCount, soundEnabled, menuList]);
 
-  // เสียงกระแทก + ประกายแสงวาบทุกครั้งที่การ์ดถูกพลิก (ส่ง raw tone ให้ audio แยกโทนเสียงได้แม่นยำ)
   useEffect(() => {
     flippedSlots.forEach((isFlipped, idx) => {
       if (isFlipped && !prevFlippedRef.current[idx] && soundEnabled) {
@@ -208,9 +205,9 @@ export default function SlotMachine({
   return (
     <motion.section
       className={shellClass}
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.28 }}
+      initial={{ opacity: 0, y: 10, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ type: 'spring', stiffness: 340, damping: 26, delay: 0.14 }}
     >
       <div className="machine-top-strip">
         <div className="machine-status-row">
@@ -256,6 +253,9 @@ export default function SlotMachine({
               }
             }}
             onPointerUp={() => {
+              isSwipeFlippingRef.current = false;
+            }}
+            onPointerCancel={() => {
               isSwipeFlippingRef.current = false;
             }}
           >
@@ -321,7 +321,7 @@ export default function SlotMachine({
                             data-tone={menuCardTone}
                           >
                             <motion.div
-                              key={`menu-${idx}-${menuItem.label}-${isMenuJustLanded ? 'in' : 'idle'}`}
+                              key={`menu-${idx}-${menuItem.label}`}
                               className="reel-card"
                               initial={isMenuJustLanded ? { y: -16, scale: 0.9, opacity: 0.5 } : false}
                               animate={{ y: 0, scale: 1, opacity: 1 }}
@@ -351,7 +351,7 @@ export default function SlotMachine({
                       </div>
                     )}
 
-                    {/* 💥 ปาติเคิลอิโมจิของเมนูนั้นระเบิดกระจายจากกึ่งกลางการ์ดเมื่อวงล้อหยุด */}
+                    {/* ปาติเคิลอิโมจิของเมนูระเบิดกระจายจากกึ่งกลางการ์ดเมื่อวงล้อหยุด */}
                     {burst && (
                       <div key={burst.key} className="emoji-burst-layer" aria-hidden="true">
                         {BURST_VECTORS.map((v, bi) => (

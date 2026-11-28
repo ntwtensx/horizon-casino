@@ -114,7 +114,12 @@ export default function StampBookModal({
         <div>
           <div className="modal-title" style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
             <BookOpen {...ICON_BASE} size={18} />
-            <AnimatedText text="สมุดสะสมแสตมป์ Horizon Cafe" variant="pop" stagger={0.018} />
+            <AnimatedText
+              text="สมุดสะสมแสตมป์ Horizon Cafe"
+              variant="pop"
+              by="word"
+              stagger={0.028}
+            />
           </div>
           <div className="modal-sub">
             สะสมแล้ว <strong>{ownedCount}/{totalCount}</strong> ดวง ({progressPct}%) • แสตมป์ที่ปลดล็อกจะมีสีสันประจำดวง
@@ -137,7 +142,7 @@ export default function StampBookModal({
         </div>
       </div>
 
-      {/* แท็บหมวดแสตมป์พร้อมพื้นหลังไหลตามนิ้ว */}
+      {/* แท็บหมวดแสตมป์ */}
       <div
         className="lb-filter-tabs"
         style={{
@@ -177,7 +182,7 @@ export default function StampBookModal({
       <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {/* ค้นหา + กรองสถานะ */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-          <div style={{ position: 'relative', flex: '1 1 170px', minWidth: 0 }}>
+          <div style={{ position: 'relative', flex: '1 1 160px', minWidth: 0 }}>
             <Search
               {...ICON_BASE}
               size={15}
@@ -238,7 +243,7 @@ export default function StampBookModal({
             className="stamp-grid"
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(132px, 1fr))',
               gap: 8
             }}
           >
@@ -252,14 +257,14 @@ export default function StampBookModal({
                 <PopItem
                   key={stamp.id}
                   index={idx}
-                  step={0.022}
-                  maxStagger={18}
+                  step={0.02}
+                  maxStagger={16}
                   baseDelay={0.02}
                   data-tone={tone}
                   className={`stamp-card ${isOwned ? 'owned' : 'locked'} ${hasFoil ? 'foil-sheen' : ''}`}
                   style={{
                     borderRadius: 15,
-                    padding: '10px 10px 9px',
+                    padding: '10px 9px 9px',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: 5,
@@ -272,9 +277,9 @@ export default function StampBookModal({
                       : {})
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
                     {isOwned ? (
-                      <span style={{ fontSize: '1.45rem', lineHeight: 1 }}>{stamp.icon}</span>
+                      <span style={{ fontSize: '1.4rem', lineHeight: 1 }}>{stamp.icon}</span>
                     ) : (
                       <span
                         style={{
@@ -294,9 +299,9 @@ export default function StampBookModal({
                     <span
                       className="stamp-badge"
                       style={{
-                        fontSize: '0.62rem',
+                        fontSize: '0.6rem',
                         fontWeight: 800,
-                        padding: '2px 7px',
+                        padding: '2px 6px',
                         borderRadius: 999,
                         whiteSpace: 'nowrap',
                         display: 'inline-flex',
@@ -313,7 +318,7 @@ export default function StampBookModal({
                   <div
                     className="stamp-title"
                     style={{
-                      fontSize: '0.8rem',
+                      fontSize: '0.78rem',
                       fontWeight: 800,
                       lineHeight: 1.3,
                       wordBreak: 'break-word',
@@ -326,7 +331,7 @@ export default function StampBookModal({
                   <div
                     className="stamp-desc"
                     style={{
-                      fontSize: '0.68rem',
+                      fontSize: '0.67rem',
                       lineHeight: 1.38,
                       color: isOwned ? '#523b35' : 'var(--mocha-muted)',
                       wordBreak: 'break-word'

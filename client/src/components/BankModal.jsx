@@ -175,7 +175,12 @@ export default function BankModal({
         <div>
           <div className="modal-title" style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
             <Landmark {...ICON_BASE} size={18} />
-            <AnimatedText text={`ธนาคาร & เดินบัญชี • ${ownerName}`} variant="pop" stagger={0.018} />
+            <AnimatedText
+              text={`ธนาคาร & เดินบัญชี • ${ownerName}`}
+              variant="pop"
+              by="word"
+              stagger={0.028}
+            />
           </div>
           <div className="modal-sub">
             ทรัพย์สินสุทธิรวม: <strong>{totalNetWorth.toLocaleString()} เหรียญ</strong> (กระเป๋า + ธนาคาร)
@@ -186,7 +191,7 @@ export default function BankModal({
         </button>
       </div>
 
-      {/* แท็บสลับ ฝาก-ถอน / เดินบัญชี 10 รายการ พร้อมแถบเลื่อนตามนิ้ว */}
+      {/* แท็บสลับ ฝาก-ถอน / เดินบัญชี 10 รายการ */}
       <div className="lb-filter-tabs" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
         {[
           { id: 'BANK', label: 'ฝาก / ถอนเงิน', Icon: Landmark },
@@ -448,7 +453,7 @@ export default function BankModal({
                     <PopItem
                       key={`${tx.at || idx}-${idx}`}
                       index={idx}
-                      step={0.032}
+                      step={0.03}
                       maxStagger={10}
                       className="statement-row"
                     >

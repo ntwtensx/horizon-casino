@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 
 // ค่าเริ่มต้นลายเส้นไอคอน lucide-react ให้ความหนามนเท่ากันทั้งแอป
@@ -9,36 +10,36 @@ export const ICON_BASE = {
 };
 
 // ตัดข้อความภาษาไทยด้วย Intl.Segmenter เพื่อไม่ให้สระบน-ล่างและวรรณยุกต์หลุดแยก
-function segmentThaiText(rawText, mode = 'grapheme') {
+function segmentThaiText(rawText, mode = 'word') {
   const str = String(rawText ?? '');
   if (!str) return [];
 
   if (typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function') {
-    const granularity = mode === 'word' ? 'word' : 'grapheme';
+    const granularity = mode === 'grapheme' ? 'grapheme' : 'word';
     const seg = new Intl.Segmenter('th', { granularity });
     return Array.from(seg.segment(str), (s) => s.segment);
   }
 
-  return mode === 'word' ? str.split(/(\s+)/) : Array.from(str);
+  return mode === 'grapheme' ? Array.from(str) : str.split(/(\s+)/);
 }
 
 /**
  * ✨ ตัวอักษรมีอนิเมชั่นรองรับภาษาไทยสมบูรณ์
- * - variant: 'pop' (เด้งขึ้นทีละตัว) | 'assemble' (พุ่งสลับทิศเด้งมารวมกัน) | 'blur' (เฟดจากเบลอเป็นคม)
- * - by: 'grapheme' (ทีละตัวอักษรพร้อมสระ) | 'word' (ทีละคำ เหมาะกับพาดหัวยาวๆ)
+ * - ค่าเริ่มต้นตัดเป็น "คำ" (by="word") เพื่อไม่ให้เบราว์เซอร์ฉีกบรรทัดกลางคำไทย
+ * - variant: 'pop' (เด้งขึ้นทีละคำ) | 'assemble' (พุ่งสลับทิศเด้งมารวมกัน) | 'blur' (เฟดจากเบลอเป็นคม)
  */
 export function AnimatedText({
   text = '',
   variant = 'pop',
-  by,
+  by = 'word',
   delay = 0,
   stagger,
   className = '',
   as = 'span'
 }) {
   const reduceMotion = useReducedMotion();
-  const unitMode = by || (variant === 'assemble' ? 'word' : 'grapheme');
-  const step = stagger ?? (unitMode === 'word' ? 0.045 : 0.026);
+  const unitMode = by === 'grapheme' ? 'grapheme' : 'word';
+  const step = stagger ?? (unitMode === 'word' ? 0.04 : 0.024);
   const tokens = useMemo(() => segmentThaiText(text, unitMode), [text, unitMode]);
 
   const Tag = as;
@@ -47,7 +48,7 @@ export function AnimatedText({
     return <Tag className={className}>{text}</Tag>;
   }
 
-  const cappedStep = tokens.length > 26 ? Math.min(step, 0.018) : step;
+  const cappedStep = tokens.length > 22 ? Math.min(step, 0.018) : step;
 
   return (
     <Tag className={className} aria-label={String(text)}>
@@ -60,18 +61,18 @@ export function AnimatedText({
           );
         }
 
-        const itemDelay = delay + Math.min(idx, 32) * cappedStep;
+        const itemDelay = delay + Math.min(idx, 28) * cappedStep;
 
         if (variant === 'assemble') {
-          const dirY = idx % 2 === 0 ? -16 : 16;
-          const dirX = idx % 3 === 0 ? -10 : idx % 3 === 1 ? 10 : 0;
-          const rot = idx % 2 === 0 ? -5 : 5;
+          const dirY = idx % 2 === 0 ? -14 : 14;
+          const dirX = idx % 3 === 0 ? -8 : idx % 3 === 1 ? 8 : 0;
+          const rot = idx % 2 === 0 ? -4 : 4;
           return (
             <motion.span
               key={`as-${idx}-${chunk}`}
               aria-hidden="true"
               style={{ display: 'inline-block', whiteSpace: 'pre' }}
-              initial={{ opacity: 0, y: dirY, x: dirX, scale: 0.72, rotate: rot }}
+              initial={{ opacity: 0, y: dirY, x: dirX, scale: 0.78, rotate: rot }}
               animate={{ opacity: 1, y: 0, x: 0, scale: 1, rotate: 0 }}
               transition={{
                 type: 'spring',
@@ -91,10 +92,10 @@ export function AnimatedText({
               key={`bl-${idx}-${chunk}`}
               aria-hidden="true"
               style={{ display: 'inline-block', whiteSpace: 'pre' }}
-              initial={{ opacity: 0, y: 7, filter: 'blur(5px)' }}
+              initial={{ opacity: 0, y: 6, filter: 'blur(4px)' }}
               animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
               transition={{
-                duration: 0.28,
+                duration: 0.24,
                 ease: 'easeOut',
                 delay: itemDelay
               }}
@@ -109,12 +110,12 @@ export function AnimatedText({
             key={`pp-${idx}-${chunk}`}
             aria-hidden="true"
             style={{ display: 'inline-block', whiteSpace: 'pre' }}
-            initial={{ opacity: 0, y: 11, scale: 0.65 }}
+            initial={{ opacity: 0, y: 9, scale: 0.76 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{
               type: 'spring',
-              stiffness: 460,
-              damping: 20,
+              stiffness: 440,
+              damping: 22,
               delay: itemDelay
             }}
           >
@@ -139,10 +140,10 @@ export function EntranceBlock({
   const reduceMotion = useReducedMotion();
   const offset =
     from === 'top'
-      ? { y: -14, x: 0, scale: 0.98 }
+      ? { y: -12, x: 0, scale: 0.99 }
       : from === 'scale'
-        ? { y: 10, x: 0, scale: 0.93 }
-        : { y: 16, x: 0, scale: 0.98 };
+        ? { y: 8, x: 0, scale: 0.95 }
+        : { y: 14, x: 0, scale: 0.99 };
 
   if (reduceMotion) {
     return (
@@ -171,7 +172,7 @@ export function EntranceBlock({
 }
 
 /**
- * 🪟 หน้าต่างป๊อบอัพเด้งสปริงนุ่มมีน้ำหนัก (ใช้ร่วมกันทุก Modal ในเว็บ)
+ * 🪟 หน้าต่างป๊อบอัพ (เรนเดอร์บน document.body ด้วย Portal + ตัดคลิกทันทีตอนปิด + ขาออกเวลาตายตัว)
  */
 export function PopModal({
   isOpen,
@@ -192,33 +193,131 @@ export function PopModal({
     return () => window.removeEventListener('keydown', handleKey);
   }, [isOpen, canClose, onClose]);
 
-  return (
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <motion.div
+          key="pop-modal-overlay"
           className="modal-overlay"
           initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
+          animate={{
+            opacity: 1,
+            transition: { duration: 0.18, ease: 'easeOut' }
+          }}
+          exit={{
+            opacity: 0,
+            pointerEvents: 'none',
+            transition: { duration: 0.14, ease: 'easeOut' }
+          }}
           onClick={() => {
             if (canClose && onClose) onClose();
           }}
         >
           <motion.div
+            key="pop-modal-card"
             className={`modal-card ${cardClassName}`.trim()}
             style={cardStyle}
-            initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 26, scale: 0.86 }}
-            animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
-            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 18, scale: 0.9 }}
-            transition={{ type: 'spring', stiffness: 380, damping: 24, mass: 0.85 }}
+            initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 22, scale: 0.9 }}
+            animate={
+              reduceMotion
+                ? { opacity: 1, transition: { duration: 0.16 } }
+                : {
+                    opacity: 1,
+                    y: 0,
+                    scale: 1,
+                    transition: { type: 'spring', stiffness: 380, damping: 26, mass: 0.85 }
+                  }
+            }
+            exit={{
+              opacity: 0,
+              y: reduceMotion ? 0 : 12,
+              scale: reduceMotion ? 1 : 0.95,
+              pointerEvents: 'none',
+              transition: { duration: 0.13, ease: 'easeOut' }
+            }}
             onClick={(e) => e.stopPropagation()}
           >
             {children}
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
+  );
+}
+
+/**
+ * 🗂️ ลิ้นชักลอยด้านบน (เรนเดอร์บน document.body ด้วยตัวครอบเดียวมี key • ไร้บัค Fragment ค้าง)
+ */
+export function FloatingDrawer({ isOpen, onClose, children }) {
+  const reduceMotion = useReducedMotion();
+
+  useEffect(() => {
+    if (!isOpen || !onClose) return;
+    const handleKey = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [isOpen, onClose]);
+
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          key="floating-drawer-portal"
+          className="drawer-portal-root"
+          initial={{ opacity: 0 }}
+          animate={{
+            opacity: 1,
+            transition: { duration: 0.16, ease: 'easeOut' }
+          }}
+          exit={{
+            opacity: 0,
+            pointerEvents: 'none',
+            transition: { duration: 0.14, ease: 'easeOut' }
+          }}
+        >
+          <div
+            className="drawer-backdrop"
+            onClick={() => {
+              if (onClose) onClose();
+            }}
+          />
+          <div className="floating-drawer-wrap">
+            <motion.aside
+              className="floating-top-drawer"
+              initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -14, scale: 0.97 }}
+              animate={
+                reduceMotion
+                  ? { opacity: 1, transition: { duration: 0.16 } }
+                  : {
+                      opacity: 1,
+                      y: 0,
+                      scale: 1,
+                      transition: { type: 'spring', stiffness: 360, damping: 28 }
+                    }
+              }
+              exit={{
+                opacity: 0,
+                y: reduceMotion ? 0 : -10,
+                scale: reduceMotion ? 1 : 0.97,
+                pointerEvents: 'none',
+                transition: { duration: 0.13, ease: 'easeOut' }
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {children}
+            </motion.aside>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>,
+    document.body
   );
 }
 
@@ -227,9 +326,9 @@ export function PopModal({
  */
 export function PopItem({
   index = 0,
-  step = 0.036,
-  maxStagger = 16,
-  baseDelay = 0.03,
+  step = 0.032,
+  maxStagger = 14,
+  baseDelay = 0.02,
   className = '',
   style,
   children,
@@ -250,12 +349,12 @@ export function PopItem({
     <motion.div
       className={className}
       style={style}
-      initial={{ opacity: 0, y: 12, scale: 0.84 }}
+      initial={{ opacity: 0, y: 10, scale: 0.9 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{
         type: 'spring',
-        stiffness: 430,
-        damping: 22,
+        stiffness: 420,
+        damping: 24,
         delay: cappedDelay
       }}
       {...rest}

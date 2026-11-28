@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   Crown,
   TrendingDown,
@@ -17,7 +17,7 @@ import {
   Castle,
   CircleOff
 } from 'lucide-react';
-import { AnimatedText, PopModal, PopItem, ICON_BASE } from './MotionPrimitives.jsx';
+import { AnimatedText, FloatingDrawer, PopModal, PopItem, ICON_BASE } from './MotionPrimitives.jsx';
 
 const DEFAULT_AVATAR = 'https://cdn.discordapp.com/embed/avatars/0.png';
 
@@ -104,12 +104,23 @@ export default function TopFloatingDeck({
   landmarks = [],
   players = [],
   activePlayerId = '',
+  selectedLmId: controlledLmId,
+  onSelectLandmark,
+  onCloseDrawers,
   onRefreshPlayers
 }) {
-  const [selectedLmId, setSelectedLmId] = useState(null);
+  const [internalLmId, setInternalLmId] = useState(null);
   const [lbOpen, setLbOpen] = useState(false);
   const [lbTab, setLbTab] = useState('ALL');
   const [refreshing, setRefreshing] = useState(false);
+
+  const isControlled = typeof onSelectLandmark === 'function';
+  const selectedLmId = isControlled ? controlledLmId : internalLmId;
+
+  const setLandmarkDrawer = (id) => {
+    if (isControlled) onSelectLandmark(id);
+    else setInternalLmId((curr) => (id == null || curr === id ? null : id));
+  };
 
   const ranking = useMemo(() => {
     const withNet = (players || []).map((p) => ({ ...p, netWorth: netWorthOf(p) }));
@@ -139,6 +150,12 @@ export default function TopFloatingDeck({
     setRefreshing(true);
     await onRefreshPlayers();
     setRefreshing(false);
+  };
+
+  const handleOpenLeaderboard = () => {
+    if (typeof onCloseDrawers === 'function') onCloseDrawers();
+    else setLandmarkDrawer(null);
+    setLbOpen(true);
   };
 
   const renderPlayerRow = (p, idx, group) => {
@@ -217,7 +234,7 @@ export default function TopFloatingDeck({
                 initial={{ opacity: 0, scale: 0.6, y: -6 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 transition={{ type: 'spring', stiffness: 420, damping: 20, delay: 0.08 + i * 0.045 }}
-                onClick={() => setSelectedLmId((curr) => (curr === lm.id ? null : lm.id))}
+                onClick={() => setLandmarkDrawer(lm.id)}
                 title={lm.owned ? `${lm.name} • ${lm.ownerName} (ขั้น ${lm.tier})` : `${lm.name} • ว่าง`}
                 aria-label={`ดูรายละเอียดแลนด์มาร์ก ${lm.name}`}
               >
@@ -249,7 +266,7 @@ export default function TopFloatingDeck({
         <button
           type="button"
           className="lb-mini-bar"
-          onClick={() => setLbOpen(true)}
+          onClick={handleOpenLeaderboard}
           title="คลิกเพื่อเปิดตารางอันดับการเงินของทุกคนในคาเฟ่"
         >
           <div className="lb-side sultan">
@@ -322,87 +339,66 @@ export default function TopFloatingDeck({
         </button>
       </section>
 
-      {/* ลิ้นชักลอยรายละเอียดแลนด์มาร์ก */}
-      <AnimatePresence>
-        {selectedLmId && (
-          <>
-            <motion.div
-              className="drawer-backdrop"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setSelectedLmId(null)}
-            />
-            <div className="floating-drawer-wrap">
-              <motion.aside
-                className="floating-top-drawer"
-                initial={{ opacity: 0, y: -16, scale: 0.96 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -14, scale: 0.96 }}
-                transition={{ type: 'spring', stiffness: 360, damping: 28 }}
+      {/* ลิ้นชักลอยรายละเอียดแลนด์มาร์ก (FloatingDrawer Portal ไม่ค้างบล็อกคลิก) */}
+      <FloatingDrawer isOpen={Boolean(selectedLmId)} onClose={() => setLandmarkDrawer(null)}>
+        <div className="drawer-row-between">
+          <div className="brand-title" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <Castle {...ICON_BASE} size={16} />
+            <span>แลนด์มาร์กริมหน้าต่าง</span>
+            <span className="brand-badge">ถือครอง {ownedCount}/5 โซน</span>
+          </div>
+          <button
+            type="button"
+            className="drawer-close-pill"
+            onClick={() => setLandmarkDrawer(null)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}
+          >
+            <X {...ICON_BASE} size={13} /> พับเก็บ
+          </button>
+        </div>
+
+        <div className="landmark-rows-list">
+          {orderedLandmarks.map((lm, idx) => {
+            const shape = GEO_SHAPES[lm.id] || GEO_SHAPES.RIVER;
+            return (
+              <PopItem
+                key={lm.id}
+                index={idx}
+                data-tone={lm.owned ? shape.tone : undefined}
+                className={`landmark-row-card ${lm.owned ? 'owned foil-sheen' : 'empty'} ${
+                  lm.id === selectedLmId ? 'is-highlighted' : ''
+                }`}
               >
-                <div className="drawer-row-between">
-                  <div className="brand-title" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                    <Castle {...ICON_BASE} size={16} />
-                    <span>แลนด์มาร์กริมหน้าต่าง</span>
-                    <span className="brand-badge">ถือครอง {ownedCount}/5 โซน</span>
+                <div className="landmark-row-icon">{lm.icon}</div>
+                <div className="landmark-row-body">
+                  <div className="landmark-row-head">
+                    <span className="landmark-row-name">{lm.name}</span>
+                    <span className={`landmark-tier-pill ${lm.owned ? 'owned' : 'empty'}`}>
+                      {lm.owned ? `ขั้น ${lm.tier} • ${lm.pct}%` : 'ว่าง • 0%'}
+                    </span>
                   </div>
-                  <button
-                    type="button"
-                    className="drawer-close-pill"
-                    onClick={() => setSelectedLmId(null)}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}
-                  >
-                    <X {...ICON_BASE} size={13} /> พับเก็บ
-                  </button>
+                  <div className="landmark-row-owner">
+                    {lm.owned ? (
+                      <>
+                        <span>
+                          ผู้ถือหุ้น: <strong>{lm.ownerName}</strong>
+                        </span>
+                        {lm.curtainClosed && (
+                          <span className="landmark-curtain-tag">🪟 ปิดผ้าม่านพัก 1 รอบ</span>
+                        )}
+                      </>
+                    ) : (
+                      <span>ยังไม่มีผู้ถือครอง — ปั่นสล็อตลุ้นรับสิทธิ์ขั้นที่ 1 (17%) ฟรี!</span>
+                    )}
+                  </div>
                 </div>
+              </PopItem>
+            );
+          })}
+        </div>
+      </FloatingDrawer>
 
-                <div className="landmark-rows-list">
-                  {orderedLandmarks.map((lm, idx) => {
-                    const shape = GEO_SHAPES[lm.id] || GEO_SHAPES.RIVER;
-                    return (
-                      <PopItem
-                        key={lm.id}
-                        index={idx}
-                        data-tone={lm.owned ? shape.tone : undefined}
-                        className={`landmark-row-card ${lm.owned ? 'owned foil-sheen' : 'empty'} ${
-                          lm.id === selectedLmId ? 'is-highlighted' : ''
-                        }`}
-                      >
-                        <div className="landmark-row-icon">{lm.icon}</div>
-                        <div className="landmark-row-body">
-                          <div className="landmark-row-head">
-                            <span className="landmark-row-name">{lm.name}</span>
-                            <span className={`landmark-tier-pill ${lm.owned ? 'owned' : 'empty'}`}>
-                              {lm.owned ? `ขั้น ${lm.tier} • ${lm.pct}%` : 'ว่าง • 0%'}
-                            </span>
-                          </div>
-                          <div className="landmark-row-owner">
-                            {lm.owned ? (
-                              <>
-                                <span>
-                                  ผู้ถือหุ้น: <strong>{lm.ownerName}</strong>
-                                </span>
-                                {lm.curtainClosed && (
-                                  <span className="landmark-curtain-tag">🪟 ปิดผ้าม่านพัก 1 รอบ</span>
-                                )}
-                              </>
-                            ) : (
-                              <span>ยังไม่มีผู้ถือครอง — ปั่นสล็อตลุ้นรับสิทธิ์ขั้นที่ 1 (17%) ฟรี!</span>
-                            )}
-                          </div>
-                        </div>
-                      </PopItem>
-                    );
-                  })}
-                </div>
-              </motion.aside>
-            </div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* หน้าต่าง Leaderboard เต็มรูปแบบ (PopModal + AnimatedText + PopItem) */}
+      {/* หน้าต่าง Leaderboard เต็มรูปแบบ (PopModal Portal) */}
       <PopModal
         isOpen={lbOpen}
         onClose={() => setLbOpen(false)}
@@ -412,7 +408,7 @@ export default function TopFloatingDeck({
           <div>
             <div className="modal-title" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               <Trophy {...ICON_BASE} size={18} />
-              <AnimatedText text="อันดับการเงิน Horizon Cafe" variant="pop" stagger={0.02} />
+              <AnimatedText text="อันดับการเงิน Horizon Cafe" variant="pop" by="word" stagger={0.03} />
             </div>
             <div className="modal-sub">
               คำนวณจากยอดสุทธิรวม (กระเป๋า + ธนาคาร) • สมาชิกทั้งหมด {players.length} คน

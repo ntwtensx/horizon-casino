@@ -1,4 +1,4 @@
-/* ================= Horizon Casino: Theme-FX (Full Spectrum Blends • Slots • Stamps • Landmarks • Rainbow) ================= */
+/* ================= Horizon Casino: Theme-FX (Full Spectrum • Safe 3D Flip • Portal Drawer • Rainbow) ================= */
 
 @property --rainbow-angle {
   syntax: '<angle>';
@@ -176,11 +176,14 @@
   --t-glow: rgba(186, 168, 152, 0.38);
 }
 
-/* 🎨 2. จ่ายสีสเปกตรัมลงทุกพื้นผิว: ช่องสล็อตหน้า-หลัง, การ์ดอีเวนท์, ป้ายปลดล็อก & สมุดแสตมป์ */
+/* 🎨 2. จ่ายสีสเปกตรัมลงทุกพื้นผิวโดยไม่ทำลาย Position / Overflow เดิม */
 
-/* ช่องสล็อต 3 ช่อง (ทั้งหน้าเมนูและหลังอีเวนท์) */
+/* ช่องสล็อต 3 ช่อง (ล็อก position: absolute และ overflow: hidden กักแสงฟุ้งไม่ให้รั่ว) */
 .flip-face-front[data-tone],
 .flip-face-back[data-tone] {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
   background: var(--t-bg);
   border-color: var(--t-bd);
   box-shadow:
@@ -192,11 +195,10 @@
 .flip-face-back[data-tone]::before {
   content: '';
   position: absolute;
-  inset: -25%;
+  inset: 0;
   background:
-    radial-gradient(circle at 22% 18%, rgba(255, 255, 255, 0.72) 0%, transparent 48%),
-    radial-gradient(circle at 84% 86%, var(--t-glow) 0%, transparent 56%);
-  filter: blur(10px);
+    radial-gradient(circle at 22% 18%, rgba(255, 255, 255, 0.68) 0%, transparent 52%),
+    radial-gradient(circle at 84% 86%, var(--t-glow) 0%, transparent 60%);
   pointer-events: none;
   z-index: 0;
 }
@@ -213,13 +215,16 @@
 }
 
 .flip-face-front[data-tone] .tap-flip-pill {
-  background: rgba(255, 255, 255, 0.86);
+  background: rgba(255, 255, 255, 0.88);
   color: var(--t-fg);
   border: 1px solid var(--t-bd);
 }
 
-/* การ์ดสรุปผลอีเวนท์หลัก */
+/* การ์ดสรุปผลอีเวนท์หลัก (รักษาการเลื่อนอ่านข้อความยาวไว้ครบ) */
 .event-card[data-tone] {
+  position: relative;
+  overflow-x: hidden;
+  overflow-y: auto;
   background: var(--t-bg);
   border-color: var(--t-bd);
   box-shadow: 0 10px 26px -6px var(--t-glow), inset 0 1px 0 rgba(255, 255, 255, 0.82);
@@ -252,7 +257,7 @@
   box-shadow: 0 6px 18px -4px var(--t-glow), inset 0 1px 0 rgba(255, 255, 255, 0.85);
 }
 
-/* สมุดสะสมแสตมป์ 158 ดวง (ดวงที่ปลดล็อกแล้วจะมีพื้นหลังผสมสีฟุ้งเรืองแสงเฉพาะดวง) */
+/* สมุดสะสมแสตมป์ 158 ดวง */
 .stamp-card.owned[data-tone] {
   position: relative;
   overflow: hidden;
@@ -272,11 +277,10 @@
 .stamp-card.owned[data-tone]::before {
   content: '';
   position: absolute;
-  inset: -28%;
+  inset: 0;
   background:
-    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.72) 0%, transparent 48%),
-    radial-gradient(circle at 85% 85%, var(--t-glow) 0%, transparent 56%);
-  filter: blur(11px);
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.66) 0%, transparent 52%),
+    radial-gradient(circle at 85% 85%, var(--t-glow) 0%, transparent 58%);
   pointer-events: none;
   z-index: 0;
 }
@@ -297,35 +301,36 @@
   border: 1px solid var(--t-bd);
 }
 
-/* ✨ 3. แสงฟอยล์โฮโลแกรมพาดเฉียงบนการ์ดแรร์ & แสตมป์หายาก */
-.foil-sheen {
+/* ✨ 3. แสงฟอยล์โฮโลแกรม (ใช้ background-position ภายใน inset: 0 ไม่บังคับ overflow และไม่ทับ position ของ .flip-face) */
+.foil-sheen:not(.flip-face) {
   position: relative;
-  overflow: hidden;
 }
 
 .foil-sheen::after {
   content: '';
   position: absolute;
-  inset: -20% -60%;
+  inset: 0;
+  border-radius: inherit;
   background: linear-gradient(
     112deg,
-    transparent 38%,
-    rgba(255, 255, 255, 0.56) 48%,
-    rgba(255, 240, 200, 0.36) 52%,
-    transparent 62%
+    transparent 28%,
+    rgba(255, 255, 255, 0.52) 46%,
+    rgba(255, 240, 200, 0.34) 52%,
+    transparent 68%
   );
-  transform: translateX(-100%);
+  background-size: 260% 100%;
+  background-position: 140% 0;
   animation: foilGlide 3.4s ease-in-out infinite;
   pointer-events: none;
   z-index: 2;
 }
 
 @keyframes foilGlide {
-  0%, 45% { transform: translateX(-100%); }
-  100% { transform: translateX(115%); }
+  0%, 42% { background-position: 140% 0; }
+  100% { background-position: -140% 0; }
 }
 
-/* 🌈 4. ขอบสีรุ้งพาสเทลวิ่งวิบวับรอบ 3 ช่องตอนกำลังปั่นสล็อต */
+/* 🌈 4. ขอบสีรุ้งพาสเทลวิ่งวิบวับรอบ 3 ช่องตอนกำลังปั่นสล็อต + รองรับปัดนิ้วบนมือถือ */
 .reels-rainbow-wrap {
   position: relative;
   flex: 1;
@@ -357,6 +362,12 @@
 
 .reels-rainbow-wrap.is-spinning-rainbow .reels-window {
   border-color: rgba(255, 255, 255, 0.85);
+}
+
+.reels-window.swipe-flip-active {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 @keyframes rainbowOrbit {
@@ -399,9 +410,11 @@
   }
 }
 
-/* ⚡ 6. เอฟเฟคกระแทก + แสงวาบ + วงแหวนตอนพลิกการ์ด (รันบน GPU) */
-.reel-impact-wrapper.has-flipped-impact {
-  animation: cardFlipThud 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+/* ⚡ 6. เอฟเฟคแสงวาบ + วงแหวนตอนพลิกการ์ด (ไม่ขยับ transform ของตัวแม่เพื่อกัน 3D preserve-3d กระพริบ) */
+.reel-impact-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
 }
 
 .reel-impact-wrapper.has-flipped-impact::before {
@@ -427,25 +440,41 @@
   animation: impactFlashFade 0.4s ease-out forwards;
 }
 
-@keyframes cardFlipThud {
-  0% { transform: scale(1) translateY(0); }
-  32% { transform: scale(1.08) translateY(-6px); }
-  62% { transform: scale(0.94) translateY(3px); }
-  100% { transform: scale(1) translateY(0); }
-}
-
 @keyframes impactRingPop {
-  0% { opacity: 0.95; transform: scale(0.9); }
-  100% { opacity: 0; transform: scale(1.18); }
+  0% { opacity: 0.95; transform: scale(0.92); }
+  100% { opacity: 0; transform: scale(1.16); }
 }
 
 @keyframes impactFlashFade {
   0% { opacity: 0; }
-  28% { opacity: 0.95; }
+  28% { opacity: 0.92; }
   100% { opacity: 0; }
 }
 
-/* 🏦 7. ปุ่มธนาคารแยกอิสระจากยอดเงินกระเป๋าตังค์บนแถบบน */
+/* 🗂️ 7. โครง Portal สำหรับลิ้นชักลอยด้านบน (ไม่ซ้อนทับและไม่ค้างบล็อกคลิก) */
+.drawer-portal-root {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+}
+
+.drawer-portal-root .drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+}
+
+.drawer-portal-root .floating-drawer-wrap {
+  position: fixed;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.drawer-portal-root .floating-top-drawer {
+  pointer-events: auto;
+}
+
+/* 🏦 8. ปุ่มธนาคารแยกอิสระจากยอดเงินกระเป๋าตังค์บนแถบบน */
 .bank-top-btn {
   border: 1.5px solid #8ec9a3;
   background: linear-gradient(135deg, #f3fcf6 0%, #dcf2e5 100%);
@@ -472,7 +501,7 @@
   cursor: not-allowed;
 }
 
-/* ================= 8. แถบลอยคู่: แลนด์มาร์ก 5 รูปทรง + Leaderboard สุลต่าน/ยาจก ================= */
+/* ================= 9. แถบลอยคู่: แลนด์มาร์ก 5 รูปทรง + Leaderboard สุลต่าน/ยาจก ================= */
 .top-floating-deck {
   flex-shrink: 0;
   display: flex;
@@ -480,10 +509,9 @@
   justify-content: space-between;
   gap: 8px;
   position: relative;
-  z-index: 40;
+  z-index: 30;
 }
 
-/* 🏰 กล่องลอยแลนด์มาร์ก 5 รูปทรงเรขาคณิตไล่เฉด 2 สี */
 .lm-geo-deck {
   background: rgba(255, 253, 249, 0.9);
   backdrop-filter: blur(8px);
@@ -570,7 +598,7 @@
   line-height: 1;
 }
 
-/* 🌸 9. กล่องรายละเอียดแลนด์มาร์กแบบสีนวลฟุ้งเรืองแสงเฉพาะโซนเมื่อมีผู้ถือครอง */
+/* 🌸 10. กล่องรายละเอียดแลนด์มาร์กแบบสีนวลฟุ้งเรืองแสงเฉพาะโซนเมื่อมีผู้ถือครอง */
 .landmark-row-card.owned[data-tone] {
   position: relative;
   overflow: hidden;
@@ -586,11 +614,10 @@
 .landmark-row-card.owned[data-tone]::before {
   content: '';
   position: absolute;
-  inset: -30%;
+  inset: 0;
   background:
-    radial-gradient(circle at 18% 25%, rgba(255, 255, 255, 0.72) 0%, transparent 48%),
-    radial-gradient(circle at 86% 82%, var(--t-glow) 0%, transparent 55%);
-  filter: blur(12px);
+    radial-gradient(circle at 18% 25%, rgba(255, 255, 255, 0.68) 0%, transparent 50%),
+    radial-gradient(circle at 86% 82%, var(--t-glow) 0%, transparent 58%);
   pointer-events: none;
   z-index: 0;
 }
@@ -624,7 +651,7 @@
     0 10px 24px -4px var(--t-glow, rgba(140, 90, 77, 0.28)) !important;
 }
 
-/* 🏆 10. แถบลอย Leaderboard (สุลต่าน & ยาจก) */
+/* 🏆 11. แถบลอย Leaderboard (สุลต่าน & ยาจก) */
 .lb-mini-bar {
   flex: 1;
   min-width: 0;
@@ -746,7 +773,7 @@
   color: var(--mocha-muted);
 }
 
-/* ================= 11. หน้าต่าง Leaderboard เต็มรูปแบบ ================= */
+/* ================= 12. แถบแท็บเลื่อนตามนิ้ว & หน้าต่าง Leaderboard / Auth ================= */
 .lb-modal-card {
   max-width: 600px;
 }
@@ -762,14 +789,21 @@
 
 .lb-tab-btn {
   position: relative;
+  isolation: isolate;
   border: none;
   background: transparent;
   color: var(--mocha-muted);
   border-radius: 11px;
-  padding: 7px 4px;
+  padding: 7px 6px;
   font-size: 0.72rem;
   font-weight: 700;
   cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s ease;
+}
+
+.lb-tab-btn > span:not(.lb-tab-pill-bg) {
+  position: relative;
   z-index: 1;
 }
 
@@ -782,8 +816,9 @@
   inset: 0;
   border-radius: 11px;
   background: linear-gradient(135deg, #d8906e 0%, #b1624e 100%);
-  z-index: -1;
+  z-index: 0;
   box-shadow: 0 3px 10px rgba(177, 98, 78, 0.25);
+  pointer-events: none;
 }
 
 .lb-section-block {
@@ -888,7 +923,38 @@
 .lb-row-net.neg { color: #b53245; }
 .lb-row-net.zero { color: var(--mocha-muted); }
 
-/* ================= 12. ปรับสัดส่วนมือถือให้กะทัดรัดเต็มจอ 100dvh ================= */
+/* ปุ่มเลือกรายชื่อสมาชิกใน AuthModal */
+.auth-player-item-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 11px;
+  border-radius: 15px;
+  text-align: left;
+  cursor: pointer;
+  background: #fffdf9;
+  border: 1.5px solid var(--border-cream);
+  transition: transform 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease;
+}
+
+.auth-player-item-btn:hover:not(:disabled) {
+  border-color: var(--border-caramel);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(140, 90, 77, 0.12);
+}
+
+.auth-player-item-btn.is-current {
+  background: var(--surface-warm);
+  border: 1.8px solid var(--cinnamon);
+}
+
+.auth-player-item-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+/* ================= 13. ปรับสัดส่วนมือถือให้กะทัดรัดเต็มจอ 100dvh ================= */
 @media (max-width: 680px) {
   .bank-top-btn {
     padding: 4px 8px;
@@ -940,12 +1006,28 @@
     height: 18px;
   }
 
+  .lb-filter-tabs {
+    padding: 8px 10px;
+    gap: 4px;
+  }
+
+  .lb-tab-btn {
+    font-size: 0.66rem;
+    padding: 6px 3px;
+  }
+
   .reel-slot-stage {
     height: 106px;
   }
 
   .lever-interactive-box {
     height: 104px;
+  }
+}
+
+@media (max-width: 420px) {
+  .lb-avatar-stack {
+    display: none;
   }
 }
 
