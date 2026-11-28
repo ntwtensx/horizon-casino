@@ -1,12 +1,21 @@
 // client/src/utils/eventTones.js
-// 🎨 ศูนย์รวมสูตรจับคู่สีสเปกตรัม 19 เฉดผสม (ใช้ร่วมกันทั้ง การ์ดอีเวนท์, ช่องสล็อต 3 ช่อง หน้า-หลัง และสมุดแสตมป์ 158 ดวง)
+// 🎨 ศูนย์รวมสูตรจับคู่สี Cute Flowers Pastel (12 พาเลตต์ดอกไม้ + 5 แลนด์มาร์ก + โทนพิเศษ)
+// ใช้ร่วมกันทั้ง การ์ดอีเวนท์, ช่องสล็อต 3 ช่อง (หน้าเมนู–หลังอีเวนท์) และสมุดแสตมป์ 158 ดวง
 
 export const FOIL_TONES = new Set([
   'gold-yellow',
+  'sunflower-glow',
   'violet-pink',
+  'lavender-field',
   'purple-gold',
+  'violet-dream',
   'prism-chaos',
+  'wildflower-meadow',
   'sky-cyan',
+  'forget-me-not',
+  'hydrangea-dreams',
+  'bluebell-magic',
+  'cherry-blossom',
   'lm-garden',
   'lm-sakura',
   'lm-meadow',
@@ -21,7 +30,7 @@ const hashIndex = (str, len) => {
   return h % len;
 };
 
-// จับคู่เฉดสีจากไอคอนและข้อความสั้น (ใช้ร่วมกันทั้งช่องสล็อตและแสตมป์)
+// จับคู่เฉดสีดอกไม้จากไอคอนและข้อความสั้น (ใช้ร่วมกันทั้งช่องสล็อตและแสตมป์)
 function matchToneFromKeywords(text = '', icon = '') {
   const s = `${icon} ${text}`;
 
@@ -32,47 +41,47 @@ function matchToneFromKeywords(text = '', icon = '') {
   if (s.includes('🏖️') || s.includes('ชายหาด')) return 'lm-beach';
   if (s.includes('🏞️') || s.includes('แม่น้ำภูเขา')) return 'lm-river';
 
-  // แดงเพลิง–ส้มเข้ม
+  // แดงกุหลาบเข้ม: ยึดทรัพย์, ขวานผ่า, รูเล็ตต์, ทำกระเป๋าหล่น
   if (/🚨|🔨|🪓|💥|🔫|🕳️|ยึดทรัพย์|ขวานผ่า|กระเป๋าตังค์หล่น|ลืมกระเป๋า|ทิ้งกระเป๋า|พัดกระเป๋า|รูเล็ตต์/.test(s)) {
     return 'crimson-red';
   }
-  // คราม–น้ำเงิน
+  // 08 Hydrangea Dreams: ปปง. ตรวจบัญชี, ศาลคาเฟ่ฟ้องร้อง
   if (/🕵️|⚖️|📜|ปปง\.|ฟ้องร้อง|ศาลคาเฟ่/.test(s)) return 'indigo-blue';
-  // น้ำเงินมิดไนท์–แดงไซเรน
+  // 10 Bluebell Magic: แมวส้มแฮ็กตู้เซฟ, โจรย่องเบา, ปล้นสุลต่าน
   if (/🐈‍⬛|🥷|🏦|ตู้เซฟ|โจรย่องเบา|ปล้นสุลต่าน/.test(s)) return 'navy-crimson';
-  // ม่วงเข้ม–เหลืองสายฟ้า
+  // 12 Violet Dream: กับดักความโลภ, สลับอันดับย้อนศร, ล้มยักษ์
   if (/😈|⚡|🚩|ความโลภ|ย้อนศร|ล้มยักษ์|ปฏิวัติ/.test(s)) return 'purple-gold';
-  // ฟ้าใส–ครามอ่อน
+  // 06 Forget-me-Not: ปลดหนี้, ประกันภัย, ฝนเหรียญ, ปิดผ้าม่าน, โซดา
   if (/👼|🛡️|🌧️|🪟|🕊️|🧊|🫧|ปลดหนี้|ประกันภัย|มหาทาน|ผ้าม่าน|เมตตา|บลู|โซดา/.test(s)) {
     return 'sky-cyan';
   }
-  // รุ้งพาสเทลผสมหลายสี
+  // 11 Wildflower Meadow: ตรรกะวิบัติ, พลิกขั้ว, เฉลี่ยสุข, กระจกเงา
   if (/☯️|🌀|🃏|🪞|🌈|🦄|ชะตาเล่นตลก|เฉลี่ยสุข|กระจกเงา|ตรรกะวิบัติ|กาแล็กซี/.test(s)) {
     return 'prism-chaos';
   }
-  // เหลืองทอง–แชมเปญ
+  // 05 Sunflower Glow: แจ็กพอต 777, ขอทานเศรษฐี, เต๋าทองคำ, น้ำผึ้ง
   if (/7️⃣|👑|🚀|💎|🎲|🏆|🥇|💰|🍯|🍮|777|แจ็กพอต|ขอทานเศรษฐี|เต๋าทองคำ|น้ำผึ้ง|พุดดิ้ง/.test(s)) {
     return 'gold-yellow';
   }
-  // ส้มคาราเมล–พีช
+  // 09 Tulip Whisper: กระป๋องคุกกี้, กระปุกหมูแตก, รีวิวไวรัล, ครัวซองต์-พีช
   if (/🍪|🐷|📸|🔥|🥐|🍊|🍑|🧇|คุกกี้|กระปุกหมู|ไวรัล|คาราเมล|ครัวซองต์|พีช|ส้ม/.test(s)) {
     return 'orange-peach';
   }
-  // แสด–ส้มปะการัง
+  // 07 Peony Blush: เพื่อนยืมเงิน, แก๊งเพื่อน, บิลเหมา, ชานม-กาแฟ
   if (/👯|📣|🧾|🦈|💣|💬|🧋|☕|🍫|เพื่อนยืม|แก๊งเพื่อน|เหมาเลี้ยง|ปลาดุก|ระเบิด|ชานม|มอคค่า|เอสเปรสโซ/.test(s)) {
     return 'tangerine-coral';
   }
-  // แดงกุหลาบ–ชมพูเบอร์รี่
+  // 03 Rose Garden: ค้ำประกัน, สตรอว์เบอร์รี่-เชอร์รี-คัพเค้ก
   if (/📝|💢|🍓|🍒|🧁|ค้ำประกัน|หมั่นไส้|สตรอว์|เบอร์รี่|เชอร์รี/.test(s)) {
     return 'rose-berry';
   }
-  // ม่วง–ชมพู
+  // 02 Lavender Field: โซ่ล่ามชะตา, สลับกระเป๋า, แม่เหล็ก, ลาเวนเดอร์-เผือก
   if (/🧶|⛓️|💞|🧲|🎭|🔄|🍇|โซ่ล่าม|สลับกระเป๋า|แม่เหล็ก|อยากรวย|อยากจน|ลาเวนเดอร์|เผือก|อัญชัน/.test(s)) {
     return 'violet-pink';
   }
-  // เขียวมะนาว–เหลือง
+  // 04 Daisy Daydream: ยืมเพื่อนสำเร็จ, ลาภลอย, เลมอน-ยูซุ
   if (/🤝|🍋|🍍|ยืมเงินเพื่อน|ลาภลอย|เลมอน|ยูซุ|มะนาว/.test(s)) return 'lime-yellow';
-  // เขียวสด–มิ้นต์
+  // เขียวใบไม้พาสเทล: โรบินฮู้ด, เก็บกระเป๋า, มัทฉะ
   if (/🍀|🏹|🤑|🍵|🥝|โรบินฮู้ด|เก็บกระเป๋า|พบกระเป๋า|มัทฉะ|ชาเขียว|มิ้นต์/.test(s)) {
     return 'green-mint';
   }
@@ -116,80 +125,90 @@ export function resolveEventTone(outcome) {
   return 'zero';
 }
 
-// 2️⃣ สีพื้นหลังด้านหน้าช่องสล็อต (การ์ดเมนูคาเฟ่ 3 ช่อง)
-const MENU_FALLBACK_TONES = ['orange-peach', 'sky-cyan', 'violet-pink', 'lm-sakura', 'lime-yellow', 'lm-garden'];
+// 2️⃣ สีพื้นหลังด้านหน้าช่องสล็อต (การ์ดเมนูคาเฟ่ 3 ช่อง: เครื่องดื่ม • ท็อปปิ้ง • ขนม)
+// จัดชุดพาเลตต์ Cute Flowers แยกตามตำแหน่งช่องเพื่อให้ 3 ช่องหน้าการ์ดดูสดใสเข้าชุดกันเสมอ
+const MENU_REEL_SETS = [
+  ['tulip-whisper', 'sunflower-glow', 'cherry-blossom', 'peony-blush'],     // ช่อง 1: เครื่องดื่ม
+  ['forget-me-not', 'daisy-daydream', 'hydrangea-dreams', 'bluebell-magic'], // ช่อง 2: ท็อปปิ้ง
+  ['lavender-field', 'rose-garden', 'wildflower-meadow', 'violet-dream']     // ช่อง 3: ขนม
+];
 
 export function resolveMenuCardTone(menuItem, idx = 0) {
-  if (!menuItem) return MENU_FALLBACK_TONES[idx % MENU_FALLBACK_TONES.length];
+  const reelPool = MENU_REEL_SETS[idx % MENU_REEL_SETS.length];
+  if (!menuItem) return reelPool[0];
+
   const hit = matchToneFromKeywords(`${menuItem.label || ''} ${menuItem.sub || ''}`, menuItem.icon || '');
   if (hit) return hit;
 
   const mt = String(menuItem.menuTone || '');
   if (mt.includes('matcha') || mt.includes('green')) return 'green-mint';
-  if (mt.includes('rose') || mt.includes('berry') || mt.includes('sakura')) return 'lm-sakura';
-  if (mt.includes('lavender') || mt.includes('purple')) return 'violet-pink';
-  if (mt.includes('sky') || mt.includes('blue') || mt.includes('ocean')) return 'sky-cyan';
-  if (mt.includes('honey') || mt.includes('gold')) return 'gold-yellow';
-  if (mt.includes('coral') || mt.includes('spice')) return 'tangerine-coral';
+  if (mt.includes('rose') || mt.includes('berry')) return 'rose-garden';
+  if (mt.includes('sakura')) return 'cherry-blossom';
+  if (mt.includes('lavender') || mt.includes('purple')) return 'lavender-field';
+  if (mt.includes('sky') || mt.includes('blue') || mt.includes('ocean')) return 'forget-me-not';
+  if (mt.includes('honey') || mt.includes('gold')) return 'sunflower-glow';
+  if (mt.includes('coral') || mt.includes('spice')) return 'peony-blush';
 
-  return MENU_FALLBACK_TONES[hashIndex(`${menuItem.icon}${menuItem.label}${idx}`, MENU_FALLBACK_TONES.length)];
+  return reelPool[hashIndex(`${menuItem.icon}${menuItem.label}${idx}`, reelPool.length)];
 }
 
-// 3️⃣ สีพื้นหลังด้านหลังช่องสล็อตแต่ละช่อง (ช่อง 1–3 ตอนพลิกการ์ด)
-const SLOT_PALETTE_POS = ['green-mint', 'lime-yellow', 'gold-yellow', 'sky-cyan', 'violet-pink', 'orange-peach'];
-const SLOT_PALETTE_NEG = ['rose-berry', 'tangerine-coral', 'crimson-red', 'indigo-blue', 'navy-crimson', 'purple-gold'];
+// 3️⃣ สีพื้นหลังด้านหลังช่องสล็อตทั้ง 3 ช่องของแต่ละชุด (จับคู่ชุดสีเดียวกับอีเวนท์หลักแล้วไล่ 3 เฉดด้วย data-slot-step)
+const SLOT_FALLBACK_POS = ['daisy-daydream', 'sunflower-glow', 'forget-me-not', 'green-mint', 'lavender-field', 'tulip-whisper'];
+const SLOT_FALLBACK_NEG = ['rose-garden', 'peony-blush', 'crimson-red', 'hydrangea-dreams', 'bluebell-magic', 'violet-dream'];
 
 export function resolveSlotCardTone(slotItem, idx = 0, outcome = null) {
   const eventTone = outcome ? resolveEventTone(outcome) : 'zero';
-  if (!slotItem) return eventTone;
 
-  // ช่องที่ 3 (จุดไคลแมกซ์) ยึดโทนสเปกตรัมของอีเวนท์หลักเพื่อให้ระเบิดสีเข้าชุดกัน
-  if (idx === 2 && eventTone !== 'zero') return eventTone;
+  // เมื่ออีเวนท์หลักมีชุดสีชัดเจน ให้สล็อตทั้ง 3 ช่องใช้ชุดสีดอกไม้เดียวกัน
+  // แล้ว CSS [data-slot-step="0|1|2"] จะไล่เฉด 3 ระดับในพาเลตต์เดียวกันอัตโนมัติ (ช่อง 1 อ่อน -> ช่อง 2 กลาง -> ช่อง 3 เด่น+ใบเขียว)
+  if (eventTone && eventTone !== 'zero') {
+    const raw = slotItem?.tone || 'zero';
+    // ยกเว้นกรณีช่องกลางหรือช่องแรกเป็นตัวคูณพิเศษหรือขวานผ่าที่เด่นชัด ให้คงความโดดเด่นในธีมดอกไม้
+    if (idx === 1 && raw === 'mult' && eventTone !== 'gold-yellow') return 'sunflower-glow';
+    return eventTone;
+  }
 
-  // ตรวจจับสีเฉพาะจากไอคอนและข้อความของช่องนั้นๆ เองก่อน
+  if (!slotItem) return 'zero';
+
   const kwTone = matchToneFromKeywords(`${slotItem.label || ''} ${slotItem.sub || ''}`, slotItem.icon || '');
   if (kwTone) return kwTone;
 
   const raw = slotItem.tone || 'zero';
-  if (raw === 'mult') return 'gold-yellow';
-  if (raw === 'miracle') return idx === 0 ? 'sky-cyan' : 'violet-pink';
-  if (raw === 'win') return SLOT_PALETTE_POS[hashIndex(`${slotItem.label}${idx}`, SLOT_PALETTE_POS.length)];
+  if (raw === 'mult') return 'sunflower-glow';
+  if (raw === 'miracle') return idx === 0 ? 'forget-me-not' : 'lavender-field';
+  if (raw === 'win') return SLOT_FALLBACK_POS[hashIndex(`${slotItem.label}${idx}`, SLOT_FALLBACK_POS.length)];
   if (raw === 'divide') return 'crimson-red';
-  if (raw === 'tax') return SLOT_PALETTE_NEG[hashIndex(`${slotItem.label}${idx}`, SLOT_PALETTE_NEG.length)];
+  if (raw === 'tax') return SLOT_FALLBACK_NEG[hashIndex(`${slotItem.label}${idx}`, SLOT_FALLBACK_NEG.length)];
 
-  // ช่องตั้งต้นที่เป็น 'zero' แต่ตัวอีเวนท์จริงมีสีสัน ➔ ดึงสีผสมนวลๆ ของอีเวนท์มาเติมไม่ให้จืด
-  if (outcome && outcome.outcomeType !== 'ZERO' && eventTone !== 'zero') {
-    return eventTone;
-  }
   return 'zero';
 }
 
-// 4️⃣ สีพื้นหลังของแสตมป์ทุกดวงในสมุดสะสม 158 ดวง (และป้ายปลดล็อกแสตมป์ใหม่)
+// 4️⃣ สีพื้นหลังของสมุดสะสมแสตมป์ 158 ดวง (กระจายครบทั้ง 12 พาเลตต์ Cute Flowers ตามหมวด)
 const STAMP_PALETTES = {
-  EXPENSE: ['rose-berry', 'tangerine-coral', 'crimson-red', 'indigo-blue', 'navy-crimson', 'orange-peach'],
-  BOON: ['green-mint', 'lime-yellow', 'gold-yellow', 'sky-cyan', 'teal-emerald', 'orange-peach'],
-  ABSURD: ['prism-chaos', 'violet-pink', 'purple-gold', 'sky-cyan', 'indigo-blue', 'tangerine-coral'],
-  MIRACLE: ['violet-pink', 'gold-yellow', 'sky-cyan', 'purple-gold', 'orange-peach', 'green-mint'],
+  EXPENSE: ['rose-garden', 'peony-blush', 'tulip-whisper', 'hydrangea-dreams', 'bluebell-magic', 'crimson-red'],
+  BOON: ['daisy-daydream', 'sunflower-glow', 'cherry-blossom', 'forget-me-not', 'green-mint', 'tulip-whisper'],
+  ABSURD: ['wildflower-meadow', 'lavender-field', 'violet-dream', 'hydrangea-dreams', 'daisy-daydream', 'peony-blush'],
+  MIRACLE: ['lavender-field', 'sunflower-glow', 'forget-me-not', 'violet-dream', 'cherry-blossom', 'bluebell-magic'],
   LANDMARK: ['lm-garden', 'lm-sakura', 'lm-meadow', 'lm-beach', 'lm-river', 'teal-emerald']
 };
 
 export function resolveStampTone(stamp) {
-  if (!stamp) return 'violet-pink';
+  if (!stamp) return 'lavender-field';
   const id = String(stamp.id || '');
   const cat = String(stamp.category || '');
 
-  // แสตมป์แลนด์มาร์ก 5 โซน ใช้สีประจำโซนเป๊ะๆ
+  // แสตมป์แลนด์มาร์ก 5 โซน ใช้สีประจำโซนโดยตรง
   if (id.includes('GARDEN')) return 'lm-garden';
   if (id.includes('SAKURA')) return 'lm-sakura';
   if (id.includes('MEADOW')) return 'lm-meadow';
   if (id.includes('BEACH')) return 'lm-beach';
   if (id.includes('RIVER')) return 'lm-river';
 
-  // แสตมป์พิเศษจับคู่จากคีย์เวิร์ด + ไอคอน
+  // แสตมป์ที่มีคีย์เวิร์ดเฉพาะ
   const kwTone = matchToneFromKeywords(`${stamp.title || ''} ${stamp.desc || ''}`, stamp.icon || '');
   if (kwTone) return kwTone;
 
-  // กระจายเฉดผสมสีเต็มรุ้งอย่างคงที่ตามหมวดของแสตมป์ (ดวงเดิมได้สีเดิมเสมอ ไม่สลับไปมา)
+  // กระจายพาเลตต์ Cute Flowers ประจำหมวดอย่างคงที่ (ดวงเดิมได้ดอกไม้เดิมเสมอ)
   const pool = STAMP_PALETTES[cat] || STAMP_PALETTES.MIRACLE;
   return pool[hashIndex(`${id}:${stamp.title}`, pool.length)];
 }

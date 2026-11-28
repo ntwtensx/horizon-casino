@@ -315,10 +315,11 @@ export default function SlotMachine({
                           transition={{ type: 'spring', stiffness: 290, damping: 20, mass: 0.85 }}
                           style={{ transformStyle: 'preserve-3d' }}
                         >
-                          {/* ด้านหน้า: เมนูคาเฟ่พร้อมพื้นหลังสเปกตรัมฟุ้งเฉพาะเมนู */}
+                          {/* ด้านหน้า: เมนูคาเฟ่พร้อมพื้นหลัง Cute Flowers ไล่ 3 เฉด */}
                           <div
                             className={`flip-face flip-face-front ${canTapToFlip ? 'tap-ready-card' : ''}`}
                             data-tone={menuCardTone}
+                            data-slot-step={idx}
                           >
                             <motion.div
                               key={`menu-${idx}-${menuItem.label}`}
@@ -334,12 +335,13 @@ export default function SlotMachine({
                             </motion.div>
                           </div>
 
-                          {/* ด้านหลัง: อีเวนท์ 3 ช่องพร้อมสีสเปกตรัมผสมเฉด + ฟอยล์โฮโลแกรมสำหรับการ์ดแรร์ */}
+                          {/* ด้านหลัง: อีเวนท์ 3 ช่องไล่ 3 เฉดในชุดสีดอกไม้เดียวกัน + ฟอยล์โฮโลแกรมสำหรับการ์ดแรร์ */}
                           <div
                             className={`flip-face flip-face-back ${
                               FOIL_TONES.has(eventCardTone) ? 'foil-sheen' : ''
                             }`}
                             data-tone={eventCardTone}
+                            data-slot-step={idx}
                           >
                             <div className="reel-card">
                               <div className="reel-icon">{eventItem.icon}</div>

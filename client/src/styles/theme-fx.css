@@ -1,4 +1,4 @@
-/* ================= Horizon Casino: Theme-FX (Full Spectrum • Safe 3D Flip • Portal Drawer • Rainbow) ================= */
+/* ================= Horizon Casino: Theme-FX (Cute Flowers 12 Palettes • 3-Step Slots • Stamps • Safe Portal) ================= */
 
 @property --rainbow-angle {
   syntax: '<angle>';
@@ -6,177 +6,248 @@
   initial-value: 0deg;
 }
 
-/* 🎨 1. ชุดสีสเปกตรัมเต็มรุ้งแบบผสมเฉด 19 โทน (ใช้ร่วมกันทั้งเว็บในที่เดียว) */
+/* 🌸 1. ชุดสี Cute Flowers Guide 12 พาเลตต์ + โทนแลนด์มาร์ก (พร้อมตัวแปรไล่ 3 ช่องสล็อต --t-s1 / --t-s2 / --t-s3) */
 
-/* ม่วงผสมชมพู (ปาฏิหาริย์ / โซ่ล่ามชะตา / สลับกระเป๋า / เผือก-อัญชัน) */
+/* 01 Cherry Blossom — soft, delicate & so pretty */
+[data-tone="cherry-blossom"],
+[data-tone="lm-sakura"] {
+  --t-bg: linear-gradient(138deg, #fff3f6 0%, #ffe4f0 48%, #ffcde2 100%);
+  --t-s1: linear-gradient(145deg, #fff8fa 0%, #fff3f6 52%, #ffe4f0 100%);
+  --t-s2: linear-gradient(145deg, #ffeef5 0%, #ffe4f0 48%, #ffcde2 100%);
+  --t-s3: linear-gradient(145deg, #ffe4f0 0%, #ffcde2 52%, #ffb7c5 100%);
+  --t-bd: #eba0b8;
+  --t-fg: #8c2c52;
+  --t-glow: rgba(255, 183, 197, 0.56);
+  --t-leaf: rgba(247, 231, 240, 0.78);
+}
+
+/* 02 Lavender Field — calm, dreamy & peaceful */
+[data-tone="lavender-field"],
 [data-tone="violet-pink"],
 [data-tone="miracle"] {
-  --t-bg: linear-gradient(140deg, #faf3ff 0%, #ead5ff 50%, #ffd9ec 100%);
-  --t-bd: #b37ae0;
-  --t-fg: #5e248a;
-  --t-glow: rgba(179, 122, 224, 0.48);
+  --t-bg: linear-gradient(138deg, #ede7fb 0%, #e9e2ff 44%, #d5c6f7 76%, #d6ecd8 100%);
+  --t-s1: linear-gradient(145deg, #f7f4ff 0%, #ede7fb 52%, #e9e2ff 100%);
+  --t-s2: linear-gradient(145deg, #ede7fb 0%, #d5c6f7 55%, #e4d9fc 100%);
+  --t-s3: linear-gradient(145deg, #d5c6f7 0%, #b9a4e6 58%, #d6ecd8 100%);
+  --t-bd: #a68cd9;
+  --t-fg: #4e3282;
+  --t-glow: rgba(185, 164, 230, 0.54);
+  --t-leaf: rgba(214, 236, 216, 0.72);
 }
 
-/* ม่วงเข้มผสมเหลืองสายฟ้า (กับดักความโลภ / สลับอันดับย้อนศร / ล้มยักษ์) */
-[data-tone="purple-gold"],
-[data-tone="greed"] {
-  --t-bg: linear-gradient(140deg, #f6ebff 0%, #e1c5fb 48%, #ffe59e 100%);
-  --t-bd: #8f47c4;
-  --t-fg: #581885;
-  --t-glow: rgba(143, 71, 196, 0.5);
-}
-
-/* ครามผสมน้ำเงิน (ปปง. ตรวจบัญชี / ศาลคาเฟ่ฟ้องร้อง) */
-[data-tone="indigo-blue"] {
-  --t-bg: linear-gradient(140deg, #f0f2ff 0%, #d9dffc 52%, #cfe4ff 100%);
-  --t-bd: #5e6ad2;
-  --t-fg: #263185;
-  --t-glow: rgba(94, 106, 210, 0.46);
-}
-
-/* น้ำเงินมิดไนท์ผสมแดงไซเรน (แมวส้มแฮ็กตู้เซฟ / โจรย่องเบา / ปล้นสุลต่าน) */
-[data-tone="navy-crimson"],
-[data-tone="bank-raid"] {
-  --t-bg: linear-gradient(140deg, #eef1ff 0%, #d4dcfa 46%, #fbd0db 100%);
-  --t-bd: #5663b8;
-  --t-fg: #282f73;
-  --t-glow: rgba(99, 102, 196, 0.5);
-}
-
-/* ฟ้าใสผสมครามอ่อน (ปลดหนี้ / ประกันภัย / ฝนเหรียญ / ผ้าม่านปิด / โซดา) */
-[data-tone="sky-cyan"] {
-  --t-bg: linear-gradient(140deg, #eefaff 0%, #d2f0ff 52%, #dce5ff 100%);
-  --t-bd: #45a9e6;
-  --t-fg: #145b8c;
-  --t-glow: rgba(69, 169, 230, 0.46);
-}
-
-/* เขียวน้ำทะเลผสมมรกต (แลนด์มาร์กทั่วไป) */
-[data-tone="teal-emerald"],
-[data-tone="landmark"] {
-  --t-bg: linear-gradient(140deg, #eefcf8 0%, #ccf2e6 52%, #fff0cc 100%);
-  --t-bd: #3ea38a;
-  --t-fg: #145c4b;
-  --t-glow: rgba(62, 163, 138, 0.46);
-}
-
-/* เขียวสดผสมมิ้นต์ (ดวงดีมีกำไร / โรบินฮู้ด / เก็บกระเป๋าได้ / มัทฉะ) */
-[data-tone="green-mint"],
-[data-tone="win"] {
-  --t-bg: linear-gradient(140deg, #effdf4 0%, #cef3db 55%, #dff9eb 100%);
-  --t-bd: #4db372;
-  --t-fg: #196636;
-  --t-glow: rgba(77, 179, 114, 0.46);
-}
-
-/* เขียวมะนาวผสมเหลืองสดใส (ยืมเพื่อนสำเร็จ / พลิกวิกฤตลาภลอย / เลมอน-ยูซุ) */
-[data-tone="lime-yellow"] {
-  --t-bg: linear-gradient(140deg, #f6fee8 0%, #e1f7bc 52%, #fff2b8 100%);
-  --t-bd: #85ba36;
-  --t-fg: #3e690c;
-  --t-glow: rgba(133, 186, 54, 0.45);
-}
-
-/* เหลืองทองผสมแชมเปญ (แจ็กพอต / ตอง 777 / ขอทานเศรษฐี / น้ำผึ้ง-พุดดิ้ง) */
-[data-tone="gold-yellow"],
-[data-tone="jackpot"],
-[data-tone="mult"] {
-  --t-bg: linear-gradient(140deg, #fffdf0 0%, #fde69e 52%, #ffc978 100%);
-  --t-bd: #e09c24;
-  --t-fg: #874e03;
-  --t-glow: rgba(235, 174, 48, 0.56);
-}
-
-/* ส้มคาราเมลผสมพีช (กระป๋องคุกกี้ / กระปุกหมูแตก / รีวิวไวรัล / ครัวซองต์) */
-[data-tone="orange-peach"] {
-  --t-bg: linear-gradient(140deg, #fff8ef 0%, #ffe0be 52%, #ffd4c4 100%);
-  --t-bd: #ea8c38;
-  --t-fg: #994506;
-  --t-glow: rgba(234, 140, 56, 0.48);
-}
-
-/* แสดผสมส้มปะการัง (เพื่อนยืมเงิน / แก๊งรุมไถ / บิลเหมาทั้งร้าน / กาแฟ-ชานม) */
-[data-tone="tangerine-coral"],
-[data-tone="social"] {
-  --t-bg: linear-gradient(140deg, #fff4ed 0%, #ffd5bd 50%, #ffbfb0 100%);
-  --t-bd: #e56a3e;
-  --t-fg: #9e2f0e;
-  --t-glow: rgba(229, 106, 62, 0.5);
-}
-
-/* แดงเพลิงผสมส้มเข้ม (ยึดทรัพย์ / ขวานผ่า / รูเล็ตต์ / ทำกระเป๋าหล่น) */
-[data-tone="crimson-red"],
-[data-tone="seizure"],
-[data-tone="divide"] {
-  --t-bg: linear-gradient(140deg, #fff0f1 0%, #fcc8ce 52%, #ffd1ba 100%);
-  --t-bd: #d64053;
-  --t-fg: #991326;
-  --t-glow: rgba(214, 64, 83, 0.52);
-}
-
-/* แดงกุหลาบผสมชมพูเบอร์รี่ (ค่าใช้จ่ายประจำวัน / ค้ำประกัน / สตรอว์เบอร์รี่) */
+/* 03 Rose Garden — romantic, lovely & timeless */
+[data-tone="rose-garden"],
 [data-tone="rose-berry"],
 [data-tone="expense"],
 [data-tone="tax"] {
-  --t-bg: linear-gradient(140deg, #fff4f7 0%, #fbd6e2 54%, #f5cfe8 100%);
-  --t-bd: #d9668c;
-  --t-fg: #942049;
-  --t-glow: rgba(217, 102, 140, 0.46);
+  --t-bg: linear-gradient(138deg, #f9e7eb 0%, #ffd6e0 48%, #f8b4c6 80%, #cfebcf 100%);
+  --t-s1: linear-gradient(145deg, #fdf3f5 0%, #f9e7eb 50%, #ffd6e0 100%);
+  --t-s2: linear-gradient(145deg, #ffd6e0 0%, #f8b4c6 60%, #fde4ea 100%);
+  --t-s3: linear-gradient(145deg, #f8b4c6 0%, #f29ead 60%, #cfebcf 100%);
+  --t-bd: #de839c;
+  --t-fg: #8c2345;
+  --t-glow: rgba(242, 158, 173, 0.54);
+  --t-leaf: rgba(207, 235, 207, 0.72);
 }
 
-/* รุ้งพาสเทลผสมหลายสี (ตรรกะวิบัติ 34 แบบ / พลิกขั้ว / เฉลี่ยสุข / กระจกเงา) */
+/* 04 Daisy Daydream — bright, cheerful & full of joy */
+[data-tone="daisy-daydream"],
+[data-tone="lime-yellow"] {
+  --t-bg: linear-gradient(138deg, #fff7d6 0%, #ffe9a3 42%, #bee6c7 76%, #cde6ff 100%);
+  --t-s1: linear-gradient(145deg, #fffdf0 0%, #fff7d6 54%, #ffe9a3 100%);
+  --t-s2: linear-gradient(145deg, #fff7d6 0%, #ffe9a3 48%, #bee6c7 100%);
+  --t-s3: linear-gradient(145deg, #bee6c7 0%, #cde6ff 56%, #e6d5f7 100%);
+  --t-bd: #7ebd94;
+  --t-fg: #3b5f24;
+  --t-glow: rgba(190, 230, 199, 0.58);
+  --t-leaf: rgba(255, 233, 163, 0.7);
+}
+
+/* 05 Sunflower Glow — warm, happy & full of sunshine */
+[data-tone="sunflower-glow"],
+[data-tone="gold-yellow"],
+[data-tone="jackpot"],
+[data-tone="mult"] {
+  --t-bg: linear-gradient(138deg, #f6efd6 0%, #ffeba3 44%, #ffd166 78%, #ffb347 100%);
+  --t-s1: linear-gradient(145deg, #fcf8e8 0%, #f6efd6 48%, #ffeba3 100%);
+  --t-s2: linear-gradient(145deg, #ffeba3 0%, #ffd166 60%, #ffe7a8 100%);
+  --t-s3: linear-gradient(145deg, #ffd166 0%, #ffb347 64%, #c4dbab 100%);
+  --t-bd: #dfa038;
+  --t-fg: #7a4406;
+  --t-glow: rgba(255, 209, 102, 0.62);
+  --t-leaf: rgba(167, 201, 138, 0.65);
+}
+
+/* 06 Forget-me-Not — sweet, gentle & unforgettable */
+[data-tone="forget-me-not"],
+[data-tone="sky-cyan"] {
+  --t-bg: linear-gradient(138deg, #eaebff 0%, #d6ebff 44%, #b8d6ff 78%, #d6f0d8 100%);
+  --t-s1: linear-gradient(145deg, #f4f6ff 0%, #eaebff 48%, #d6ebff 100%);
+  --t-s2: linear-gradient(145deg, #d6ebff 0%, #b8d6ff 60%, #dcebff 100%);
+  --t-s3: linear-gradient(145deg, #b8d6ff 0%, #a1c8f5 60%, #d6f0d8 100%);
+  --t-bd: #77ace8;
+  --t-fg: #1d4e87;
+  --t-glow: rgba(161, 200, 245, 0.56);
+  --t-leaf: rgba(214, 240, 216, 0.72);
+}
+
+/* 07 Peony Blush — soft, lush & oh so feminine */
+[data-tone="peony-blush"],
+[data-tone="tangerine-coral"],
+[data-tone="social"] {
+  --t-bg: linear-gradient(138deg, #eedce6 0%, #ffe0ea 44%, #ffc3d4 76%, #d6e8cf 100%);
+  --t-s1: linear-gradient(145deg, #fbf0f4 0%, #ffe0ea 54%, #eedce6 100%);
+  --t-s2: linear-gradient(145deg, #ffe0ea 0%, #ffc3d4 58%, #ffd7e3 100%);
+  --t-s3: linear-gradient(145deg, #ffc3d4 0%, #faa7c1 60%, #d6e8cf 100%);
+  --t-bd: #e386a6;
+  --t-fg: #8c264c;
+  --t-glow: rgba(250, 167, 193, 0.56);
+  --t-leaf: rgba(214, 232, 207, 0.72);
+}
+
+/* 08 Hydrangea Dreams — calm, elegant & beautifully you */
+[data-tone="hydrangea-dreams"],
+[data-tone="indigo-blue"] {
+  --t-bg: linear-gradient(138deg, #e4f0ff 0%, #e7e0ff 42%, #cdbbfd 72%, #a6cbff 100%);
+  --t-s1: linear-gradient(145deg, #f2f7ff 0%, #e4f0ff 50%, #e7e0ff 100%);
+  --t-s2: linear-gradient(145deg, #e7e0ff 0%, #cdbbfd 56%, #d8e7ff 100%);
+  --t-s3: linear-gradient(145deg, #cdbbfd 0%, #a6cbff 58%, #d0efd8 100%);
+  --t-bd: #8a9be6;
+  --t-fg: #343987;
+  --t-glow: rgba(166, 203, 255, 0.56);
+  --t-leaf: rgba(208, 239, 216, 0.72);
+}
+
+/* 09 Tulip Whisper — graceful, soft & simply lovely */
+[data-tone="tulip-whisper"],
+[data-tone="orange-peach"] {
+  --t-bg: linear-gradient(138deg, #f7f1e6 0%, #ffe1d6 44%, #ffc2d1 76%, #cdeccf 100%);
+  --t-s1: linear-gradient(145deg, #fcf9f2 0%, #f7f1e6 48%, #ffe1d6 100%);
+  --t-s2: linear-gradient(145deg, #ffe1d6 0%, #ffc2d1 58%, #ffe6de 100%);
+  --t-s3: linear-gradient(145deg, #ffc2d1 0%, #ffaac1 58%, #cdebcf 100%);
+  --t-bd: #e6929e;
+  --t-fg: #91382a;
+  --t-glow: rgba(255, 170, 193, 0.54);
+  --t-leaf: rgba(205, 235, 207, 0.72);
+}
+
+/* 10 Bluebell Magic — sweet, magical & full of wonder */
+[data-tone="bluebell-magic"],
+[data-tone="navy-crimson"],
+[data-tone="bank-raid"] {
+  --t-bg: linear-gradient(138deg, #dde8ff 0%, #bfd7ff 46%, #9bb8f4 76%, #e7e0ff 100%);
+  --t-s1: linear-gradient(145deg, #eff4ff 0%, #dde8ff 52%, #bfd7ff 100%);
+  --t-s2: linear-gradient(145deg, #bfd7ff 0%, #9bb8f4 58%, #e7e0ff 100%);
+  --t-s3: linear-gradient(145deg, #9bb8f4 0%, #b4c2f7 56%, #d5f2d5 100%);
+  --t-bd: #6d8de0;
+  --t-fg: #243f87;
+  --t-glow: rgba(155, 184, 244, 0.58);
+  --t-leaf: rgba(213, 242, 213, 0.72);
+}
+
+/* 11 Wildflower Meadow — natural, carefree & full of beauty */
+[data-tone="wildflower-meadow"],
 [data-tone="prism-chaos"] {
-  --t-bg: linear-gradient(130deg, #ffe3ec 0%, #fff0cc 28%, #dcf8e6 56%, #d9ecff 80%, #ecd9ff 100%);
-  --t-bd: #b287db;
-  --t-fg: #543078;
-  --t-glow: rgba(168, 139, 230, 0.52);
+  --t-bg: linear-gradient(130deg, #ffd8eb 0%, #ffe9a8 28%, #cdebc9 54%, #bee3ff 78%, #e7cbff 100%);
+  --t-s1: linear-gradient(145deg, #fff0f7 0%, #ffd8eb 50%, #e7cbff 100%);
+  --t-s2: linear-gradient(145deg, #e7cbff 0%, #bee3ff 52%, #ffe9a8 100%);
+  --t-s3: linear-gradient(145deg, #ffe9a8 0%, #cdebc9 52%, #ffd8eb 100%);
+  --t-bd: #b794de;
+  --t-fg: #532e78;
+  --t-glow: rgba(231, 203, 255, 0.62);
+  --t-leaf: rgba(205, 235, 201, 0.74);
 }
 
-/* โทนเฉพาะของแลนด์มาร์กทั้ง 5 โซน */
+/* 12 Violet Dream — soft, mysterious & absolutely dreamy */
+[data-tone="violet-dream"],
+[data-tone="purple-gold"],
+[data-tone="greed"] {
+  --t-bg: linear-gradient(138deg, #f2e9ff 0%, #e8dfff 44%, #cbb8f0 74%, #ddebcd 100%);
+  --t-s1: linear-gradient(145deg, #f9f4ff 0%, #f2e9ff 50%, #e8dfff 100%);
+  --t-s2: linear-gradient(145deg, #e8dfff 0%, #cbb8f0 58%, #dfcef9 100%);
+  --t-s3: linear-gradient(145deg, #cbb8f0 0%, #b6a4e6 58%, #ddebcd 100%);
+  --t-bd: #977dd6;
+  --t-fg: #50267d;
+  --t-glow: rgba(182, 164, 230, 0.56);
+  --t-leaf: rgba(221, 235, 205, 0.72);
+}
+
+/* แดงกลีบกุหลาบเข้ม (ยึดทรัพย์ / ขวานผ่า — คงความรู้สึกเตือนภัยแต่กลมกลืนในธีมดอกไม้) */
+[data-tone="crimson-red"],
+[data-tone="seizure"],
+[data-tone="divide"] {
+  --t-bg: linear-gradient(138deg, #fff0f3 0%, #fcc5d1 48%, #f49eb1 100%);
+  --t-s1: linear-gradient(145deg, #fff5f7 0%, #ffdbe3 54%, #fcc5d1 100%);
+  --t-s2: linear-gradient(145deg, #ffd4de 0%, #f9b2c3 58%, #ffded6 100%);
+  --t-s3: linear-gradient(145deg, #f9b2c3 0%, #ef8ea4 60%, #f7cab8 100%);
+  --t-bd: #d9647f;
+  --t-fg: #911a36;
+  --t-glow: rgba(239, 142, 164, 0.56);
+  --t-leaf: rgba(255, 224, 214, 0.7);
+}
+
+/* เขียวใบไม้พาสเทล (ดวงดีมีกำไร / สวนต้นไม้) */
+[data-tone="green-mint"],
+[data-tone="win"],
 [data-tone="lm-garden"] {
-  --t-bg: linear-gradient(135deg, #f0fcf5 0%, #d4f4e1 55%, #eefad8 100%);
-  --t-bd: #56a875;
-  --t-fg: #1c663b;
-  --t-glow: rgba(86, 168, 117, 0.44);
+  --t-bg: linear-gradient(138deg, #f2fbf3 0%, #d6ecd8 48%, #bee6c7 80%, #fff7d6 100%);
+  --t-s1: linear-gradient(145deg, #f6fcf7 0%, #e4f4e5 52%, #d6ecd8 100%);
+  --t-s2: linear-gradient(145deg, #d6ecd8 0%, #bee6c7 60%, #d8f2de 100%);
+  --t-s3: linear-gradient(145deg, #bee6c7 0%, #a7d9b4 58%, #fff7d6 100%);
+  --t-bd: #6ab584;
+  --t-fg: #1d6138;
+  --t-glow: rgba(167, 217, 180, 0.54);
+  --t-leaf: rgba(255, 247, 214, 0.72);
 }
 
-[data-tone="lm-sakura"] {
-  --t-bg: linear-gradient(135deg, #fff3f7 0%, #fdd9e7 52%, #ffe8d6 100%);
-  --t-bd: #eb7ea4;
-  --t-fg: #9c2d57;
-  --t-glow: rgba(235, 126, 164, 0.46);
-}
-
+/* โซนแลนด์มาร์กเฉพาะ (ทุ่งดอกไม้ • ชายหาด • แม่น้ำภูเขา) */
 [data-tone="lm-meadow"] {
-  --t-bg: linear-gradient(135deg, #f6f1ff 0%, #e5d6fe 52%, #dceaff 100%);
-  --t-bd: #9474db;
-  --t-fg: #4e2d96;
-  --t-glow: rgba(148, 116, 219, 0.46);
+  --t-bg: linear-gradient(138deg, #ede7fb 0%, #e7cbff 48%, #bee3ff 82%, #d6ecd8 100%);
+  --t-s1: linear-gradient(145deg, #f7f3ff 0%, #ede7fb 52%, #e7cbff 100%);
+  --t-s2: linear-gradient(145deg, #e7cbff 0%, #d5c6f7 56%, #bee3ff 100%);
+  --t-s3: linear-gradient(145deg, #bee3ff 0%, #cdebc9 58%, #ffd8eb 100%);
+  --t-bd: #9b7ed9;
+  --t-fg: #4c2d8f;
+  --t-glow: rgba(185, 164, 230, 0.54);
+  --t-leaf: rgba(205, 235, 201, 0.72);
 }
 
 [data-tone="lm-beach"] {
-  --t-bg: linear-gradient(135deg, #edfaff 0%, #cfeeff 50%, #fff0c2 100%);
-  --t-bd: #43b5e8;
-  --t-fg: #16658c;
-  --t-glow: rgba(67, 181, 232, 0.46);
+  --t-bg: linear-gradient(138deg, #eef6ff 0%, #d6ebff 48%, #b8d6ff 76%, #fff7d6 100%);
+  --t-s1: linear-gradient(145deg, #f5faff 0%, #e4f0ff 52%, #d6ebff 100%);
+  --t-s2: linear-gradient(145deg, #d6ebff 0%, #b8d6ff 56%, #fff7d6 100%);
+  --t-s3: linear-gradient(145deg, #b8d6ff 0%, #ffe9a3 60%, #d6f0d8 100%);
+  --t-bd: #6cb4e6;
+  --t-fg: #1b5c85;
+  --t-glow: rgba(184, 214, 255, 0.56);
+  --t-leaf: rgba(255, 233, 163, 0.72);
 }
 
+[data-tone="teal-emerald"],
 [data-tone="lm-river"] {
-  --t-bg: linear-gradient(135deg, #ecfaf8 0%, #cef0ea 52%, #d8eaff 100%);
-  --t-bd: #44aba0;
-  --t-fg: #18635c;
-  --t-glow: rgba(68, 171, 160, 0.46);
+  --t-bg: linear-gradient(138deg, #edfbf6 0%, #d0efd8 48%, #bee3ff 82%, #dde8ff 100%);
+  --t-s1: linear-gradient(145deg, #f3fcf9 0%, #dff5e8 52%, #d0efd8 100%);
+  --t-s2: linear-gradient(145deg, #d0efd8 0%, #bee3ff 58%, #e4f0ff 100%);
+  --t-s3: linear-gradient(145deg, #bee3ff 0%, #a6cbff 58%, #d0efd8 100%);
+  --t-bd: #5db2a3;
+  --t-fg: #1b5f57;
+  --t-glow: rgba(166, 203, 255, 0.52);
+  --t-leaf: rgba(208, 239, 216, 0.72);
 }
 
-/* ดวงเกลือ / คูณศูนย์ */
+/* ดวงเกลือ / คูณศูนย์ (ครีมดอกไม้ละมุน) */
 [data-tone="zero"] {
-  --t-bg: linear-gradient(140deg, #faf8f5 0%, #ece5de 58%, #e4e8ef 100%);
-  --t-bd: #c4b2a2;
+  --t-bg: linear-gradient(140deg, #faf7f2 0%, #f1ebe3 58%, #eae6ed 100%);
+  --t-s1: linear-gradient(145deg, #fcfaf6 0%, #f6f1ea 100%);
+  --t-s2: linear-gradient(145deg, #f6f1ea 0%, #eee7e0 100%);
+  --t-s3: linear-gradient(145deg, #eee7e0 0%, #e7e3ec 100%);
+  --t-bd: #cbbab0;
   --t-fg: #6b584f;
-  --t-glow: rgba(186, 168, 152, 0.38);
+  --t-glow: rgba(196, 178, 166, 0.4);
+  --t-leaf: rgba(235, 229, 222, 0.6);
 }
 
-/* 🎨 2. จ่ายสีสเปกตรัมลงทุกพื้นผิวโดยไม่ทำลาย Position / Overflow เดิม */
+/* 🎨 2. จ่ายสีดอกไม้พาสเทลลงทุกพื้นผิว: สล็อต 3 ช่อง (ไล่ 3 เฉดในชุดเดียว), การ์ดอีเวนท์ & สมุดแสตมป์ 158 ดวง */
 
 /* ช่องสล็อต 3 ช่อง (ล็อก position: absolute และ overflow: hidden กักแสงฟุ้งไม่ให้รั่ว) */
 .flip-face-front[data-tone],
@@ -187,8 +258,24 @@
   background: var(--t-bg);
   border-color: var(--t-bd);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.88),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
     0 6px 16px -6px var(--t-glow);
+}
+
+/* ไล่ 3 เฉดประจำชุดสีบนสล็อตช่องที่ 1 (0) -> ช่องที่ 2 (1) -> ช่องที่ 3 (2) */
+.flip-face-front[data-tone][data-slot-step="0"],
+.flip-face-back[data-tone][data-slot-step="0"] {
+  background: var(--t-s1, var(--t-bg));
+}
+
+.flip-face-front[data-tone][data-slot-step="1"],
+.flip-face-back[data-tone][data-slot-step="1"] {
+  background: var(--t-s2, var(--t-bg));
+}
+
+.flip-face-front[data-tone][data-slot-step="2"],
+.flip-face-back[data-tone][data-slot-step="2"] {
+  background: var(--t-s3, var(--t-bg));
 }
 
 .flip-face-front[data-tone]::before,
@@ -197,8 +284,8 @@
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at 22% 18%, rgba(255, 255, 255, 0.68) 0%, transparent 52%),
-    radial-gradient(circle at 84% 86%, var(--t-glow) 0%, transparent 60%);
+    radial-gradient(circle at 20% 16%, rgba(255, 255, 255, 0.76) 0%, transparent 50%),
+    radial-gradient(circle at 86% 88%, var(--t-leaf, var(--t-glow)) 0%, transparent 58%);
   pointer-events: none;
   z-index: 0;
 }
@@ -215,7 +302,7 @@
 }
 
 .flip-face-front[data-tone] .tap-flip-pill {
-  background: rgba(255, 255, 255, 0.88);
+  background: rgba(255, 255, 255, 0.9);
   color: var(--t-fg);
   border: 1px solid var(--t-bd);
 }
@@ -227,7 +314,7 @@
   overflow-y: auto;
   background: var(--t-bg);
   border-color: var(--t-bd);
-  box-shadow: 0 10px 26px -6px var(--t-glow), inset 0 1px 0 rgba(255, 255, 255, 0.82);
+  box-shadow: 0 10px 26px -6px var(--t-glow), inset 0 1px 0 rgba(255, 255, 255, 0.86);
 }
 
 .event-card[data-tone] .event-headline {
@@ -237,11 +324,11 @@
 .event-card[data-tone] .event-category-pill {
   color: var(--t-fg);
   border-color: var(--t-bd);
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.84);
 }
 
 .event-card[data-tone] .event-equation {
-  background: rgba(255, 255, 255, 0.68);
+  background: rgba(255, 255, 255, 0.72);
   border-color: var(--t-bd);
 }
 
@@ -254,10 +341,10 @@
   background: var(--t-bg);
   border: 2px solid var(--t-bd);
   color: var(--t-fg);
-  box-shadow: 0 6px 18px -4px var(--t-glow), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  box-shadow: 0 6px 18px -4px var(--t-glow), inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
-/* สมุดสะสมแสตมป์ 158 ดวง */
+/* สมุดสะสมแสตมป์ 158 ดวง (กลิ่นอาย Cute Flowers: ไล่สีกลีบดอก + ละอองสีใบไม้พาสเทลมุมล่าง) */
 .stamp-card.owned[data-tone] {
   position: relative;
   overflow: hidden;
@@ -265,7 +352,7 @@
   border: 1.8px solid var(--t-bd);
   box-shadow:
     0 6px 18px -5px var(--t-glow),
-    inset 0 1px 0 rgba(255, 255, 255, 0.86);
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
   transition: transform 0.16s ease, box-shadow 0.18s ease;
 }
 
@@ -279,8 +366,8 @@
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.66) 0%, transparent 52%),
-    radial-gradient(circle at 85% 85%, var(--t-glow) 0%, transparent 58%);
+    radial-gradient(circle at 18% 16%, rgba(255, 255, 255, 0.78) 0%, transparent 48%),
+    radial-gradient(circle at 86% 86%, var(--t-leaf, var(--t-glow)) 0%, transparent 56%);
   pointer-events: none;
   z-index: 0;
 }
@@ -296,7 +383,7 @@
 
 .stamp-card.owned[data-tone] .stamp-badge,
 .stamp-card.owned[data-tone] .stamp-status-pill {
-  background: rgba(255, 255, 255, 0.84);
+  background: rgba(255, 255, 255, 0.88);
   color: var(--t-fg);
   border: 1px solid var(--t-bd);
 }
@@ -314,8 +401,8 @@
   background: linear-gradient(
     112deg,
     transparent 28%,
-    rgba(255, 255, 255, 0.52) 46%,
-    rgba(255, 240, 200, 0.34) 52%,
+    rgba(255, 255, 255, 0.56) 46%,
+    rgba(255, 245, 224, 0.36) 52%,
     transparent 68%
   );
   background-size: 260% 100%;
@@ -330,7 +417,7 @@
   100% { background-position: -140% 0; }
 }
 
-/* 🌈 4. ขอบสีรุ้งพาสเทลวิ่งวิบวับรอบ 3 ช่องตอนกำลังปั่นสล็อต + รองรับปัดนิ้วบนมือถือ */
+/* 🌈 4. ขอบสีรุ้งดอกไม้ป่า Wildflower Meadow วิ่งวิบวับรอบ 3 ช่องตอนกำลังปั่นสล็อต */
 .reels-rainbow-wrap {
   position: relative;
   flex: 1;
@@ -344,24 +431,24 @@
 .reels-rainbow-wrap.is-spinning-rainbow {
   background: conic-gradient(
     from var(--rainbow-angle),
-    #ffadad,
-    #ffd6a5,
-    #fdffb6,
-    #caffbf,
-    #9bf6ff,
-    #a0c4ff,
-    #bdb2ff,
-    #ffc6ff,
-    #ffadad
+    #ffd8eb,
+    #ffe1d6,
+    #ffe9a8,
+    #cdebc9,
+    #bee3ff,
+    #cdbbfd,
+    #e7cbff,
+    #ffc3d4,
+    #ffd8eb
   );
   animation: rainbowOrbit 1.45s linear infinite;
   box-shadow:
-    0 0 18px rgba(255, 198, 255, 0.62),
-    0 0 28px rgba(155, 246, 255, 0.44);
+    0 0 18px rgba(255, 216, 235, 0.7),
+    0 0 28px rgba(190, 227, 255, 0.54);
 }
 
 .reels-rainbow-wrap.is-spinning-rainbow .reels-window {
-  border-color: rgba(255, 255, 255, 0.85);
+  border-color: rgba(255, 255, 255, 0.88);
 }
 
 .reels-window.swipe-flip-active {
@@ -422,8 +509,8 @@
   position: absolute;
   inset: -4px;
   border-radius: 17px;
-  border: 3px solid var(--t-bd, #e3a73b);
-  box-shadow: 0 0 18px var(--t-glow, rgba(227, 167, 59, 0.5));
+  border: 3px solid var(--t-bd, #dfa038);
+  box-shadow: 0 0 18px var(--t-glow, rgba(255, 209, 102, 0.55));
   pointer-events: none;
   z-index: 8;
   animation: impactRingPop 0.46s ease-out forwards;
@@ -434,7 +521,7 @@
   position: absolute;
   inset: 0;
   border-radius: 14px;
-  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.94) 0%, var(--t-glow, rgba(255, 224, 130, 0.6)) 55%, transparent 82%);
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.94) 0%, var(--t-glow, rgba(255, 233, 163, 0.62)) 55%, transparent 82%);
   pointer-events: none;
   z-index: 9;
   animation: impactFlashFade 0.4s ease-out forwards;
@@ -607,7 +694,7 @@
   box-shadow:
     0 6px 20px -4px var(--t-glow),
     0 0 16px -4px var(--t-glow),
-    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+    inset 0 1px 0 rgba(255, 255, 255, 0.88);
   transition: transform 0.18s ease, box-shadow 0.2s ease;
 }
 
@@ -616,8 +703,8 @@
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at 18% 25%, rgba(255, 255, 255, 0.68) 0%, transparent 50%),
-    radial-gradient(circle at 86% 82%, var(--t-glow) 0%, transparent 58%);
+    radial-gradient(circle at 18% 25%, rgba(255, 255, 255, 0.72) 0%, transparent 50%),
+    radial-gradient(circle at 86% 82%, var(--t-leaf, var(--t-glow)) 0%, transparent 58%);
   pointer-events: none;
   z-index: 0;
 }
@@ -628,7 +715,7 @@
 }
 
 .landmark-row-card.owned[data-tone] .landmark-row-icon {
-  background: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.85);
   border: 1.5px solid var(--t-bd);
   box-shadow: 0 3px 10px var(--t-glow);
 }
@@ -639,7 +726,7 @@
 }
 
 .landmark-row-card.owned[data-tone] .landmark-tier-pill.owned {
-  background: rgba(255, 255, 255, 0.84);
+  background: rgba(255, 255, 255, 0.86);
   color: var(--t-fg);
   border: 1px solid var(--t-bd);
   box-shadow: 0 2px 8px var(--t-glow);
@@ -707,13 +794,13 @@
 }
 
 .lb-crown-badge.sultan {
-  background: linear-gradient(135deg, #fff4cc 0%, #f9d87c 100%);
+  background: linear-gradient(135deg, #fff7d6 0%, #ffd166 100%);
   color: #6b4106;
   border: 1px solid #e4b448;
 }
 
 .lb-crown-badge.beggar {
-  background: linear-gradient(135deg, #fcecef 0%, #f7d2da 100%);
+  background: linear-gradient(135deg, #ffe0ea 0%, #f8b4c6 100%);
   color: #9e2438;
   border: 1px solid #e49aa6;
 }
@@ -848,12 +935,12 @@
 }
 
 .lb-player-row.rank-sultan {
-  background: linear-gradient(135deg, #fffdf2 0%, #fcebc2 100%);
+  background: linear-gradient(135deg, #fffdf2 0%, #ffeba3 100%);
   border-color: #e2b144;
 }
 
 .lb-player-row.rank-beggar {
-  background: linear-gradient(135deg, #fff6f7 0%, #fadce2 100%);
+  background: linear-gradient(135deg, #fff6f7 0%, #ffd6e0 100%);
   border-color: #de8a97;
 }
 
