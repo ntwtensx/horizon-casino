@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   UserRound,
@@ -19,8 +19,12 @@ import {
   Eye,
   EyeOff,
   Sparkles,
-  CheckCircle2
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  Check
 } from 'lucide-react';
+import '../styles/auth.css';
 import { AnimatedText, PopModal, PopItem, ICON_BASE } from './MotionPrimitives.jsx';
 
 const DEFAULT_AVATAR = 'https://cdn.discordapp.com/embed/avatars/0.png';
@@ -66,6 +70,139 @@ function AccountBadge({ type }) {
   );
 }
 
+/**
+ * 🔢 ช่องกรอก PIN 4 หลักแบบ Smart Vault
+ * - กดพิมพ์/วาง/ลบต่อเนื่องผ่าน input ล่องหนที่คลุมทั้ง 4 ช่อง (ไม่หลุดโฟกัสบนมือถือ)
+ * - มีแอนิเมชันเด้งทีละหลัก, คลื่นตรวจสอบ (checking), แฟลชสำเร็จ (success) และสั่นเตือน (error)
+ */
+function SmartPinBoxes({
+  label,
+  value = '',
+  onChange,
+  status = 'idle', // idle | checking | success | error
+  showDigits = false,
+  disabled = false,
+  autoFocus = false,
+  compact = false,
+  inputRef,
+  shakeKey = 0
+}) {
+  const internalRef = useRef(null);
+  const resolvedRef = inputRef || internalRef;
+  const [focused, setFocused] = useState(false);
+
+  useEffect(() => {
+    if (!autoFocus || disabled) return;
+    const tid = setTimeout(() => {
+      resolvedRef.current?.focus?.();
+    }, 120);
+    return () => clearTimeout(tid);
+  }, [autoFocus, disabled, resolvedRef]);
+
+  const activeIdx = Math.min(value.length, 3);
+
+  return (
+    <div className="smart-pin-block">
+      {label && <span className="smart-pin-label">{label}</span>}
+
+      <motion.div
+        key={status === 'error' ? `shake-${shakeKey}` : 'tray'}
+        className="smart-pin-tray"
+        animate={
+          status === 'error'
+            ? { x: [0, -10, 10, -8, 8, -4, 4, 0] }
+            : { x: 0 }
+        }
+        transition={{ duration: 0.42, ease: 'easeInOut' }}
+        onClick={() => {
+          if (!disabled) resolvedRef.current?.focus?.();
+        }}
+      >
+        <input
+          ref={resolvedRef}
+          type="tel"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          maxLength={4}
+          className="smart-pin-hidden-input"
+          aria-label={label || 'กรอกรหัส PIN 4 หลัก'}
+          value={value}
+          disabled={disabled}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          onChange={(e) => {
+            const cleaned = e.target.value.replace(/\D/g, '').slice(0, 4);
+            onChange?.(cleaned);
+          }}
+        />
+
+        {[0, 1, 2, 3].map((idx) => {
+          const digit = value[idx] || '';
+          const isFilled = Boolean(digit);
+          const isActive = focused && !disabled && status === 'idle' && idx === activeIdx && !isFilled;
+
+          const slotCls = [
+            'smart-pin-slot',
+            compact ? 'is-compact' : '',
+            isActive ? 'is-active' : '',
+            isFilled ? 'is-filled' : '',
+            status === 'checking' ? 'is-checking' : '',
+            status === 'success' ? 'is-success' : '',
+            status === 'error' ? 'is-error' : ''
+          ]
+            .filter(Boolean)
+            .join(' ');
+
+          return (
+            <motion.div
+              key={idx}
+              className={slotCls}
+              animate={
+                status === 'checking'
+                  ? { y: [0, -7, 0], scale: [1, 1.07, 1] }
+                  : status === 'success'
+                    ? { scale: [1, 1.12, 1], y: 0 }
+                    : isFilled
+                      ? { scale: [0.88, 1.08, 1], y: 0 }
+                      : { scale: 1, y: 0 }
+              }
+              transition={
+                status === 'checking'
+                  ? { repeat: Infinity, duration: 0.72, delay: idx * 0.11, ease: 'easeInOut' }
+                  : { type: 'spring', stiffness: 460, damping: 22, delay: status === 'success' ? idx * 0.05 : 0 }
+              }
+            >
+              {isFilled ? (
+                showDigits ? (
+                  <motion.span
+                    key={`d-${idx}-${digit}`}
+                    className="smart-pin-digit"
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: 'spring', stiffness: 520, damping: 22 }}
+                  >
+                    {digit}
+                  </motion.span>
+                ) : (
+                  <motion.span
+                    key={`dot-${idx}`}
+                    className="smart-pin-dot"
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: 'spring', stiffness: 520, damping: 20 }}
+                  />
+                )
+              ) : isActive ? (
+                <span className="smart-pin-caret" aria-hidden="true" />
+              ) : null}
+            </motion.div>
+          );
+        })}
+      </motion.div>
+    </div>
+  );
+}
+
 export default function AuthModal({
   isOpen,
   canClose = false,
@@ -88,13 +225,40 @@ export default function AuthModal({
   const [regAvatar, setRegAvatar] = useState('');
   const [regPin, setRegPin] = useState('');
   const [regConfirmPin, setRegConfirmPin] = useState('');
+  const [showRegPin, setShowRegPin] = useState(false);
 
-  const [submitting, setSubmitting] = useState(false);
+  // สถานะโปรเซสตรวจสอบ: idle | checking | success | error
+  const [verifyState, setVerifyState] = useState('idle');
+  const [statusText, setStatusText] = useState('');
+  const [shakeKey, setShakeKey] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
-  const [feedback, setFeedback] = useState({ type: '', text: '' });
+
+  const loginPinRef = useRef(null);
+  const loginConfirmRef = useRef(null);
+  const regPinRef = useRef(null);
+  const regConfirmRef = useRef(null);
+  const timersRef = useRef([]);
+
+  const clearAuthTimers = useCallback(() => {
+    timersRef.current.forEach((id) => clearTimeout(id));
+    timersRef.current = [];
+  }, []);
+
+  const scheduleTimer = useCallback((fn, ms) => {
+    const id = setTimeout(fn, ms);
+    timersRef.current.push(id);
+    return id;
+  }, []);
 
   useEffect(() => {
-    if (!isOpen) return;
+    return () => clearAuthTimers();
+  }, [clearAuthTimers]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      clearAuthTimers();
+      return;
+    }
     setTab('LOGIN');
     setSearch('');
     setSelectedPlayer(null);
@@ -105,8 +269,10 @@ export default function AuthModal({
     setRegAvatar('');
     setRegPin('');
     setRegConfirmPin('');
-    setFeedback({ type: '', text: '' });
-  }, [isOpen]);
+    setShowRegPin(false);
+    setVerifyState('idle');
+    setStatusText('');
+  }, [isOpen, clearAuthTimers]);
 
   const filteredPlayers = useMemo(() => {
     const kw = search.trim().toLowerCase();
@@ -127,8 +293,10 @@ export default function AuthModal({
     const trimmed = regAvatar.trim();
     if (/^https:\/\/[^\s"'<>]+$/i.test(trimmed)) return trimmed;
     const seed = regName.trim() || 'HorizonGuest';
-    return `https://api.dicebear.com/9.x/adventurer/svg?seed=${encodeURIComponent(seed)}&backgroundColor=f3e7d8`;
+    return `https://api.dicebear.com/9.x/adventurer/svg?seed=${encodeURIComponent(seed)}&backgroundColor=f3ebff`;
   }, [regAvatar, regName]);
+
+  const isBusy = verifyState === 'checking' || verifyState === 'success';
 
   const handleRefresh = async () => {
     if (!onRefreshPlayers || refreshing) return;
@@ -139,378 +307,461 @@ export default function AuthModal({
 
   const handlePickPlayer = (player) => {
     if (isBotPlayer(player)) return;
+    clearAuthTimers();
     setSelectedPlayer(player);
     setPin('');
     setConfirmPin('');
-    setFeedback({ type: '', text: '' });
+    setVerifyState('idle');
+    setStatusText('');
   };
 
-  const handlePinSubmit = async (e) => {
-    e.preventDefault();
-    if (!selectedPlayer || submitting) return;
+  // โปรเซสตรวจสอบรหัส PIN พร้อมจังหวะแอนิเมชันที่ดูสมูทและชัดเจน
+  const runPinAuth = useCallback(
+    async (targetPlayer, pinValue, confirmValue = '') => {
+      if (!targetPlayer || verifyState === 'checking' || verifyState === 'success') return;
+      const cleanPin = pinValue.replace(/\D/g, '').slice(0, 4);
+      if (!/^\d{4}$/.test(cleanPin)) return;
 
-    const cleanPin = pin.replace(/\D/g, '').slice(0, 4);
-    if (!/^\d{4}$/.test(cleanPin)) {
-      setFeedback({ type: 'err', text: 'กรุณากรอกรหัส PIN ตัวเลข 4 หลักให้ครบค่ะ' });
-      return;
-    }
-
-    if (selectedPlayer.hasPin) {
-      setSubmitting(true);
-      setFeedback({ type: 'wait', text: 'กำลังตรวจสอบรหัสผ่าน...' });
-      const res = await postCasinoJson('/verify-pin', {
-        userId: selectedPlayer.userId,
-        pin: cleanPin
-      });
-      setSubmitting(false);
-
-      if (!res.ok) {
-        setFeedback({ type: 'err', text: res.error || 'ตรวจสอบรหัสไม่สำเร็จ กรุณาลองใหม่ค่ะ' });
-        return;
-      }
-      if (!res.valid) {
-        setFeedback({ type: 'err', text: 'รหัสผ่าน 4 หลักไม่ถูกต้อง ลองใหม่อีกครั้งนะคะ' });
-        setPin('');
-        return;
+      if (!targetPlayer.hasPin) {
+        const cleanConfirm = confirmValue.replace(/\D/g, '').slice(0, 4);
+        if (cleanPin !== cleanConfirm) {
+          setVerifyState('error');
+          setStatusText('รหัส PIN ทั้ง 2 ช่องไม่ตรงกัน ลองใหม่อีกครั้งนะคะ');
+          setShakeKey((k) => k + 1);
+          return;
+        }
       }
 
-      onAuthenticated?.({ ...selectedPlayer, hasPin: true }, cleanPin);
-      return;
+      setVerifyState('checking');
+      setStatusText(
+        targetPlayer.hasPin
+          ? 'กำลังตรวจสอบรหัสผ่านอย่างปลอดภัย...'
+          : 'กำลังเข้ารหัสและบันทึก PIN ใหม่...'
+      );
+
+      const startedAt = Date.now();
+      const res = targetPlayer.hasPin
+        ? await postCasinoJson('/verify-pin', {
+            userId: targetPlayer.userId,
+            pin: cleanPin
+          })
+        : await postCasinoJson('/set-pin', {
+            userId: targetPlayer.userId,
+            pin: cleanPin,
+            confirmPin: cleanPin
+          });
+
+      // ให้จังหวะคลื่นตรวจสอบแสดงอย่างน้อย 420ms เพื่อความสมูทไม่กระพริบหายเร็วเกินไป
+      const minAnimGap = Math.max(0, 420 - (Date.now() - startedAt));
+
+      scheduleTimer(() => {
+        const failed = !res.ok || (targetPlayer.hasPin && !res.valid);
+        if (failed) {
+          setVerifyState('error');
+          setShakeKey((k) => k + 1);
+          setStatusText(
+            !res.ok
+              ? res.error || 'ตรวจสอบรหัสไม่สำเร็จ กรุณาลองใหม่ค่ะ'
+              : 'รหัส PIN 4 หลักไม่ถูกต้อง ลองใหม่อีกครั้งนะคะ'
+          );
+          scheduleTimer(() => {
+            if (targetPlayer.hasPin) {
+              setPin('');
+              loginPinRef.current?.focus?.();
+            } else {
+              setConfirmPin('');
+              loginConfirmRef.current?.focus?.();
+            }
+          }, 420);
+          return;
+        }
+
+        setVerifyState('success');
+        setStatusText(
+          `ยืนยันตัวตนสำเร็จ! ยินดีต้อนรับคุณ${targetPlayer.nickname || targetPlayer.displayName}`
+        );
+
+        scheduleTimer(() => {
+          onAuthenticated?.({ ...targetPlayer, hasPin: true }, cleanPin);
+        }, 560);
+      }, minAnimGap);
+    },
+    [verifyState, onAuthenticated, scheduleTimer]
+  );
+
+  // กดครบ 4 หลักบนบัญชีที่มี PIN แล้ว ➔ สั่งตรวจสอบอัตโนมัติทันที
+  const handleLoginPinChange = (nextVal) => {
+    setPin(nextVal);
+    if (verifyState === 'error') {
+      setVerifyState('idle');
+      setStatusText('');
     }
+    if (!selectedPlayer) return;
 
-    const cleanConfirm = confirmPin.replace(/\D/g, '').slice(0, 4);
-    if (cleanPin !== cleanConfirm) {
-      setFeedback({ type: 'err', text: 'รหัส PIN ทั้งสองช่องไม่ตรงกันค่ะ' });
-      return;
+    if (nextVal.length === 4) {
+      if (selectedPlayer.hasPin) {
+        scheduleTimer(() => runPinAuth(selectedPlayer, nextVal), 130);
+      } else {
+        scheduleTimer(() => loginConfirmRef.current?.focus?.(), 100);
+      }
     }
+  };
 
-    setSubmitting(true);
-    setFeedback({ type: 'wait', text: 'กำลังบันทึกรหัส PIN ใหม่...' });
-    const res = await postCasinoJson('/set-pin', {
-      userId: selectedPlayer.userId,
-      pin: cleanPin,
-      confirmPin: cleanConfirm
-    });
-    setSubmitting(false);
-
-    if (!res.ok) {
-      setFeedback({ type: 'err', text: res.error || 'ไม่สามารถตั้งรหัสผ่านได้ในขณะนี้ค่ะ' });
-      return;
+  const handleLoginConfirmChange = (nextVal) => {
+    setConfirmPin(nextVal);
+    if (verifyState === 'error') {
+      setVerifyState('idle');
+      setStatusText('');
     }
-
-    onAuthenticated?.({ ...selectedPlayer, hasPin: true }, cleanPin);
+    if (selectedPlayer && !selectedPlayer.hasPin && pin.length === 4 && nextVal.length === 4) {
+      if (nextVal === pin) {
+        scheduleTimer(() => runPinAuth(selectedPlayer, pin, nextVal), 140);
+      } else {
+        setVerifyState('error');
+        setStatusText('รหัส PIN ยืนยันยังไม่ตรงกับช่องแรกค่ะ');
+        setShakeKey((k) => k + 1);
+      }
+    }
   };
 
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
-    if (submitting) return;
+    if (isBusy) return;
 
     const cleanName = regName.trim().replace(/\s+/g, ' ');
     const cleanPin = regPin.replace(/\D/g, '').slice(0, 4);
     const cleanConfirm = regConfirmPin.replace(/\D/g, '').slice(0, 4);
 
     if (cleanName.length < 2 || cleanName.length > 24) {
-      setFeedback({ type: 'err', text: 'กรุณาตั้งชื่อความยาว 2 ถึง 24 ตัวอักษรค่ะ' });
+      setVerifyState('error');
+      setStatusText('กรุณาตั้งชื่อความยาว 2 ถึง 24 ตัวอักษรค่ะ');
       return;
     }
     if (!/^\d{4}$/.test(cleanPin) || cleanPin !== cleanConfirm) {
-      setFeedback({ type: 'err', text: 'กรุณาตั้งรหัส PIN ตัวเลข 4 หลักและยืนยันให้ตรงกันค่ะ' });
+      setVerifyState('error');
+      setShakeKey((k) => k + 1);
+      setStatusText('กรุณาตั้งรหัส PIN 4 หลักและยืนยันให้ตรงกันค่ะ');
       return;
     }
 
-    setSubmitting(true);
-    setFeedback({ type: 'wait', text: 'กำลังเปิดบัญชีสมาชิกใหม่...' });
+    setVerifyState('checking');
+    setStatusText('กำลังสร้างบัญชีสมาชิกและตั้งค่าตู้เซฟ...');
+
+    const startedAt = Date.now();
     const res = await postCasinoJson('/register', {
       displayName: cleanName,
       pin: cleanPin,
       confirmPin: cleanConfirm,
       avatarUrl: regAvatar.trim() || undefined
     });
-    setSubmitting(false);
 
-    if (!res.ok || !res.player) {
-      setFeedback({ type: 'err', text: res.error || 'ไม่สามารถสร้างบัญชีได้ในขณะนี้ค่ะ' });
-      return;
-    }
+    const minAnimGap = Math.max(0, 450 - (Date.now() - startedAt));
 
-    onAuthenticated?.({ ...res.player, hasPin: true }, cleanPin);
+    scheduleTimer(() => {
+      if (!res.ok || !res.player) {
+        setVerifyState('error');
+        setShakeKey((k) => k + 1);
+        setStatusText(res.error || 'ไม่สามารถสร้างบัญชีได้ในขณะนี้ค่ะ');
+        return;
+      }
+
+      setVerifyState('success');
+      setStatusText(`เปิดบัญชีสำเร็จ! ยินดีต้อนรับ ${res.player.displayName}`);
+      scheduleTimer(() => {
+        onAuthenticated?.({ ...res.player, hasPin: true }, cleanPin);
+      }, 560);
+    }, minAnimGap);
   };
+
+  const switchTab = (nextTab) => {
+    if (isBusy || nextTab === tab) return;
+    clearAuthTimers();
+    setTab(nextTab);
+    setVerifyState('idle');
+    setStatusText('');
+  };
+
+  const regPinMismatch = regPin.length === 4 && regConfirmPin.length === 4 && regPin !== regConfirmPin;
+  const regPinMatched = regPin.length === 4 && regConfirmPin.length === 4 && regPin === regConfirmPin;
 
   return (
     <PopModal
       isOpen={isOpen}
       onClose={onClose}
-      canClose={canClose}
+      canClose={canClose && !isBusy}
       cardClassName="auth-modal-card"
-      cardStyle={{ maxWidth: 520 }}
     >
-      <div className="modal-header">
-        <div>
-          <div className="modal-title" style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
-            {tab === 'REGISTER' ? <UserPlus {...ICON_BASE} size={18} /> : <UserRound {...ICON_BASE} size={18} />}
-            <AnimatedText
-              key={tab}
-              text={tab === 'REGISTER' ? 'สมัครสมาชิก Horizon Cafe' : 'เลือกผู้เล่น & ยืนยันตัวตน'}
-              variant="pop"
-              by="word"
-              stagger={0.03}
-            />
-          </div>
-          <div className="modal-sub">
-            {tab === 'REGISTER'
-              ? 'สร้างบัญชีหน้าเว็บพร้อมรหัส PIN 4 หลักเพื่อเริ่มปั่นสล็อตได้ทันที'
-              : 'เลือกรายชื่อของคุณเพื่อเข้าสู่ระบบด้วยรหัส PIN 4 หลัก'}
-          </div>
-        </div>
-        {canClose && (
-          <button type="button" className="modal-close" onClick={onClose} aria-label="ปิด">
-            <X {...ICON_BASE} size={16} />
-          </button>
-        )}
-      </div>
-
-      {/* แท็บสลับเข้าสู่ระบบ / สมัครสมาชิก */}
-      <div className="lb-filter-tabs" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
-        {[
-          { id: 'LOGIN', label: 'เลือกบัญชีเดิม', Icon: UserRound },
-          { id: 'REGISTER', label: 'สมัครสมาชิกใหม่', Icon: UserPlus }
-        ].map((item) => {
-          const TabIcon = item.Icon;
-          const isActive = tab === item.id;
-          return (
-            <button
-              key={item.id}
-              type="button"
-              className={`lb-tab-btn ${isActive ? 'active' : ''}`}
-              onClick={() => {
-                setTab(item.id);
-                setFeedback({ type: '', text: '' });
-              }}
-            >
-              {isActive && (
-                <motion.span
-                  layoutId="auth-tab-pill"
-                  className="lb-tab-pill-bg"
-                  transition={{ type: 'spring', stiffness: 420, damping: 32 }}
-                />
+      {/* 🌸 ส่วนหัวพาสเทลฟลอรัล */}
+      <div className="auth-hero-header">
+        <div className="auth-hero-top">
+          <div>
+            <span className="auth-hero-badge">
+              <Sparkles {...ICON_BASE} size={11} /> Horizon Cafe Member Pass
+            </span>
+            <h2 className="auth-hero-title">
+              {tab === 'REGISTER' ? (
+                <UserPlus {...ICON_BASE} size={19} />
+              ) : selectedPlayer ? (
+                <KeyRound {...ICON_BASE} size={19} />
+              ) : (
+                <UserRound {...ICON_BASE} size={19} />
               )}
-              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
-                <TabIcon {...ICON_BASE} size={13} />
-                {item.label}
-              </span>
+              <AnimatedText
+                key={`${tab}-${selectedPlayer ? 'pin' : 'list'}`}
+                text={
+                  tab === 'REGISTER'
+                    ? 'เปิดบัญชีสมาชิกใหม่'
+                    : selectedPlayer
+                      ? 'ปลดล็อกตู้เซฟส่วนตัว'
+                      : 'เลือกผู้เล่นเข้าสู่คาเฟ่'
+                }
+                variant="pop"
+                by="word"
+                stagger={0.03}
+              />
+            </h2>
+            <p className="auth-hero-sub">
+              {tab === 'REGISTER'
+                ? 'สร้างชื่อและรหัส PIN 4 หลักเพื่อเริ่มปั่นสล็อตได้ทันที'
+                : selectedPlayer
+                  ? 'กรอกรหัส PIN 4 หลัก ระบบจะตรวจสอบให้อัตโนมัติทันที'
+                  : 'เลือกรายชื่อสมาชิกของคุณเพื่อยืนยันตัวตนเข้าสู่ระบบ'}
+            </p>
+          </div>
+
+          {canClose && (
+            <button
+              type="button"
+              className="auth-close-btn"
+              onClick={onClose}
+              disabled={isBusy}
+              aria-label="ปิดหน้าต่าง"
+            >
+              <X {...ICON_BASE} size={16} />
             </button>
-          );
-        })}
+          )}
+        </div>
       </div>
 
-      <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {/* 🎛️ แถบสลับแท็บ Pill Slider คงที่ 50% เลื่อนสมูทไม่เด้ง */}
+      <div className="auth-segment-wrap">
+        <div className="auth-segment-track" role="tablist" aria-label="สลับโหมดเข้าสู่ระบบ">
+          <motion.div
+            className="auth-segment-slider"
+            initial={false}
+            animate={{ x: tab === 'LOGIN' ? '0%' : '100%' }}
+            transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+          />
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === 'LOGIN'}
+            className={`auth-segment-btn ${tab === 'LOGIN' ? 'is-active' : ''}`}
+            onClick={() => switchTab('LOGIN')}
+            disabled={isBusy}
+          >
+            <UserRound {...ICON_BASE} size={14} />
+            <span>เลือกบัญชีเดิม</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === 'REGISTER'}
+            className={`auth-segment-btn ${tab === 'REGISTER' ? 'is-active' : ''}`}
+            onClick={() => switchTab('REGISTER')}
+            disabled={isBusy}
+          >
+            <UserPlus {...ICON_BASE} size={14} />
+            <span>สมัครสมาชิกใหม่</span>
+          </button>
+        </div>
+      </div>
+
+      {/* 📜 พื้นที่เนื้อหาเลื่อนภายในความสูงคงที่ */}
+      <div className="auth-body-viewport">
         {tab === 'LOGIN' ? (
           selectedPlayer ? (
-            /* ขั้นตอนที่ 2: กรอกหรือตั้งรหัส PIN 4 หลัก */
+            /* ขั้นตอนที่ 2: Smart PIN Vault */
             <motion.form
-              key={`pin-${selectedPlayer.userId}`}
-              onSubmit={handlePinSubmit}
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.18 }}
-              style={{ display: 'flex', flexDirection: 'column', gap: 11 }}
+              key={`vault-${selectedPlayer.userId}`}
+              className="auth-pin-stage"
+              onSubmit={(e) => {
+                e.preventDefault();
+                runPinAuth(selectedPlayer, pin, confirmPin);
+              }}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2 }}
             >
-              <button
-                type="button"
-                className="btn-pill"
-                style={{ alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 5 }}
-                onClick={() => {
-                  setSelectedPlayer(null);
-                  setPin('');
-                  setConfirmPin('');
-                  setFeedback({ type: '', text: '' });
-                }}
-              >
-                <ArrowLeft {...ICON_BASE} size={14} /> กลับไปเลือกรายชื่ออื่น
-              </button>
-
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  padding: '11px 13px',
-                  borderRadius: 16,
-                  background: 'var(--surface-warm)',
-                  border: '1.5px solid var(--border-caramel)'
-                }}
-              >
-                <img
-                  src={selectedPlayer.avatar || DEFAULT_AVATAR}
-                  alt={selectedPlayer.displayName}
-                  style={{
-                    width: 46,
-                    height: 46,
-                    borderRadius: '50%',
-                    objectFit: 'cover',
-                    border: '2px solid var(--border-caramel)',
-                    flexShrink: 0
-                  }}
-                  onError={(e) => {
-                    e.currentTarget.src = DEFAULT_AVATAR;
-                  }}
-                />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      flexWrap: 'wrap',
-                      fontWeight: 800,
-                      fontSize: '0.92rem',
-                      color: 'var(--espresso)'
-                    }}
-                  >
-                    <span>{selectedPlayer.displayName}</span>
-                    <AccountBadge type={selectedPlayer.accountType} />
-                  </div>
-                  <div
-                    style={{
-                      marginTop: 3,
-                      fontSize: '0.74rem',
-                      color: 'var(--mocha-muted)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 10,
-                      flexWrap: 'wrap'
-                    }}
-                  >
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                      <Wallet {...ICON_BASE} size={12} /> {Number(selectedPlayer.walletBalance || 0).toLocaleString()}
-                    </span>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                      <Landmark {...ICON_BASE} size={12} /> {Number(selectedPlayer.bankBalance || 0).toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div
-                style={{
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  color: 'var(--cinnamon)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 5
-                }}
-              >
-                {selectedPlayer.hasPin ? (
-                  <>
-                    <KeyRound {...ICON_BASE} size={15} /> กรอกรหัส PIN 4 หลักเพื่อเข้าสู่ระบบ
-                  </>
-                ) : (
-                  <>
-                    <ShieldCheck {...ICON_BASE} size={15} /> บัญชีนี้ยังไม่เคยตั้งรหัส กรุณาตั้ง PIN 4 หลักครั้งแรก
-                  </>
-                )}
-              </div>
-
-              <div style={{ position: 'relative' }}>
-                <input
-                  type={showPin ? 'text' : 'password'}
-                  inputMode="numeric"
-                  maxLength={4}
-                  autoFocus
-                  className="auth-input-text"
-                  style={{ width: '100%', paddingRight: 42, letterSpacing: '0.32em', fontWeight: 800 }}
-                  placeholder="••••"
-                  value={pin}
-                  disabled={submitting}
-                  onChange={(e) => {
-                    setPin(e.target.value.replace(/\D/g, '').slice(0, 4));
-                    if (feedback.type) setFeedback({ type: '', text: '' });
-                  }}
-                />
+              <div className="auth-back-row">
                 <button
                   type="button"
-                  onClick={() => setShowPin((v) => !v)}
-                  aria-label={showPin ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'}
-                  style={{
-                    position: 'absolute',
-                    right: 10,
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    border: 'none',
-                    background: 'transparent',
-                    color: 'var(--mocha-muted)',
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    padding: 4
+                  className="auth-ghost-btn"
+                  disabled={isBusy}
+                  onClick={() => {
+                    clearAuthTimers();
+                    setSelectedPlayer(null);
+                    setPin('');
+                    setConfirmPin('');
+                    setVerifyState('idle');
+                    setStatusText('');
                   }}
                 >
-                  {showPin ? <EyeOff {...ICON_BASE} size={16} /> : <Eye {...ICON_BASE} size={16} />}
+                  <ArrowLeft {...ICON_BASE} size={13} /> เปลี่ยนรายชื่อ
+                </button>
+
+                <button
+                  type="button"
+                  className="auth-ghost-btn"
+                  disabled={isBusy}
+                  onClick={() => setShowPin((v) => !v)}
+                >
+                  {showPin ? <EyeOff {...ICON_BASE} size={13} /> : <Eye {...ICON_BASE} size={13} />}
+                  <span>{showPin ? 'ซ่อนตัวเลข' : 'แสดงตัวเลข'}</span>
                 </button>
               </div>
 
+              {/* อวาตาร์พร้อมวงแหวนแอนิเมชันตามสถานะตรวจสอบ */}
+              <div className="auth-vault-profile">
+                <motion.div
+                  className={`auth-avatar-halo status-${verifyState}`}
+                  animate={verifyState === 'success' ? { scale: [1, 1.09, 1] } : { scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 420, damping: 20 }}
+                >
+                  <img
+                    className="auth-avatar-halo-img"
+                    src={selectedPlayer.avatar || DEFAULT_AVATAR}
+                    alt={selectedPlayer.displayName}
+                    onError={(e) => {
+                      e.currentTarget.src = DEFAULT_AVATAR;
+                    }}
+                  />
+                  <motion.span
+                    key={verifyState}
+                    className={`auth-avatar-status-badge ${verifyState}`}
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: 'spring', stiffness: 480, damping: 20 }}
+                  >
+                    {verifyState === 'checking' ? (
+                      <Loader2 {...ICON_BASE} size={13} className="auth-spin-icon" />
+                    ) : verifyState === 'success' ? (
+                      <Check {...ICON_BASE} size={14} />
+                    ) : verifyState === 'error' ? (
+                      <AlertCircle {...ICON_BASE} size={14} />
+                    ) : selectedPlayer.hasPin ? (
+                      <Lock {...ICON_BASE} size={12} />
+                    ) : (
+                      <ShieldCheck {...ICON_BASE} size={13} />
+                    )}
+                  </motion.span>
+                </motion.div>
+
+                <div className="auth-vault-name">
+                  <span>{selectedPlayer.displayName}</span>
+                  <AccountBadge type={selectedPlayer.accountType} />
+                </div>
+
+                <div className="auth-vault-hint">
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                    <Wallet {...ICON_BASE} size={12} /> {Number(selectedPlayer.walletBalance || 0).toLocaleString()}
+                  </span>
+                  <span>•</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                    <Landmark {...ICON_BASE} size={12} /> {Number(selectedPlayer.bankBalance || 0).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+
+              {/* ช่องใส่รหัส PIN 4 หลัก */}
+              <SmartPinBoxes
+                label={selectedPlayer.hasPin ? 'กรอกรหัส PIN 4 หลัก' : 'ตั้งรหัส PIN 4 หลักครั้งแรก'}
+                value={pin}
+                onChange={handleLoginPinChange}
+                status={verifyState}
+                showDigits={showPin}
+                disabled={isBusy}
+                autoFocus
+                inputRef={loginPinRef}
+                shakeKey={shakeKey}
+              />
+
               {!selectedPlayer.hasPin && (
-                <input
-                  type={showPin ? 'text' : 'password'}
-                  inputMode="numeric"
-                  maxLength={4}
-                  className="auth-input-text"
-                  style={{ width: '100%', letterSpacing: '0.32em', fontWeight: 800 }}
-                  placeholder="ยืนยัน PIN 4 หลักอีกครั้ง"
+                <SmartPinBoxes
+                  label="ยืนยันรหัส PIN 4 หลักอีกครั้ง"
                   value={confirmPin}
-                  disabled={submitting}
-                  onChange={(e) => {
-                    setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 4));
-                    if (feedback.type) setFeedback({ type: '', text: '' });
-                  }}
+                  onChange={handleLoginConfirmChange}
+                  status={verifyState}
+                  showDigits={showPin}
+                  disabled={isBusy}
+                  compact
+                  inputRef={loginConfirmRef}
+                  shakeKey={shakeKey}
                 />
               )}
 
-              {feedback.text && <div className={`pin-feedback ${feedback.type}`}>{feedback.text}</div>}
+              {/* แถบสถานะโปรเซสตรวจสอบ */}
+              {statusText ? (
+                <motion.div
+                  key={`${verifyState}-${statusText}`}
+                  className={`auth-status-banner ${verifyState === 'idle' ? 'info' : verifyState}`}
+                  initial={{ opacity: 0, y: 6, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ duration: 0.18 }}
+                >
+                  {verifyState === 'checking' && <Loader2 {...ICON_BASE} size={15} className="auth-spin-icon" />}
+                  {verifyState === 'success' && <CheckCircle2 {...ICON_BASE} size={15} />}
+                  {verifyState === 'error' && <AlertCircle {...ICON_BASE} size={15} />}
+                  <span>{statusText}</span>
+                </motion.div>
+              ) : (
+                <div className="auth-status-banner info">
+                  <KeyRound {...ICON_BASE} size={14} />
+                  <span>
+                    {selectedPlayer.hasPin
+                      ? 'แตะที่ช่องแล้วพิมพ์ตัวเลข 4 หลักเพื่อปลดล็อกทันที'
+                      : 'ตั้งตัวเลข 4 หลักทั้ง 2 ช่องให้ตรงกันเพื่อเปิดใช้งาน'}
+                  </span>
+                </div>
+              )}
 
               <button
                 type="submit"
-                className="btn-primary"
-                style={{ width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
-                disabled={submitting || pin.length < 4 || (!selectedPlayer.hasPin && confirmPin.length < 4)}
+                className="auth-smart-btn"
+                disabled={isBusy || pin.length < 4 || (!selectedPlayer.hasPin && confirmPin.length < 4)}
               >
-                <CheckCircle2 {...ICON_BASE} size={16} />
-                <span>
-                  {submitting
-                    ? 'กำลังตรวจสอบ...'
-                    : selectedPlayer.hasPin
-                      ? 'ยืนยันเข้าสู่ระบบ'
-                      : 'บันทึกรหัส PIN และเข้าเล่นเลย'}
-                </span>
+                {verifyState === 'checking' ? (
+                  <>
+                    <Loader2 {...ICON_BASE} size={16} className="auth-spin-icon" />
+                    <span>กำลังตรวจสอบรหัส...</span>
+                  </>
+                ) : verifyState === 'success' ? (
+                  <>
+                    <CheckCircle2 {...ICON_BASE} size={16} />
+                    <span>เข้าสู่ระบบสำเร็จ!</span>
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck {...ICON_BASE} size={16} />
+                    <span>{selectedPlayer.hasPin ? 'ยืนยันรหัส PIN' : 'บันทึกรหัสและเข้าเล่นเลย'}</span>
+                  </>
+                )}
               </button>
             </motion.form>
           ) : (
-            /* ขั้นตอนที่ 1: เลือกรายชื่อสมาชิก (เลื่อนใน .modal-body ชั้นเดียว ไม่มี Nested Scroll) */
+            /* ขั้นตอนที่ 1: เลือกรายชื่อสมาชิก */
             <motion.div
               key="picker"
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.18 }}
-              style={{ display: 'flex', flexDirection: 'column', gap: 9 }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <div style={{ position: 'relative', flex: 1, minWidth: 0 }}>
-                  <Search
-                    {...ICON_BASE}
-                    size={15}
-                    style={{
-                      position: 'absolute',
-                      left: 11,
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      color: 'var(--mocha-muted)',
-                      pointerEvents: 'none'
-                    }}
-                  />
+              <div className="auth-search-bar">
+                <div className="auth-search-field">
+                  <Search {...ICON_BASE} size={15} className="auth-search-icon" />
                   <input
                     type="text"
-                    className="picker-search"
-                    style={{ width: '100%', paddingLeft: 32 }}
+                    className="auth-input-modern has-icon"
                     placeholder="ค้นหาชื่อสมาชิกในคาเฟ่..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
@@ -518,7 +769,7 @@ export default function AuthModal({
                 </div>
                 <button
                   type="button"
-                  className="btn-pill"
+                  className="auth-icon-btn"
                   onClick={handleRefresh}
                   disabled={refreshing || loadingPlayers}
                   aria-label="รีเฟรชรายชื่อสมาชิก"
@@ -532,7 +783,7 @@ export default function AuthModal({
                     }
                     style={{ display: 'inline-flex', alignItems: 'center' }}
                   >
-                    <RefreshCw {...ICON_BASE} size={14} />
+                    <RefreshCw {...ICON_BASE} size={15} />
                   </motion.span>
                 </button>
               </div>
@@ -541,68 +792,40 @@ export default function AuthModal({
                 <div className="statement-empty">กำลังโหลดรายชื่อสมาชิกจากคาเฟ่...</div>
               ) : filteredPlayers.length === 0 ? (
                 <div className="statement-empty">
-                  ไม่พบรายชื่อที่ค้นหาค่ะ สามารถกดแท็บ "สมัครสมาชิกใหม่" เพื่อสร้างบัญชีเว็บได้ทันที
+                  ไม่พบรายชื่อที่ค้นหาค่ะ กดแท็บ "สมัครสมาชิกใหม่" ด้านบนเพื่อสร้างบัญชีได้ทันที
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                <div className="auth-player-list">
                   {filteredPlayers.map((p, idx) => {
                     const isBot = isBotPlayer(p);
                     const isCurrent = activePlayer?.userId === p.userId;
 
                     return (
-                      <PopItem key={p.userId} index={idx} step={0.028} maxStagger={12}>
+                      <PopItem key={p.userId} index={idx} step={0.024} maxStagger={10}>
                         <button
                           type="button"
                           disabled={isBot}
                           onClick={() => handlePickPlayer(p)}
-                          className={`auth-player-item-btn ${isCurrent ? 'is-current' : ''}`}
+                          className={`auth-player-card ${isCurrent ? 'is-current' : ''}`}
                         >
                           <img
+                            className="auth-player-avatar"
                             src={p.avatar || DEFAULT_AVATAR}
                             alt={p.displayName}
                             loading="lazy"
-                            style={{
-                              width: 38,
-                              height: 38,
-                              borderRadius: '50%',
-                              objectFit: 'cover',
-                              border: '2px solid var(--border-caramel)',
-                              flexShrink: 0
-                            }}
                             onError={(e) => {
                               e.currentTarget.src = DEFAULT_AVATAR;
                             }}
                           />
 
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 5,
-                                flexWrap: 'wrap',
-                                fontSize: '0.85rem',
-                                fontWeight: 800,
-                                color: 'var(--espresso)'
-                              }}
-                            >
+                          <div className="auth-player-meta">
+                            <div className="auth-player-name">
                               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {p.displayName}
                               </span>
                               <AccountBadge type={p.accountType} />
                             </div>
-
-                            <div
-                              style={{
-                                marginTop: 2,
-                                fontSize: '0.7rem',
-                                color: 'var(--mocha-muted)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 8,
-                                flexWrap: 'wrap'
-                              }}
-                            >
+                            <div className="auth-player-stats">
                               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
                                 <Wallet {...ICON_BASE} size={11} /> {Number(p.walletBalance || 0).toLocaleString()}
                               </span>
@@ -613,26 +836,9 @@ export default function AuthModal({
                           </div>
 
                           <span
-                            style={{
-                              fontSize: '0.68rem',
-                              fontWeight: 700,
-                              padding: '3px 8px',
-                              borderRadius: 999,
-                              flexShrink: 0,
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 3,
-                              background: isBot
-                                ? '#efe8e1'
-                                : p.hasPin
-                                  ? '#eaf6ef'
-                                  : '#fff3dc',
-                              color: isBot
-                                ? 'var(--mocha-muted)'
-                                : p.hasPin
-                                  ? '#1f6b41'
-                                  : '#9c5a08'
-                            }}
+                            className={`auth-pin-pill ${
+                              isBot ? 'is-bot' : p.hasPin ? 'has-pin' : 'new-pin'
+                            }`}
                           >
                             {isBot ? (
                               <>
@@ -640,11 +846,11 @@ export default function AuthModal({
                               </>
                             ) : p.hasPin ? (
                               <>
-                                <Lock {...ICON_BASE} size={12} /> มี PIN
+                                <Lock {...ICON_BASE} size={11} /> มี PIN
                               </>
                             ) : (
                               <>
-                                <LockOpen {...ICON_BASE} size={12} /> ตั้ง PIN ใหม่
+                                <LockOpen {...ICON_BASE} size={11} /> ตั้งใหม่
                               </>
                             )}
                           </span>
@@ -657,113 +863,158 @@ export default function AuthModal({
             </motion.div>
           )
         ) : (
-          /* แท็บสมัครสมาชิกใหม่จากหน้าเว็บ */
+          /* แท็บสมัครสมาชิกใหม่ */
           <motion.form
             key="register"
+            className="auth-register-form"
             onSubmit={handleRegisterSubmit}
-            initial={{ opacity: 0, x: 10 }}
-            animate={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.18 }}
-            style={{ display: 'flex', flexDirection: 'column', gap: 10 }}
           >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                padding: '10px 12px',
-                borderRadius: 16,
-                background: 'var(--surface-warm)',
-                border: '1.5px solid var(--border-cream)'
-              }}
-            >
-              <img
-                src={previewRegAvatar}
-                alt="ตัวอย่างอวาตาร์"
-                style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: '50%',
-                  objectFit: 'cover',
-                  border: '2px solid var(--border-caramel)',
-                  background: '#fffdf9',
-                  flexShrink: 0
-                }}
-                onError={(e) => {
-                  e.currentTarget.src = DEFAULT_AVATAR;
-                }}
-              />
-              <div style={{ fontSize: '0.75rem', color: 'var(--mocha-muted)', lineHeight: 1.4 }}>
-                <strong style={{ color: 'var(--espresso)', display: 'block', marginBottom: 2 }}>
+            <div className="auth-avatar-preview-card">
+              <div className="auth-avatar-preview-ring">
+                <img
+                  src={previewRegAvatar}
+                  alt="ตัวอย่างอวาตาร์"
+                  onError={(e) => {
+                    e.currentTarget.src = DEFAULT_AVATAR;
+                  }}
+                />
+              </div>
+              <div style={{ fontSize: '0.74rem', color: '#6f5b87', lineHeight: 1.42 }}>
+                <strong style={{ color: '#3d2c54', display: 'block', marginBottom: 2, fontSize: '0.82rem' }}>
                   อวาตาร์ประจำตัวอัตโนมัติ
                 </strong>
-                เปลี่ยนตามชื่อที่ตั้งทันที หรือวางลิงก์รูปภาพ https://... ด้านล่างได้ค่ะ
+                เปลี่ยนตามชื่อที่ตั้งทันที หรือวางลิงก์รูป https://... ด้านล่างได้ค่ะ
               </div>
             </div>
 
             <input
               type="text"
               maxLength={24}
-              className="auth-input-text"
+              className="auth-input-modern"
               placeholder="ตั้งชื่อแสดงในคาเฟ่ (2–24 ตัวอักษร)"
               value={regName}
-              disabled={submitting}
+              disabled={isBusy}
               onChange={(e) => {
                 setRegName(e.target.value);
-                if (feedback.type) setFeedback({ type: '', text: '' });
+                if (verifyState === 'error') {
+                  setVerifyState('idle');
+                  setStatusText('');
+                }
               }}
             />
 
             <input
               type="url"
-              className="auth-input-text"
+              className="auth-input-modern"
               placeholder="ลิงก์รูปโปรไฟล์ https://... (เว้นว่างได้)"
               value={regAvatar}
-              disabled={submitting}
+              disabled={isBusy}
               onChange={(e) => setRegAvatar(e.target.value)}
             />
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-              <input
-                type="password"
-                inputMode="numeric"
-                maxLength={4}
-                className="auth-input-text"
-                style={{ letterSpacing: '0.25em', fontWeight: 800 }}
-                placeholder="ตั้ง PIN 4 หลัก"
+            <div className="auth-reg-pin-grid">
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  className="auth-ghost-btn"
+                  disabled={isBusy}
+                  onClick={() => setShowRegPin((v) => !v)}
+                >
+                  {showRegPin ? <EyeOff {...ICON_BASE} size={12} /> : <Eye {...ICON_BASE} size={12} />}
+                  <span>{showRegPin ? 'ซ่อน PIN' : 'ดู PIN'}</span>
+                </button>
+              </div>
+
+              <SmartPinBoxes
+                label="ตั้งรหัส PIN 4 หลัก"
                 value={regPin}
-                disabled={submitting}
-                onChange={(e) => {
-                  setRegPin(e.target.value.replace(/\D/g, '').slice(0, 4));
-                  if (feedback.type) setFeedback({ type: '', text: '' });
+                onChange={(val) => {
+                  setRegPin(val);
+                  if (verifyState === 'error') {
+                    setVerifyState('idle');
+                    setStatusText('');
+                  }
+                  if (val.length === 4) {
+                    scheduleTimer(() => regConfirmRef.current?.focus?.(), 90);
+                  }
                 }}
+                status={regPinMismatch ? 'error' : verifyState}
+                showDigits={showRegPin}
+                disabled={isBusy}
+                compact
+                inputRef={regPinRef}
+                shakeKey={shakeKey}
               />
-              <input
-                type="password"
-                inputMode="numeric"
-                maxLength={4}
-                className="auth-input-text"
-                style={{ letterSpacing: '0.25em', fontWeight: 800 }}
-                placeholder="ยืนยัน PIN"
+
+              <SmartPinBoxes
+                label="ยืนยันรหัส PIN อีกครั้ง"
                 value={regConfirmPin}
-                disabled={submitting}
-                onChange={(e) => {
-                  setRegConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 4));
-                  if (feedback.type) setFeedback({ type: '', text: '' });
+                onChange={(val) => {
+                  setRegConfirmPin(val);
+                  if (verifyState === 'error') {
+                    setVerifyState('idle');
+                    setStatusText('');
+                  }
                 }}
+                status={regPinMismatch ? 'error' : regPinMatched && verifyState === 'idle' ? 'success' : verifyState}
+                showDigits={showRegPin}
+                disabled={isBusy}
+                compact
+                inputRef={regConfirmRef}
+                shakeKey={shakeKey}
               />
+
+              {regPinMatched && verifyState === 'idle' && (
+                <span className="auth-match-pill ok">
+                  <Check {...ICON_BASE} size={12} /> รหัส PIN ตรงกันพร้อมเปิดบัญชี
+                </span>
+              )}
+              {regPinMismatch && (
+                <span className="auth-match-pill bad">
+                  <AlertCircle {...ICON_BASE} size={12} /> รหัส PIN ทั้ง 2 ช่องยังไม่ตรงกัน
+                </span>
+              )}
             </div>
 
-            {feedback.text && <div className={`pin-feedback ${feedback.type}`}>{feedback.text}</div>}
+            {statusText && (
+              <motion.div
+                key={`${verifyState}-${statusText}`}
+                className={`auth-status-banner ${verifyState === 'idle' ? 'info' : verifyState}`}
+                style={{ maxWidth: '100%' }}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                {verifyState === 'checking' && <Loader2 {...ICON_BASE} size={15} className="auth-spin-icon" />}
+                {verifyState === 'success' && <CheckCircle2 {...ICON_BASE} size={15} />}
+                {verifyState === 'error' && <AlertCircle {...ICON_BASE} size={15} />}
+                <span>{statusText}</span>
+              </motion.div>
+            )}
 
             <button
               type="submit"
-              className="btn-primary"
-              style={{ width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
-              disabled={submitting || regName.trim().length < 2 || regPin.length < 4 || regConfirmPin.length < 4}
+              className="auth-smart-btn"
+              disabled={isBusy || regName.trim().length < 2 || !regPinMatched}
             >
-              <Sparkles {...ICON_BASE} size={15} />
-              <span>{submitting ? 'กำลังสร้างบัญชี...' : 'เปิดบัญชีสมาชิกและเข้าเล่นเลย'}</span>
+              {verifyState === 'checking' ? (
+                <>
+                  <Loader2 {...ICON_BASE} size={16} className="auth-spin-icon" />
+                  <span>กำลังสร้างบัญชีสมาชิก...</span>
+                </>
+              ) : verifyState === 'success' ? (
+                <>
+                  <CheckCircle2 {...ICON_BASE} size={16} />
+                  <span>เปิดบัญชีสำเร็จ!</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles {...ICON_BASE} size={16} />
+                  <span>เปิดบัญชีสมาชิกและเข้าเล่นเลย</span>
+                </>
+              )}
             </button>
           </motion.form>
         )}
