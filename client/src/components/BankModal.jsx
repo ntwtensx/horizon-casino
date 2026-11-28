@@ -14,8 +14,10 @@ import {
   CheckCircle2,
   AlertTriangle,
   Clock,
-  ArrowRight
+  ArrowRight,
+  Sparkles
 } from 'lucide-react';
+import '../styles/modals-smart.css';
 import { casinoApi } from '../api';
 import { AnimatedText, PopModal, PopItem, ICON_BASE } from './MotionPrimitives.jsx';
 
@@ -152,7 +154,7 @@ export default function BankModal({
         type: 'ok',
         text:
           res.fee > 0
-            ? `ฝากเข้าธนาคารสำเร็จ +${res.credited.toLocaleString()} เหรียญ (หักค่าธรรมเนียมลดเงินเฟ้อ ${res.fee.toLocaleString()} เหรียญ)`
+            ? `ฝากเข้าธนาคารสำเร็จ +${res.credited.toLocaleString()} เหรียญ (ค่าธรรมเนียมลดเงินเฟ้อ ${res.fee.toLocaleString()} เหรียญ)`
             : `ฝากเข้าธนาคารสำเร็จ +${res.credited.toLocaleString()} เหรียญ`
       });
     } else {
@@ -169,103 +171,117 @@ export default function BankModal({
     <PopModal
       isOpen={Boolean(isOpen && activePlayer)}
       onClose={onClose}
-      cardClassName="bank-modal-card"
+      cardClassName="smart-bank-modal"
     >
-      <div className="modal-header">
-        <div>
-          <div className="modal-title" style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
-            <Landmark {...ICON_BASE} size={18} />
-            <AnimatedText
-              text={`ธนาคาร & เดินบัญชี • ${ownerName}`}
-              variant="pop"
-              by="word"
-              stagger={0.028}
-            />
+      {/* 🏦 ส่วนหัว Mint Vault & Forget-me-Not */}
+      <div className="bank-hero-header">
+        <div className="bank-hero-top">
+          <div>
+            <span className="bank-hero-badge">
+              <Sparkles {...ICON_BASE} size={11} /> Horizon Mint Vault
+            </span>
+            <h2 className="bank-hero-title">
+              <Landmark {...ICON_BASE} size={19} />
+              <AnimatedText
+                text={`ธนาคาร & เดินบัญชี • ${ownerName}`}
+                variant="pop"
+                by="word"
+                stagger={0.026}
+              />
+            </h2>
+            <p className="bank-hero-sub">
+              ทรัพย์สินสุทธิรวม: <strong>{totalNetWorth.toLocaleString()} เหรียญ</strong> (กระเป๋า + ธนาคาร)
+            </p>
           </div>
-          <div className="modal-sub">
-            ทรัพย์สินสุทธิรวม: <strong>{totalNetWorth.toLocaleString()} เหรียญ</strong> (กระเป๋า + ธนาคาร)
-          </div>
+          <button type="button" className="bank-close-btn" onClick={onClose} aria-label="ปิด">
+            <X {...ICON_BASE} size={16} />
+          </button>
         </div>
-        <button type="button" className="modal-close" onClick={onClose} aria-label="ปิด">
-          <X {...ICON_BASE} size={16} />
-        </button>
       </div>
 
-      {/* แท็บสลับ ฝาก-ถอน / เดินบัญชี 10 รายการ */}
-      <div className="lb-filter-tabs" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
-        {[
-          { id: 'BANK', label: 'ฝาก / ถอนเงิน', Icon: Landmark },
-          { id: 'STATEMENT', label: `เดินบัญชีล่าสุด (${transactions.length}/10)`, Icon: ScrollText }
-        ].map((item) => {
-          const TabIcon = item.Icon;
-          const isActive = tab === item.id;
-          return (
-            <button
-              key={item.id}
-              type="button"
-              className={`lb-tab-btn ${isActive ? 'active' : ''}`}
-              onClick={() => {
-                setTab(item.id);
-                if (item.id === 'STATEMENT') fetchStatement();
-              }}
-            >
-              {isActive && (
-                <motion.span
-                  layoutId="bank-tab-pill"
-                  className="lb-tab-pill-bg"
-                  transition={{ type: 'spring', stiffness: 420, damping: 32 }}
-                />
-              )}
-              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
-                <TabIcon {...ICON_BASE} size={13} />
-                {item.label}
-              </span>
-            </button>
-          );
-        })}
+      {/* 🎛️ แถบแท็บเลื่อน 2 ช่องแบบ Smooth Pill Slider (ความกว้าง 50% คงที่) */}
+      <div className="bank-segment-wrap">
+        <div className="bank-segment-track" role="tablist" aria-label="เลือกโหมดธนาคาร">
+          <motion.div
+            className="bank-segment-slider"
+            initial={false}
+            animate={{ x: tab === 'BANK' ? '0%' : '100%' }}
+            transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+          />
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === 'BANK'}
+            className={`bank-segment-btn ${tab === 'BANK' ? 'is-active' : ''}`}
+            onClick={() => setTab('BANK')}
+          >
+            <Landmark {...ICON_BASE} size={14} />
+            <span>ฝาก / ถอนเงิน</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === 'STATEMENT'}
+            className={`bank-segment-btn ${tab === 'STATEMENT' ? 'is-active' : ''}`}
+            onClick={() => {
+              setTab('STATEMENT');
+              fetchStatement();
+            }}
+          >
+            <ScrollText {...ICON_BASE} size={14} />
+            <span>เดินบัญชี ({transactions.length}/10)</span>
+          </button>
+        </div>
       </div>
 
-      <div className="modal-body">
-        <div className="bank-summary-grid">
-          <div className="bank-balance-card wallet">
-            <span className="bank-card-label" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+      {/* 📜 พื้นที่เนื้อหาเลื่อนภายในความสูงคงที่ */}
+      <div className="bank-body-viewport">
+        <div className="bank-smart-cards">
+          <div className="bank-smart-card wallet">
+            <span className="bank-smart-label">
               <Wallet {...ICON_BASE} size={13} /> เงินในกระเป๋าตังค์
             </span>
-            <strong
-              className={`bank-card-amount ${walletBalance < 0 ? 'negative' : ''}`}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
-            >
+            <strong className={`bank-smart-num ${walletBalance < 0 ? 'negative' : ''}`}>
               <NumberFlow value={walletBalance} />
               <Coins {...ICON_BASE} size={15} />
             </strong>
-            <span className="bank-card-hint">
+            <span className="bank-smart-hint">
               {walletBalance < 0 ? 'ติดหนี้อยู่ (ถอนธนาคารมาโปะได้)' : 'พร้อมใช้และพร้อมฝาก'}
             </span>
           </div>
 
-          <div className="bank-balance-card vault">
-            <span className="bank-card-label" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          <div className="bank-smart-card vault">
+            <span className="bank-smart-label">
               <Landmark {...ICON_BASE} size={13} /> เงินฝากธนาคาร
             </span>
-            <strong
-              className="bank-card-amount vault-num"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
-            >
+            <strong className="bank-smart-num">
               <NumberFlow value={bankBalance} />
               <Coins {...ICON_BASE} size={15} />
             </strong>
-            <span className="bank-card-hint">กันทำหล่น & สลับกระเป๋า</span>
+            <span className="bank-smart-hint">กันทำหล่น & สลับกระเป๋า</span>
           </div>
         </div>
 
         {tab === 'BANK' ? (
-          <>
-            <form className="bank-action-panel" onSubmit={handleSubmit}>
-              <div className="bank-mode-switch">
+          <motion.div
+            key="bank-ops"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.18 }}
+            style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
+          >
+            <form className="bank-smart-panel" onSubmit={handleSubmit}>
+              {/* สวิตช์ย่อย ฝาก / ถอน แบบ Pill Slider */}
+              <div className="bank-sub-track" role="tablist" aria-label="เลือกรายการฝากหรือถอน">
+                <motion.div
+                  className={`bank-sub-slider ${actionMode === 'DEPOSIT' ? 'is-deposit' : 'is-withdraw'}`}
+                  initial={false}
+                  animate={{ x: actionMode === 'DEPOSIT' ? '0%' : '100%' }}
+                  transition={{ type: 'spring', stiffness: 440, damping: 34 }}
+                />
                 <button
                   type="button"
-                  className={`bank-mode-btn ${actionMode === 'DEPOSIT' ? 'active-deposit' : ''}`}
-                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}
+                  className={`bank-sub-btn ${actionMode === 'DEPOSIT' ? 'is-active' : ''}`}
                   onClick={() => {
                     setActionMode('DEPOSIT');
                     setAmountText('');
@@ -276,8 +292,7 @@ export default function BankModal({
                 </button>
                 <button
                   type="button"
-                  className={`bank-mode-btn ${actionMode === 'WITHDRAW' ? 'active-withdraw' : ''}`}
-                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}
+                  className={`bank-sub-btn ${actionMode === 'WITHDRAW' ? 'is-active' : ''}`}
                   onClick={() => {
                     setActionMode('WITHDRAW');
                     setAmountText('');
@@ -288,29 +303,27 @@ export default function BankModal({
                 </button>
               </div>
 
-              <div className="bank-input-row">
-                <input
-                  type="number"
-                  min="1"
-                  max={maxAvailable > 0 ? maxAvailable : undefined}
-                  step="1"
-                  inputMode="numeric"
-                  className="auth-input-text"
-                  placeholder={
-                    actionMode === 'DEPOSIT'
-                      ? `กรอกยอดฝาก (สูงสุด ${maxAvailable.toLocaleString()} เหรียญ)`
-                      : `กรอกยอดถอน (สูงสุด ${maxAvailable.toLocaleString()} เหรียญ)`
-                  }
-                  value={amountText}
-                  disabled={submitting || maxAvailable <= 0}
-                  onChange={(e) => {
-                    setAmountText(e.target.value.replace(/[^\d]/g, ''));
-                    if (feedback.type) setFeedback({ type: '', text: '' });
-                  }}
-                />
-              </div>
+              <input
+                type="number"
+                min="1"
+                max={maxAvailable > 0 ? maxAvailable : undefined}
+                step="1"
+                inputMode="numeric"
+                className="bank-amount-input"
+                placeholder={
+                  actionMode === 'DEPOSIT'
+                    ? `กรอกยอดฝาก (สูงสุด ${maxAvailable.toLocaleString()} เหรียญ)`
+                    : `กรอกยอดถอน (สูงสุด ${maxAvailable.toLocaleString()} เหรียญ)`
+                }
+                value={amountText}
+                disabled={submitting || maxAvailable <= 0}
+                onChange={(e) => {
+                  setAmountText(e.target.value.replace(/[^\d]/g, ''));
+                  if (feedback.type) setFeedback({ type: '', text: '' });
+                }}
+              />
 
-              <div className="bank-quick-row">
+              <div className="bank-chip-row">
                 {[
                   { label: '25%', ratio: 0.25 },
                   { label: '50%', ratio: 0.5 },
@@ -319,7 +332,7 @@ export default function BankModal({
                   <button
                     key={q.label}
                     type="button"
-                    className="btn-pill"
+                    className="bank-quick-chip"
                     disabled={maxAvailable <= 0 || submitting}
                     onClick={() => setQuickPercent(q.ratio)}
                   >
@@ -355,7 +368,7 @@ export default function BankModal({
                       </span>
                       <ArrowRight {...ICON_BASE} size={13} />
                       <span>
-                        เข้ากระเป๋าตังค์ <strong className="diff-pos">+{parsedAmount.toLocaleString()}</strong> เหรียญ (ฟรีค่าธรรมเนียม 0%)
+                        เข้ากระเป๋าตังค์ <strong className="diff-pos">+{parsedAmount.toLocaleString()}</strong> เหรียญ (ฟรี 0%)
                       </span>
                     </>
                   )}
@@ -376,8 +389,7 @@ export default function BankModal({
 
               <button
                 type="submit"
-                className="btn-primary"
-                style={{ width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                className={`bank-submit-btn ${actionMode === 'DEPOSIT' ? 'deposit' : 'withdraw'}`}
                 disabled={!isValidAmount || submitting}
               >
                 {actionMode === 'DEPOSIT' ? (
@@ -395,9 +407,9 @@ export default function BankModal({
               </button>
             </form>
 
-            <div className="bank-rules-box">
+            <div className="bank-smart-rules">
               <strong style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                <ShieldAlert {...ICON_BASE} size={15} /> กติกาธนาคาร Horizon Cafe (ได้อย่างเสียอย่าง)
+                <ShieldAlert {...ICON_BASE} size={15} /> กติกาธนาคาร Horizon Cafe
               </strong>
               <ul>
                 <li>
@@ -407,24 +419,31 @@ export default function BankModal({
                   <strong>หักเงินข้ามบัญชีอัตโนมัติ:</strong> หากโดนบิลค่าใช้จ่าย, ค่านั่งแลนด์มาร์ก หรือเพื่อนมายืมเงินแล้วกระเป๋าไม่พอ ระบบจะดึงจากธนาคารมาจ่ายส่วนต่างแทน
                 </li>
                 <li>
-                  <strong>ความเสี่ยงของตู้เซฟ:</strong> ระวังอีเวนท์ <em>ปปง. คาเฟ่ตรวจบัญชี</em>, <em>แฮ็กเกอร์แมวส้มเจาะตู้เซฟ</em> (ตัดเงินจากธนาคารโดยตรง) และ <em>อเลสเทียยึดทรัพย์</em> (อายัดหมดทั้งสองบัญชี)
+                  <strong>ความเสี่ยงของตู้เซฟ:</strong> ระวังอีเวนท์ <em>ปปง. ตรวจบัญชี</em>, <em>แฮ็กเกอร์แมวส้มเจาะตู้เซฟ</em> และ <em>อเลสเทียยึดทรัพย์</em>
                 </li>
                 <li>
                   <strong>คุมเงินเฟ้อ:</strong> ค่าธรรมเนียมฝาก {depositFeePct}% จะถูกเผาออกจากระบบถาวร (ถอนฟรี 0%)
                 </li>
               </ul>
             </div>
-          </>
+          </motion.div>
         ) : (
-          <div className="statement-section">
+          <motion.div
+            key="bank-statement"
+            className="statement-section"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.18 }}
+          >
             <div className="drawer-row-between">
-              <span className="drawer-label">แสดงรายการเคลื่อนไหวล่าสุดสูงสุด 10 รายการ</span>
+              <span className="drawer-label" style={{ color: '#3b6a67' }}>
+                รายการเคลื่อนไหวล่าสุดสูงสุด 10 รายการ
+              </span>
               <button
                 type="button"
-                className="btn-pill"
+                className="bank-refresh-btn"
                 onClick={fetchStatement}
                 disabled={loadingTx}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
               >
                 <motion.span
                   animate={loadingTx ? { rotate: 360 } : { rotate: 0 }}
@@ -453,7 +472,7 @@ export default function BankModal({
                     <PopItem
                       key={`${tx.at || idx}-${idx}`}
                       index={idx}
-                      step={0.03}
+                      step={0.028}
                       maxStagger={10}
                       className="statement-row"
                     >
@@ -506,7 +525,7 @@ export default function BankModal({
                 })}
               </div>
             )}
-          </div>
+          </motion.div>
         )}
       </div>
     </PopModal>

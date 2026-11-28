@@ -17,6 +17,7 @@ import {
   Castle,
   CircleOff
 } from 'lucide-react';
+import '../styles/modals-smart.css';
 import { AnimatedText, FloatingDrawer, PopModal, PopItem, ICON_BASE } from './MotionPrimitives.jsx';
 
 const DEFAULT_AVATAR = 'https://cdn.discordapp.com/embed/avatars/0.png';
@@ -74,6 +75,13 @@ const GEO_SHAPES = {
     e2: '#F0F7FE'
   }
 };
+
+const LB_TABS = [
+  { id: 'ALL', label: 'ทั้งหมด', Icon: null },
+  { id: 'RICH', label: 'มีเงิน', Icon: Crown },
+  { id: 'BROKE', label: 'หมดตัว', Icon: CircleOff },
+  { id: 'DEBT', label: 'หนี้', Icon: TrendingDown }
+];
 
 const shortName = (p) => (p?.nickname?.trim() ? p.nickname.trim() : p?.displayName || 'สมาชิก');
 const netWorthOf = (p) => Number(p?.walletBalance || 0) + Math.max(0, Number(p?.bankBalance || 0));
@@ -138,6 +146,14 @@ export default function TopFloatingDeck({
   const otherDebt = ranking.debt.slice(1);
   const ownedCount = landmarks.filter((l) => l.owned).length;
 
+  const tabCounts = {
+    ALL: players.length,
+    RICH: ranking.rich.length,
+    BROKE: ranking.broke.length,
+    DEBT: ranking.debt.length
+  };
+  const activeLbTabIdx = Math.max(0, LB_TABS.findIndex((t) => t.id === lbTab));
+
   const orderedLandmarks = useMemo(() => {
     if (!selectedLmId) return landmarks;
     const picked = landmarks.find((l) => l.id === selectedLmId);
@@ -173,7 +189,7 @@ export default function TopFloatingDeck({
     const netCls = p.netWorth > 0 ? 'pos' : p.netWorth < 0 ? 'neg' : 'zero';
 
     return (
-      <PopItem key={p.userId} index={idx} className={rowCls}>
+      <PopItem key={p.userId} index={idx} step={0.025} maxStagger={12} className={rowCls}>
         <div className="lb-rank-num">
           {isTopSultan ? (
             <Crown {...ICON_BASE} size={14} />
@@ -220,7 +236,7 @@ export default function TopFloatingDeck({
   return (
     <>
       <section className="top-floating-deck" aria-label="แถบลอยแลนด์มาร์กและอันดับการเงิน">
-        {/* กล่องลอยแลนด์มาร์ก 5 โซน: เด้งเปิดตัวทีละรูปทรง */}
+        {/* กล่องลอยแลนด์มาร์ก 5 โซน */}
         <div className="lm-geo-deck" role="group" aria-label="แลนด์มาร์กริมหน้าต่าง 5 โซน">
           {landmarks.map((lm, i) => {
             const shape = GEO_SHAPES[lm.id] || GEO_SHAPES.RIVER;
@@ -262,7 +278,7 @@ export default function TopFloatingDeck({
           })}
         </div>
 
-        {/* แถบลอย Leaderboard: [สุลต่าน + รูปคนมีเงิน] | [ยาจก + รูปคนเป็นหนี้] */}
+        {/* แถบลอย Leaderboard */}
         <button
           type="button"
           className="lb-mini-bar"
@@ -339,7 +355,7 @@ export default function TopFloatingDeck({
         </button>
       </section>
 
-      {/* ลิ้นชักลอยรายละเอียดแลนด์มาร์ก (FloatingDrawer Portal ไม่ค้างบล็อกคลิก) */}
+      {/* ลิ้นชักลอยรายละเอียดแลนด์มาร์ก */}
       <FloatingDrawer isOpen={Boolean(selectedLmId)} onClose={() => setLandmarkDrawer(null)}>
         <div className="drawer-row-between">
           <div className="brand-title" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
@@ -398,88 +414,93 @@ export default function TopFloatingDeck({
         </div>
       </FloatingDrawer>
 
-      {/* หน้าต่าง Leaderboard เต็มรูปแบบ (PopModal Portal) */}
+      {/* 🏆 หน้าต่าง Leaderboard เต็มรูปแบบ (Sunflower Glow & Rose Champagne • ความสูงคงที่ + Pill Slider 4 ช่อง) */}
       <PopModal
         isOpen={lbOpen}
         onClose={() => setLbOpen(false)}
-        cardClassName="lb-modal-card"
+        cardClassName="smart-lb-modal"
       >
-        <div className="modal-header">
-          <div>
-            <div className="modal-title" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <Trophy {...ICON_BASE} size={18} />
-              <AnimatedText text="อันดับการเงิน Horizon Cafe" variant="pop" by="word" stagger={0.03} />
+        <div className="lb-hero-header">
+          <div className="lb-hero-top">
+            <div>
+              <span className="lb-hero-badge">
+                <Crown {...ICON_BASE} size={11} /> Horizon Wealth Hall
+              </span>
+              <h2 className="lb-hero-title">
+                <Trophy {...ICON_BASE} size={19} />
+                <AnimatedText text="อันดับการเงิน Horizon Cafe" variant="pop" by="word" stagger={0.028} />
+              </h2>
+              <p className="lb-hero-sub">
+                คำนวณจากยอดสุทธิรวม (กระเป๋า + ธนาคาร) • สมาชิกทั้งหมด {players.length} คน
+              </p>
             </div>
-            <div className="modal-sub">
-              คำนวณจากยอดสุทธิรวม (กระเป๋า + ธนาคาร) • สมาชิกทั้งหมด {players.length} คน
-            </div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <button
-              type="button"
-              className="btn-pill"
-              onClick={handleRefresh}
-              disabled={refreshing}
-              aria-label="รีเฟรชอันดับ"
-            >
-              <motion.span
-                animate={refreshing ? { rotate: 360 } : { rotate: 0 }}
-                transition={refreshing ? { repeat: Infinity, duration: 0.7, ease: 'linear' } : { duration: 0.2 }}
-                style={{ display: 'inline-flex', alignItems: 'center' }}
-              >
-                <RefreshCw {...ICON_BASE} size={14} />
-              </motion.span>
-            </button>
-            <button
-              type="button"
-              className="modal-close"
-              onClick={() => setLbOpen(false)}
-              aria-label="ปิด"
-            >
-              <X {...ICON_BASE} size={16} />
-            </button>
-          </div>
-        </div>
-
-        <div className="lb-filter-tabs">
-          {[
-            { id: 'ALL', label: `ทั้งหมด (${players.length})` },
-            { id: 'RICH', label: `มีเงิน (${ranking.rich.length})`, Icon: Crown },
-            { id: 'BROKE', label: `หมดตัว (${ranking.broke.length})`, Icon: CircleOff },
-            { id: 'DEBT', label: `หนี้ (${ranking.debt.length})`, Icon: TrendingDown }
-          ].map((t) => {
-            const TabIcon = t.Icon;
-            return (
+            <div className="lb-header-actions">
               <button
-                key={t.id}
                 type="button"
-                className={`lb-tab-btn ${lbTab === t.id ? 'active' : ''}`}
-                onClick={() => setLbTab(t.id)}
+                className="lb-action-circle"
+                onClick={handleRefresh}
+                disabled={refreshing}
+                aria-label="รีเฟรชอันดับ"
               >
-                {lbTab === t.id && (
-                  <motion.span
-                    layoutId="lb-tab-pill"
-                    className="lb-tab-pill-bg"
-                    transition={{ type: 'spring', stiffness: 420, damping: 32 }}
-                  />
-                )}
-                <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
-                  {TabIcon && <TabIcon {...ICON_BASE} size={12} />}
-                  {t.label}
-                </span>
+                <motion.span
+                  animate={refreshing ? { rotate: 360 } : { rotate: 0 }}
+                  transition={refreshing ? { repeat: Infinity, duration: 0.7, ease: 'linear' } : { duration: 0.2 }}
+                  style={{ display: 'inline-flex', alignItems: 'center' }}
+                >
+                  <RefreshCw {...ICON_BASE} size={15} />
+                </motion.span>
               </button>
-            );
-          })}
+              <button
+                type="button"
+                className="lb-action-circle"
+                onClick={() => setLbOpen(false)}
+                aria-label="ปิด"
+              >
+                <X {...ICON_BASE} size={16} />
+              </button>
+            </div>
+          </div>
         </div>
 
-        <div className="modal-body">
+        {/* 🎛️ แถบแท็บเลื่อน 4 ช่องแบบ Smooth Pill Slider */}
+        <div className="lb-segment-wrap">
+          <div className="lb-segment-track" role="tablist" aria-label="กรองอันดับการเงิน">
+            <motion.div
+              className="lb-segment-slider"
+              initial={false}
+              animate={{ x: `${activeLbTabIdx * 100}%` }}
+              transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+            />
+            {LB_TABS.map((t) => {
+              const TabIcon = t.Icon;
+              const isActive = lbTab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  className={`lb-segment-btn ${isActive ? 'is-active' : ''}`}
+                  onClick={() => setLbTab(t.id)}
+                >
+                  {TabIcon && <TabIcon {...ICON_BASE} size={12} />}
+                  <span>{t.label}</span>
+                  <span className="lb-tab-count">{tabCounts[t.id]}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 📜 พื้นที่รายการเลื่อนภายในความสูงคงที่ */}
+        <div className="lb-body-viewport">
           {(lbTab === 'ALL' || lbTab === 'RICH') && (
             <div className="lb-section-block">
-              <div className="lb-section-head">
+              <div className="lb-smart-section-head">
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                   <Crown {...ICON_BASE} size={14} /> รวยสุด ➔ มีเงิน
                 </span>
-                <span>{ranking.rich.length} คน</span>
+                <span className="lb-smart-section-pill">{ranking.rich.length} คน</span>
               </div>
               {ranking.rich.length === 0 ? (
                 <div className="statement-empty">ยังไม่มีใครถือทรัพย์สินสุทธิเป็นบวกเลยค่ะ</div>
@@ -491,11 +512,11 @@ export default function TopFloatingDeck({
 
           {(lbTab === 'ALL' || lbTab === 'BROKE') && (
             <div className="lb-section-block">
-              <div className="lb-section-head">
+              <div className="lb-smart-section-head">
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                   <CircleOff {...ICON_BASE} size={14} /> หมดตัว (0 เหรียญ)
                 </span>
-                <span>{ranking.broke.length} คน</span>
+                <span className="lb-smart-section-pill">{ranking.broke.length} คน</span>
               </div>
               {ranking.broke.length === 0 ? (
                 <div className="statement-empty">ไม่มีสมาชิกที่มียอด 0 เหรียญพอดีค่ะ</div>
@@ -507,11 +528,11 @@ export default function TopFloatingDeck({
 
           {(lbTab === 'ALL' || lbTab === 'DEBT') && (
             <div className="lb-section-block">
-              <div className="lb-section-head">
+              <div className="lb-smart-section-head">
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                   <TrendingDown {...ICON_BASE} size={14} /> จนที่สุด ➔ หนี้น้อยสุด
                 </span>
-                <span>{ranking.debt.length} คน</span>
+                <span className="lb-smart-section-pill">{ranking.debt.length} คน</span>
               </div>
               {ranking.debt.length === 0 ? (
                 <div className="statement-empty">เยี่ยมมาก! ตอนนี้ทั้งร้านยังไม่มีใครติดหนี้เลยค่ะ</div>

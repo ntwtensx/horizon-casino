@@ -1,0 +1,747 @@
+/* ================= Horizon Casino: Smart Modals (Bank: Mint Sky • Leaderboard: Sunflower Champagne) ================= */
+
+/* 🧱 โครงสร้างร่วมของ Smart Modal (ล็อกความสูงคงที่ทุกแท็บ ไม่เด้งไปมา) */
+.modal-card.smart-bank-modal,
+.modal-card.smart-lb-modal {
+  height: min(640px, 88dvh);
+  max-height: 88dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 26px;
+}
+
+.modal-card.smart-bank-modal {
+  width: min(560px, calc(100vw - 24px));
+  border: 1.5px solid rgba(173, 219, 206, 0.9);
+  background: linear-gradient(168deg, #fcfffd 0%, #f3fbf8 52%, #f4f9ff 100%);
+  box-shadow:
+    0 24px 60px -16px rgba(34, 102, 88, 0.24),
+    0 0 0 1px rgba(255, 255, 255, 0.88) inset;
+}
+
+.modal-card.smart-lb-modal {
+  width: min(590px, calc(100vw - 24px));
+  border: 1.5px solid rgba(240, 211, 165, 0.92);
+  background: linear-gradient(168deg, #fffefb 0%, #fffaf0 50%, #fff5f8 100%);
+  box-shadow:
+    0 24px 60px -16px rgba(145, 92, 34, 0.24),
+    0 0 0 1px rgba(255, 255, 255, 0.9) inset;
+}
+
+/* ================= 🏦 ส่วนที่ 1: ธนาคาร (Mint Vault & Forget-me-Not Sky) ================= */
+
+.bank-hero-header {
+  position: relative;
+  flex-shrink: 0;
+  padding: 17px 20px 14px;
+  overflow: hidden;
+  background: linear-gradient(125deg, #e5f8ee 0%, #dff2ff 54%, #f4fbe8 100%);
+  border-bottom: 1px solid rgba(176, 218, 208, 0.65);
+}
+
+.bank-hero-header::before,
+.bank-hero-header::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(18px);
+}
+
+.bank-hero-header::before {
+  width: 145px;
+  height: 145px;
+  top: -58px;
+  right: -24px;
+  background: rgba(161, 200, 245, 0.48);
+}
+
+.bank-hero-header::after {
+  width: 120px;
+  height: 120px;
+  bottom: -62px;
+  left: -18px;
+  background: rgba(167, 224, 188, 0.5);
+}
+
+.bank-hero-top {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.bank-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #1f6e5b;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(145, 208, 189, 0.78);
+  margin-bottom: 6px;
+  box-shadow: 0 2px 8px rgba(42, 133, 111, 0.12);
+}
+
+.bank-hero-title {
+  margin: 0;
+  font-size: 1.08rem;
+  font-weight: 800;
+  color: #184a45;
+  line-height: 1.28;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.bank-hero-sub {
+  margin: 4px 0 0;
+  font-size: 0.75rem;
+  color: #467370;
+}
+
+.bank-close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(154, 206, 194, 0.8);
+  background: rgba(255, 255, 255, 0.86);
+  color: #26635b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.16s ease, background 0.16s ease;
+}
+
+.bank-close-btn:hover {
+  background: #ffffff;
+  transform: scale(1.07);
+}
+
+/* แถบแท็บเลื่อน 2 ช่องของธนาคาร (Mint -> Teal -> Sky) */
+.bank-segment-wrap {
+  flex-shrink: 0;
+  padding: 11px 18px 10px;
+  background: rgba(255, 255, 255, 0.7);
+  border-bottom: 1px solid rgba(196, 228, 221, 0.7);
+}
+
+.bank-segment-track {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  padding: 4px;
+  border-radius: 16px;
+  background: #e7f4f1;
+  border: 1px solid rgba(169, 214, 204, 0.75);
+  box-shadow: inset 0 1px 3px rgba(27, 94, 83, 0.08);
+}
+
+.bank-segment-slider {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: calc(50% - 4px);
+  height: calc(100% - 8px);
+  border-radius: 12px;
+  background: linear-gradient(135deg, #35a882 0%, #3da6bf 56%, #5da1e8 100%);
+  box-shadow:
+    0 5px 14px -3px rgba(53, 168, 130, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.bank-segment-btn {
+  position: relative;
+  z-index: 1;
+  border: none;
+  background: transparent;
+  padding: 9px 10px;
+  border-radius: 12px;
+  font-size: 0.79rem;
+  font-weight: 800;
+  color: #3f6e6a;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: color 0.18s ease;
+}
+
+.bank-segment-btn.is-active {
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(17, 79, 69, 0.25);
+}
+
+.bank-body-viewport {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 14px 18px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  scrollbar-width: thin;
+  scrollbar-color: #b7ded3 transparent;
+}
+
+.bank-body-viewport::-webkit-scrollbar {
+  width: 6px;
+}
+
+.bank-body-viewport::-webkit-scrollbar-thumb {
+  background: #b7ded3;
+  border-radius: 999px;
+}
+
+/* การ์ดสรุปยอดกระเป๋า & ธนาคาร */
+.bank-smart-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.bank-smart-card {
+  position: relative;
+  overflow: hidden;
+  padding: 12px 13px;
+  border-radius: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bank-smart-card.wallet {
+  background: linear-gradient(145deg, #ffffff 0%, #eff8ff 60%, #e4f1ff 100%);
+  border: 1.5px solid #bdd9f5;
+  box-shadow: 0 6px 16px -8px rgba(72, 134, 204, 0.28);
+}
+
+.bank-smart-card.vault {
+  background: linear-gradient(145deg, #ffffff 0%, #ebfaf2 58%, #daf4e5 100%);
+  border: 1.5px solid #a8dec0;
+  box-shadow: 0 6px 16px -8px rgba(48, 150, 102, 0.28);
+}
+
+.bank-smart-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #3f6870;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.bank-smart-num {
+  font-size: 1.24rem;
+  font-weight: 800;
+  color: #194b5e;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  line-height: 1.18;
+}
+
+.bank-smart-card.vault .bank-smart-num {
+  color: #196949;
+}
+
+.bank-smart-num.negative {
+  color: #b82c4c;
+}
+
+.bank-smart-hint {
+  font-size: 0.67rem;
+  color: #5c7d82;
+}
+
+/* แผงฝาก-ถอนสไตล์ Mint Glass */
+.bank-smart-panel {
+  padding: 13px 14px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1.5px solid #cde6df;
+  box-shadow: 0 8px 22px -12px rgba(34, 112, 95, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* สวิตช์ย่อย ฝาก / ถอน แบบ Pill Slide */
+.bank-sub-track {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  padding: 3px;
+  border-radius: 13px;
+  background: #edf6f4;
+  border: 1px solid #cfe6e0;
+}
+
+.bank-sub-slider {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: calc(50% - 3px);
+  height: calc(100% - 6px);
+  border-radius: 10px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.bank-sub-slider.is-deposit {
+  background: linear-gradient(135deg, #3cb37c 0%, #64cca0 100%);
+  box-shadow: 0 4px 10px -2px rgba(60, 179, 124, 0.45);
+}
+
+.bank-sub-slider.is-withdraw {
+  background: linear-gradient(135deg, #4b9ce2 0%, #6cbcf0 100%);
+  box-shadow: 0 4px 10px -2px rgba(75, 156, 226, 0.45);
+}
+
+.bank-sub-btn {
+  position: relative;
+  z-index: 1;
+  border: none;
+  background: transparent;
+  padding: 8px 8px;
+  border-radius: 10px;
+  font-size: 0.77rem;
+  font-weight: 800;
+  color: #4b7370;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  transition: color 0.16s ease;
+}
+
+.bank-sub-btn.is-active {
+  color: #ffffff;
+}
+
+.bank-amount-input {
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: 14px;
+  border: 1.5px solid #c9e3dc;
+  background: #f9fdfc;
+  color: #184a45;
+  font-size: 0.92rem;
+  font-weight: 700;
+  outline: none;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+}
+
+.bank-amount-input::placeholder {
+  color: #82a3a0;
+  font-weight: 500;
+}
+
+.bank-amount-input:focus {
+  border-color: #46b296;
+  background: #ffffff;
+  box-shadow: 0 0 0 3.5px rgba(70, 178, 150, 0.18);
+}
+
+.bank-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.bank-quick-chip {
+  border: 1px solid #bfe0d7;
+  background: #effaf6;
+  color: #1e6b58;
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 0.73rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.14s ease, background 0.14s ease, border-color 0.14s ease;
+}
+
+.bank-quick-chip:hover:not(:disabled) {
+  background: #dcf4eb;
+  border-color: #7cc9b2;
+  transform: translateY(-1px);
+}
+
+.bank-quick-chip:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+.bank-submit-btn {
+  width: 100%;
+  padding: 11px 16px;
+  border: none;
+  border-radius: 15px;
+  color: #ffffff;
+  font-size: 0.86rem;
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+
+.bank-submit-btn.deposit {
+  background: linear-gradient(135deg, #32a87b 0%, #44b59c 55%, #55a8df 100%);
+  box-shadow: 0 10px 20px -8px rgba(50, 168, 123, 0.55);
+}
+
+.bank-submit-btn.withdraw {
+  background: linear-gradient(135deg, #4392df 0%, #56b0e6 60%, #4ec2a8 100%);
+  box-shadow: 0 10px 20px -8px rgba(67, 146, 223, 0.55);
+}
+
+.bank-submit-btn:hover:not(:disabled) {
+  transform: translateY(-1.5px);
+}
+
+.bank-submit-btn:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.bank-smart-rules {
+  padding: 12px 14px;
+  border-radius: 17px;
+  background: linear-gradient(135deg, #eff9f6 0%, #eef6ff 100%);
+  border: 1px solid #cce3df;
+  font-size: 0.74rem;
+  color: #365c5d;
+  line-height: 1.5;
+}
+
+.bank-smart-rules strong {
+  color: #1c5750;
+}
+
+.bank-smart-rules ul {
+  margin: 6px 0 0;
+  padding-left: 17px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bank-refresh-btn {
+  border: 1px solid #bddfd7;
+  background: #ffffff;
+  color: #216b5b;
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 0.73rem;
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.bank-refresh-btn:hover:not(:disabled) {
+  background: #ebf8f4;
+  transform: translateY(-1px);
+}
+
+/* ================= 🏆 ส่วนที่ 2: Leaderboard (Sunflower Glow & Rose Champagne) ================= */
+
+.lb-hero-header {
+  position: relative;
+  flex-shrink: 0;
+  padding: 17px 20px 14px;
+  overflow: hidden;
+  background: linear-gradient(125deg, #fff6d4 0%, #ffebd6 50%, #ffe6ef 100%);
+  border-bottom: 1px solid rgba(235, 199, 152, 0.65);
+}
+
+.lb-hero-header::before,
+.lb-hero-header::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(18px);
+}
+
+.lb-hero-header::before {
+  width: 150px;
+  height: 150px;
+  top: -58px;
+  right: -26px;
+  background: rgba(255, 209, 102, 0.48);
+}
+
+.lb-hero-header::after {
+  width: 120px;
+  height: 120px;
+  bottom: -64px;
+  left: -18px;
+  background: rgba(255, 178, 198, 0.45);
+}
+
+.lb-hero-top {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.lb-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #995511;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(235, 191, 122, 0.8);
+  margin-bottom: 6px;
+  box-shadow: 0 2px 8px rgba(186, 121, 36, 0.14);
+}
+
+.lb-hero-title {
+  margin: 0;
+  font-size: 1.08rem;
+  font-weight: 800;
+  color: #5c3312;
+  line-height: 1.28;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.lb-hero-sub {
+  margin: 4px 0 0;
+  font-size: 0.75rem;
+  color: #875e42;
+}
+
+.lb-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.lb-action-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(227, 186, 134, 0.85);
+  background: rgba(255, 255, 255, 0.86);
+  color: #82491b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.16s ease, background 0.16s ease;
+}
+
+.lb-action-circle:hover:not(:disabled) {
+  background: #ffffff;
+  transform: scale(1.07);
+}
+
+/* แถบแท็บเลื่อน 4 ช่องของ Leaderboard (Sunflower Gold -> Peony Rose) */
+.lb-segment-wrap {
+  flex-shrink: 0;
+  padding: 11px 16px 10px;
+  background: rgba(255, 255, 255, 0.72);
+  border-bottom: 1px solid rgba(240, 214, 180, 0.68);
+}
+
+.lb-segment-track {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  padding: 4px;
+  border-radius: 16px;
+  background: #faf0e1;
+  border: 1px solid rgba(235, 203, 160, 0.8);
+  box-shadow: inset 0 1px 3px rgba(145, 92, 34, 0.08);
+}
+
+.lb-segment-slider {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: calc(25% - 2px);
+  height: calc(100% - 8px);
+  border-radius: 12px;
+  background: linear-gradient(135deg, #e5a33b 0%, #e6826b 55%, #de759a 100%);
+  box-shadow:
+    0 5px 14px -3px rgba(224, 132, 108, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.42);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.lb-segment-btn {
+  position: relative;
+  z-index: 1;
+  border: none;
+  background: transparent;
+  padding: 8px 4px;
+  border-radius: 12px;
+  font-size: 0.73rem;
+  font-weight: 800;
+  color: #825d42;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  white-space: nowrap;
+  transition: color 0.18s ease;
+}
+
+.lb-segment-btn.is-active {
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(112, 48, 28, 0.25);
+}
+
+.lb-tab-count {
+  font-size: 0.64rem;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: rgba(130, 93, 66, 0.12);
+}
+
+.lb-segment-btn.is-active .lb-tab-count {
+  background: rgba(255, 255, 255, 0.26);
+  color: #ffffff;
+}
+
+.lb-body-viewport {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 14px 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  scrollbar-width: thin;
+  scrollbar-color: #ebc99d transparent;
+}
+
+.lb-body-viewport::-webkit-scrollbar {
+  width: 6px;
+}
+
+.lb-body-viewport::-webkit-scrollbar-thumb {
+  background: #ebc99d;
+  border-radius: 999px;
+}
+
+.lb-smart-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 4px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #8c4e1f;
+}
+
+.lb-smart-section-pill {
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: #fdf0db;
+  color: #8f541c;
+  border: 1px solid #edd2a8;
+}
+
+.smart-lb-modal .lb-player-row {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1.5px solid #f0dfc8;
+  box-shadow: 0 3px 10px -5px rgba(138, 86, 36, 0.12);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.smart-lb-modal .lb-player-row:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 7px 16px -6px rgba(168, 108, 48, 0.2);
+}
+
+.smart-lb-modal .lb-player-row.rank-sultan {
+  background: linear-gradient(135deg, #fffdf0 0%, #ffeba3 65%, #ffe1d6 100%);
+  border-color: #e4b14a;
+  box-shadow: 0 8px 20px -8px rgba(224, 168, 52, 0.45);
+}
+
+.smart-lb-modal .lb-player-row.rank-beggar {
+  background: linear-gradient(135deg, #fff6f8 0%, #ffd9e3 100%);
+  border-color: #e390a4;
+}
+
+.smart-lb-modal .lb-player-row.is-me {
+  box-shadow: 0 0 0 2px rgba(224, 134, 104, 0.45);
+}
+
+@media (max-width: 560px) {
+  .modal-card.smart-bank-modal,
+  .modal-card.smart-lb-modal {
+    height: min(600px, 90dvh);
+    max-height: 90dvh;
+    border-radius: 22px;
+  }
+
+  .bank-hero-header,
+  .lb-hero-header {
+    padding: 14px 16px 12px;
+  }
+
+  .bank-segment-wrap,
+  .lb-segment-wrap {
+    padding: 9px 12px 8px;
+  }
+
+  .bank-body-viewport,
+  .lb-body-viewport {
+    padding: 12px 13px 16px;
+  }
+
+  .lb-segment-btn {
+    font-size: 0.67rem;
+    padding: 7px 2px;
+    gap: 2px;
+  }
+
+  .lb-tab-count {
+    display: none;
+  }
+
+  .bank-smart-num {
+    font-size: 1.08rem;
+  }
+}
